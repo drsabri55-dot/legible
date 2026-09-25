@@ -996,7 +996,21 @@ export class StoryEngine {
     // The ink scrim under the type column deepens with how much lit surface
     // the frame holds, so the headline keeps its contrast the whole way in.
     const scrim = this.q("scrim");
-    if (scrim) {
+    if (scrim && innerWidth < 640) {
+      // Phones: the text column spans the whole screen, so the design's
+      // left-to-right scrim leaves headlines over the lit moon (measured
+      // about 2:1). Here the ink covers the full width instead, deepening as
+      // the moon grows, which keeps text above 4.5:1 over the brightest
+      // regolith.
+      const need = cl((this.mrn - 0.045) / 0.1);
+      const e = this.d(scrim, "d", 0.3 + 0.7 * need, r(0.12));
+      scrim.style.opacity = e.toFixed(3);
+      const rec = this.v(scrim);
+      if (rec.gk !== -1) {
+        rec.gk = -1;
+        scrim.style.background = "rgba(6,7,13,0.78)";
+      }
+    } else if (scrim) {
       const need = cl((this.mrn - 0.2) / 0.62);
       const e = this.d(scrim, "d", 0.34 + 0.66 * need, r(0.12));
       scrim.style.opacity = e.toFixed(3);

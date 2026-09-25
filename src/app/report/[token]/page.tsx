@@ -258,8 +258,8 @@ function IssueBlock({ issue, n }: { issue: Issue; n: string }) {
       {issue.moreSelectors.length > 0 && (
         <div className="rp-more">
           <p>
-            {issue.instances - issue.examples.length} more {issue.instances - issue.examples.length === 1 ? "element" : "elements"} with
-            the same problem
+            <strong>For your developer:</strong> {issue.instances - issue.examples.length} more{" "}
+            {issue.instances - issue.examples.length === 1 ? "element" : "elements"} with the same problem
             {issue.instances - issue.examples.length > issue.moreSelectors.length
               ? `, including these ${issue.moreSelectors.length}`
               : ""}
@@ -419,7 +419,10 @@ export default async function ReportPage(props: PageProps<"/report/[token]">) {
             <span>Legible</span>
           </Link>
           <div className="rp-actions">
-            <Link href="/account">Your reports</Link>
+            <Link href="/account">
+              <span className="rp-long">Your reports</span>
+              <span className="rp-short">Reports</span>
+            </Link>
             <a className="btn btn-primary btn-cta" href={`/report/${token}/pdf`}>
               Download PDF
             </a>

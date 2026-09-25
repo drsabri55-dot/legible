@@ -72,7 +72,8 @@
   font-size: 10px;
   letter-spacing: 0.24em;
   text-transform: uppercase;
-  color: var(--color-neutral-600);
+  /* neutral-500, not the design's neutral-600 (4.1:1, below 4.5:1). */
+  color: var(--color-neutral-500);
 }
 
 /* ── background layers ────────────────────────────────────────── */
@@ -207,6 +208,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
+  min-height: 24px;
   color: inherit;
   text-decoration: none;
 }
@@ -702,8 +704,8 @@
 .footerLinks {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px 18px;
-  margin: 4px 0 0;
+  gap: 0 18px;
+  margin: 0;
   padding: 0;
   list-style: none;
   font-size: 11px;
@@ -711,6 +713,9 @@
   text-transform: uppercase;
 }
 .footerLinks a {
+  /* 24px tall tap area (WCAG 2.2 target size) without changing the look. */
+  display: inline-block;
+  padding: 5px 0;
   color: var(--color-neutral-400);
   text-decoration: none;
 }

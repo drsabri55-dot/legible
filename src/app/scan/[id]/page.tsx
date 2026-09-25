@@ -109,7 +109,8 @@ export default async function ScanPage(props: PageProps<"/scan/[id]">) {
           <SeverityBars counts={s.counts} />
         </div>
         <p className="mt-6 text-[14px] text-nc-neutral-400">
-          Must fix: {s.groupCounts.must} · Should fix: {s.groupCounts.should} · Nice to have: {s.groupCounts.nice}
+          Kinds of issue by group: must fix {s.groupCounts.must}, should fix {s.groupCounts.should}, nice to have{" "}
+          {s.groupCounts.nice}
         </p>
       </section>
 

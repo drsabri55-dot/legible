@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { expectNoWcagViolations } from "./helpers";
+import { expectNoWcagViolations, textOverCanvasFailures } from "./helpers";
 
 test.describe("landing page, reduced motion", () => {
   test.use({ reducedMotion: "reduce" });
@@ -75,4 +75,32 @@ test.describe("landing page, full motion", () => {
     await expect(page.locator('[data-a="total"]')).toHaveText("143", { timeout: 10_000 });
     expect(errors).toEqual([]);
   });
+});
+
+test.describe("landing page text over the moon", () => {
+  test.use({ reducedMotion: "reduce" });
+
+  for (const [width, height] of [
+    [320, 800],
+    [768, 1024],
+    [1440, 900],
+  ]) {
+    test(`keeps its contrast at ${width}px wide`, async ({ page }) => {
+      await page.setViewportSize({ width, height });
+      await page.goto("/");
+      await page.waitForTimeout(800); // the moon texture loads
+      const chapters = await page.evaluate(() =>
+        [...document.querySelectorAll("[data-chap]")].map((s) => [s.getBoundingClientRect().top + scrollY, s.clientHeight]),
+      );
+      const failures: string[] = [];
+      for (const [i, [top, h]] of chapters.entries()) {
+        for (const frac of [0, 0.5]) {
+          await page.evaluate((y) => window.scrollTo(0, y), top + frac * Math.max(0, h - height));
+          await page.waitForTimeout(300);
+          for (const f of await textOverCanvasFailures(page)) failures.push(`chapter ${i + 1}: ${f}`);
+        }
+      }
+      expect(failures).toEqual([]);
+    });
+  }
 });

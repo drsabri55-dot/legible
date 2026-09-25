@@ -49,8 +49,26 @@
   font-size: 13px;
 }
 .rp-actions a:not(.btn) {
+  display: inline-block;
+  padding: 4px 0;
   color: var(--color-neutral-300);
   text-decoration: none;
+  white-space: nowrap;
+}
+.rp-short {
+  display: none;
+}
+@media (max-width: 420px) {
+  .rp-long {
+    display: none;
+  }
+  .rp-short {
+    display: inline;
+  }
+}
+.rp-more strong {
+  color: var(--rp-ink);
+  font-weight: 600;
 }
 .rp-actions a:not(.btn):hover {
   color: var(--color-accent-200);
@@ -124,15 +142,27 @@
   content: "";
   position: absolute;
   right: -110px;
-  top: 40px;
+  /* Below the top row, so the report number never sits on the moon. */
+  top: 84px;
   width: 360px;
   height: 360px;
+  /* The photo's disc (radius 43.15% of its short side, centre 49.85% /
+     50.64%, as measured in the landing engine) scaled to fill this circle.
+     A plain round clip, no mask or filter: those printed with a dark band
+     and a step along the edge. A hard limb also matches the design. */
   border-radius: 50%;
-  background: url("/moon-plate.webp") center / 118% no-repeat;
+  background: url("/moon-plate.webp") 49.2% 54.6% / 121.8% auto no-repeat;
   opacity: 0.5;
-  filter: grayscale(1) contrast(1.05);
-  mask-image: radial-gradient(circle at 50% 50%, #000 62%, transparent 70%);
-  -webkit-mask-image: radial-gradient(circle at 50% 50%, #000 62%, transparent 70%);
+}
+@media (max-width: 480px) {
+  /* Small phones: keep the moon clear of the site name and the score. */
+  .rp-cover::after {
+    right: -120px;
+    top: 72px;
+    width: 220px;
+    height: 220px;
+    opacity: 0.3;
+  }
 }
 .rp-cover > * {
   position: relative;
@@ -635,7 +665,7 @@
   }
   .rp-cover::after {
     right: -40mm;
-    top: 18mm;
+    top: 34mm;
     width: 120mm;
     height: 120mm;
   }

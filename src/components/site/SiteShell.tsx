@@ -25,7 +25,7 @@ export function SiteShell({ children, width = "normal" }: { children: React.Reac
         <header className="flex h-16 items-center justify-between gap-4">
           <Brand />
           <nav aria-label="Account">
-            <Link href="/account" className="text-[13px] text-nc-neutral-300 no-underline hover:text-nc-accent-200">
+            <Link href="/account" className="inline-block py-1 text-[13px] text-nc-neutral-300 no-underline hover:text-nc-accent-200">
               Your reports
             </Link>
           </nav>
@@ -38,7 +38,7 @@ export function SiteShell({ children, width = "normal" }: { children: React.Reac
             An independent audit. No overlay widgets.
           </p>
           <p className="mt-3 max-w-[62ch]">{DISCLAIMER}</p>
-          <ul className="mt-3 flex list-none flex-wrap gap-x-[18px] gap-y-[6px] p-0 text-[11px] uppercase tracking-[0.16em]">
+          <ul className="mt-2 flex list-none flex-wrap gap-x-[18px] p-0 text-[11px] uppercase tracking-[0.16em]">
             {[
               ["/", "Home"],
               ["/terms", "Terms"],
@@ -47,7 +47,7 @@ export function SiteShell({ children, width = "normal" }: { children: React.Reac
               ["/bot", "About our scanner"],
             ].map(([href, label]) => (
               <li key={href}>
-                <Link href={href} className="text-nc-neutral-400 no-underline hover:text-nc-accent-200 hover:underline">
+                <Link href={href} className="inline-block py-[5px] text-nc-neutral-400 no-underline hover:text-nc-accent-200 hover:underline">
                   {label}
                 </Link>
               </li>
