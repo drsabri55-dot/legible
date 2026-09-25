@@ -86,7 +86,7 @@ export default async function ScanPage(props: PageProps<"/scan/[id]">) {
       <Kicker>Free result</Kicker>
       <div className="mt-6 flex flex-wrap items-center gap-x-10 gap-y-6">
         <ScoreRing score={s.score} />
-        <div className="min-w-0 flex-1">
+        <div className="min-w-0 flex-[1_1_18rem]">
           <h1 className="m-0 text-[clamp(30px,4vw,48px)] leading-[1.1] tracking-[-0.025em] break-words">{s.site}</h1>
           <p className="mt-3 mb-0 max-w-[46ch] text-[15px] leading-[1.8] text-nc-neutral-300">
             Scored {s.score ?? "–"} out of 100, measured against WCAG 2.1 Level AA across {s.pagesScanned}{" "}

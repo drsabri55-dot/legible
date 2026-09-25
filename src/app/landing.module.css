@@ -718,3 +718,20 @@
   color: var(--color-accent-200);
   text-decoration: underline;
 }
+
+/* ── phones ───────────────────────────────────────────────────────
+   Two adjustments the design did not cover at this width. */
+@media (max-width: 640px) {
+  /* The vertical chapter label would sit on top of the text column. */
+  .edge {
+    display: none;
+  }
+}
+@media (max-width: 520px) {
+  /* On a narrow rail the "0 failures" label would collide with the score
+     marker, so it moves above the rail's end. */
+  .aaLabel {
+    top: -48px;
+    right: 0;
+  }
+}
