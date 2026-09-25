@@ -33,6 +33,13 @@ export async function sendEmail(input: SendInput): Promise<string | null> {
   const key = env.resendApiKey();
   if (!key) {
     if (env.isVercelProduction()) throw new Error("RESEND_API_KEY is not set, so email cannot be sent.");
+    if (process.env.VERCEL === "1") {
+      // A Vercel preview without email set up: the disk is read-only, so the
+      // email is only logged (visible in the deployment's logs).
+      console.log(`[email not sent: no RESEND_API_KEY] ${input.template} to ${input.to}: "${email.subject}"`);
+      await logEmail(input.to, input.template, null);
+      return null;
+    }
     const dir = path.join(process.cwd(), ".data", "outbox");
     await mkdir(dir, { recursive: true });
     const stamp = new Date().toISOString().replace(/[:.]/g, "-");
