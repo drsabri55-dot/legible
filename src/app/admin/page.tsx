@@ -40,7 +40,7 @@ export default async function AdminPage() {
           <tbody>
             {rows.map((r) => (
               <tr key={r.period} className="border-b border-white/[0.06] tabular-nums">
-                <th scope="row" className="py-3 pr-4 text-left font-normal text-nc-neutral-200">
+                <th scope="row" className="py-3 pr-4 text-left font-normal whitespace-nowrap text-nc-neutral-200">
                   {r.period}
                 </th>
                 <td className="py-3 pr-4">{r.scans}</td>
