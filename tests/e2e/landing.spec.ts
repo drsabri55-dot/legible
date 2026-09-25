@@ -1,0 +1,78 @@
+import { expect, test } from "@playwright/test";
+import { expectNoWcagViolations } from "./helpers";
+
+test.describe("landing page, reduced motion", () => {
+  test.use({ reducedMotion: "reduce" });
+
+  test("shows all seven chapters with the approved copy and no loading gate", async ({ page }) => {
+    await page.goto("/");
+    await expect(page).toHaveTitle("Legible — accessibility reports for small business websites");
+    await expect(page.locator("[data-chap]")).toHaveCount(7);
+    await expect(page.locator('[data-a="gate"]')).toBeHidden();
+    const text = await page.locator("main").innerText();
+    for (const line of [
+      "Legible tests your site against WCAG 2.1 AA and shows you exactly what to fix.",
+      "What Legible is, and why the trip is worth taking.",
+      "Readable findings",
+      "Fixes in priority order",
+      "A dated record",
+      "What a screen reader hears on a typical checkout page.",
+      "Button has no accessible name",
+      "Label contrast is 2.3:1, below the 4.5:1 minimum",
+      "failures, not warnings",
+      "Twelve of them stop someone from finishing the form today. Everything else queues behind those.",
+      "32 points to go. Twelve fixes close most of the gap.",
+      "The full report covers every failure with corrected code, for a one-time $99.",
+    ]) {
+      expect(text).toContain(line);
+    }
+    // The accessible name is what a screen reader announces: the sentence
+    // once, not the animated word copies.
+    await expect(page.getByRole("heading", { level: 1 })).toHaveAccessibleName(
+      "Every site claims to be accessible. Few are ever read as one.",
+    );
+    await expect(page.getByRole("heading", { name: "Enter your site and we will test it." })).toBeVisible();
+    await expect(page.locator("footer")).toContainText(
+      "Legible identifies issues measured against WCAG 2.1 Level AA. Automated testing cannot detect every issue, so manual review is recommended.",
+    );
+    await expect(page.locator("footer")).toContainText("An independent audit. No overlay widgets.");
+  });
+
+  test("passes WCAG 2.1 A and AA checks itself", async ({ page }) => {
+    await page.goto("/");
+    await expectNoWcagViolations(page);
+  });
+
+  test("checks the address before starting a scan", async ({ page }) => {
+    await page.goto("/");
+    const field = page.getByLabel("Website address");
+    await field.fill("not a website");
+    await page.getByRole("button", { name: "Scan a site" }).click();
+    await expect(page.getByText("Enter a website address, like yourbusiness.com.")).toBeVisible();
+    await expect(field).toHaveAttribute("aria-invalid", "true");
+  });
+});
+
+test.describe("landing page, full motion", () => {
+  test.use({ reducedMotion: "no-preference" });
+
+  test("plays the loading gate, then the scroll story", async ({ page }) => {
+    const errors: string[] = [];
+    page.on("pageerror", (e) => errors.push(e.message));
+    await page.goto("/");
+    await expect(page.locator('[data-a="gate"]')).toBeVisible();
+    await expect(page.locator('[data-a="gate"]')).toBeHidden({ timeout: 6000 });
+    // Headlines are split into animated words, with the sentence kept once
+    // for screen readers.
+    await expect(page.locator('[data-a="ink0"] [data-split] > span')).toHaveCount(12);
+    await expect(page.locator('[data-a="ink0"] .sr-only')).toHaveText(
+      "Every site claims to be accessible. Few are ever read as one.",
+    );
+
+    const top = await page.locator('[data-a="s3"]').evaluate((el) => el.getBoundingClientRect().top + window.scrollY);
+    await page.evaluate((y) => window.scrollTo(0, y + 900), top);
+    await expect(page.locator('[data-a="idx"]')).toHaveText("05 / 07");
+    await expect(page.locator('[data-a="total"]')).toHaveText("143", { timeout: 10_000 });
+    expect(errors).toEqual([]);
+  });
+});

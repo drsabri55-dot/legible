@@ -10,6 +10,9 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  // The end-to-end tests build into their own folder so they never disturb
+  // a running `npm run dev`.
+  distDir: process.env.NEXT_DIST_DIR || ".next",
   // Email templates are read from disk at run time; make sure Vercel ships them.
   outputFileTracingIncludes: {
     "/*": ["./emails/**/*.html"],

@@ -91,183 +91,192 @@
   --font-sans: var(--font-inter), system-ui, sans-serif;
 }
 
-html,
-body {
-  margin: 0;
-  padding: 0;
-  background: var(--color-bg);
-}
-body {
-  color: var(--color-text);
-  font-family: var(--font-body);
-  font-size: 15px;
-  line-height: 1.55;
-  -webkit-font-smoothing: antialiased;
-}
-h1,
-h2,
-h3,
-h4 {
-  font-family: var(--font-heading);
-  font-weight: 500;
-}
-h1,
-h2,
-p {
-  text-wrap: pretty;
-}
-a {
-  color: var(--color-accent-300);
-  text-underline-offset: 3px;
-}
-a:hover {
-  color: var(--color-accent-200);
-}
-:focus {
-  outline: none;
-}
-:focus-visible {
-  outline: 2px solid var(--color-accent-400);
-  outline-offset: 2px;
-}
-::selection {
-  background: color-mix(in srgb, var(--color-accent) 30%, transparent);
-}
-
-/* Nocturne components (design system classes). */
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  cursor: pointer;
-  text-decoration: none;
-  font-family: var(--font-heading);
-  font-weight: 500;
-  font-size: 13px;
-  line-height: 1.2;
-  color: var(--color-text);
-  background: transparent;
-  border: 1px solid transparent;
-  padding: calc(5.6px * 0.85) 8.4px;
-  border-radius: var(--radius-md);
-}
-.btn:disabled,
-.btn[aria-disabled="true"] {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
-.btn-primary {
-  color: var(--color-accent);
-  border-color: var(--color-accent);
-}
-.btn-primary:hover {
-  background: color-mix(in srgb, var(--color-accent) 12%, transparent);
-}
-.btn-primary:active {
-  background: color-mix(in srgb, var(--color-accent) 22%, transparent);
-}
-.btn-secondary {
-  border-color: var(--color-divider);
-}
-.btn-secondary:hover {
-  background: color-mix(in srgb, var(--color-text) 7%, transparent);
-}
-.input {
-  width: 100%;
-  min-height: 36px;
-  padding: 6px 10px;
-  font: inherit;
-  font-size: 14px;
-  color: var(--color-text);
-  caret-color: var(--color-accent);
-  background: var(--color-surface);
-  border: 1px solid var(--color-divider);
-  border-radius: var(--radius-md);
-}
-.input:hover {
-  border-color: color-mix(in srgb, var(--color-text) 45%, transparent);
-}
-.input:focus-visible {
-  border-color: var(--color-accent);
-  outline-offset: 0;
+/* Element defaults and design-system classes live in Tailwind's layers so
+   utility classes on an element always win over them. */
+@layer base {
+  html,
+  body {
+    margin: 0;
+    padding: 0;
+    background: var(--color-bg);
+  }
+  body {
+    color: var(--color-text);
+    font-family: var(--font-body);
+    font-size: 15px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-heading);
+    font-weight: 500;
+  }
+  h1,
+  h2,
+  p {
+    text-wrap: pretty;
+  }
+  a {
+    color: var(--color-accent-300);
+    /* Tailwind's reset removes link underlines; the design keeps them. */
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+  }
+  a:hover {
+    color: var(--color-accent-200);
+  }
+  :focus {
+    outline: none;
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-accent-400);
+    outline-offset: 2px;
+  }
+  ::selection {
+    background: color-mix(in srgb, var(--color-accent) 30%, transparent);
+  }
 }
 
-/* The large call-to-action button used across the site: the landing form's
-   "Scan a site" style, from the design. */
-.btn-cta {
-  font-size: 14px;
-  white-space: nowrap;
-  padding: 10px 16px;
-  background: oklch(0.38 0.05 280);
-  border-color: var(--color-accent-300);
-  color: #fff;
-}
-.btn-cta:hover {
-  background: oklch(0.43 0.06 280);
-  color: #fff;
-}
-.input-strong {
-  font-size: 15px;
-  min-height: 44px;
-  background: oklch(0.34 0.016 266);
-  border: 1px solid var(--color-neutral-300);
-  color: #fff;
-}
-.input-strong::placeholder {
-  color: var(--color-neutral-200);
-  opacity: 1;
-}
-.input-strong:focus {
-  outline: 2px solid var(--color-accent-400);
-  outline-offset: 2px;
-  border-color: var(--color-accent-300);
-}
+@layer components {
+  /* Nocturne components (design system classes). */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    cursor: pointer;
+    text-decoration: none;
+    font-family: var(--font-heading);
+    font-weight: 500;
+    font-size: 13px;
+    line-height: 1.2;
+    color: var(--color-text);
+    background: transparent;
+    border: 1px solid transparent;
+    padding: calc(5.6px * 0.85) 8.4px;
+    border-radius: var(--radius-md);
+  }
+  .btn:disabled,
+  .btn[aria-disabled="true"] {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+  .btn-primary {
+    color: var(--color-accent);
+    border-color: var(--color-accent);
+  }
+  .btn-primary:hover {
+    background: color-mix(in srgb, var(--color-accent) 12%, transparent);
+  }
+  .btn-primary:active {
+    background: color-mix(in srgb, var(--color-accent) 22%, transparent);
+  }
+  .btn-secondary {
+    border-color: var(--color-divider);
+  }
+  .btn-secondary:hover {
+    background: color-mix(in srgb, var(--color-text) 7%, transparent);
+  }
+  .input {
+    width: 100%;
+    min-height: 36px;
+    padding: 6px 10px;
+    font: inherit;
+    font-size: 14px;
+    color: var(--color-text);
+    caret-color: var(--color-accent);
+    background: var(--color-surface);
+    border: 1px solid var(--color-divider);
+    border-radius: var(--radius-md);
+  }
+  .input:hover {
+    border-color: color-mix(in srgb, var(--color-text) 45%, transparent);
+  }
+  .input:focus-visible {
+    border-color: var(--color-accent);
+    outline-offset: 0;
+  }
 
-/* Small-caps label with a short accent rule, the chapter marker from the design. */
-.kicker {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  font-size: 11px;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: var(--color-neutral-500);
-  font-variant-numeric: tabular-nums;
-}
-.kicker::before {
-  content: "";
-  display: block;
-  width: 26px;
-  height: 1px;
-  background: var(--color-accent-500);
-}
+  /* The large call-to-action button used across the site: the landing form's
+     "Scan a site" style, from the design. */
+  .btn-cta {
+    font-size: 14px;
+    white-space: nowrap;
+    padding: 10px 16px;
+    background: oklch(0.38 0.05 280);
+    border-color: var(--color-accent-300);
+    color: #fff;
+  }
+  .btn-cta:hover {
+    background: oklch(0.43 0.06 280);
+    color: #fff;
+  }
+  .input-strong {
+    font-size: 15px;
+    min-height: 44px;
+    background: oklch(0.34 0.016 266);
+    border: 1px solid var(--color-neutral-300);
+    color: #fff;
+  }
+  .input-strong::placeholder {
+    color: var(--color-neutral-200);
+    opacity: 1;
+  }
+  .input-strong:focus {
+    outline: 2px solid var(--color-accent-400);
+    outline-offset: 2px;
+    border-color: var(--color-accent-300);
+  }
 
-.hr-fade {
-  height: 1px;
-  border: 0;
-  background: linear-gradient(
-    to right,
-    transparent,
-    var(--color-divider) 48px,
-    var(--color-divider) calc(100% - 48px),
-    transparent
-  );
-}
+  /* Small-caps label with a short accent rule, the chapter marker from the design. */
+  .kicker {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--color-neutral-500);
+    font-variant-numeric: tabular-nums;
+  }
+  .kicker::before {
+    content: "";
+    display: block;
+    width: 26px;
+    height: 1px;
+    background: var(--color-accent-500);
+  }
 
-.skip-link {
-  position: absolute;
-  left: 16px;
-  top: -100px;
-  z-index: 100;
-  padding: 8px 14px;
-  border-radius: var(--radius-md);
-  background: var(--color-surface);
-  color: var(--color-text);
-  box-shadow: var(--shadow-md);
-}
-.skip-link:focus {
-  top: 12px;
+  .hr-fade {
+    height: 1px;
+    border: 0;
+    background: linear-gradient(
+      to right,
+      transparent,
+      var(--color-divider) 48px,
+      var(--color-divider) calc(100% - 48px),
+      transparent
+    );
+  }
+
+  .skip-link {
+    position: absolute;
+    left: 16px;
+    top: -100px;
+    z-index: 100;
+    padding: 8px 14px;
+    border-radius: var(--radius-md);
+    background: var(--color-surface);
+    color: var(--color-text);
+    box-shadow: var(--shadow-md);
+  }
+  .skip-link:focus {
+    top: 12px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

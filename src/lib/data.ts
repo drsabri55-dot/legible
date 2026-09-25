@@ -313,7 +313,7 @@ export async function logEmail(to: string, template: string, providerId: string 
 // ── owner dashboard ──────────────────────────────────────────────────
 
 export interface Stats {
-  window: string;
+  period: string;
   scans: number;
   completed: number;
   failed: number;
@@ -325,12 +325,12 @@ export interface Stats {
 
 export async function stats(): Promise<Stats[]> {
   return db()<Stats[]>`
-    with windows(window, since) as (
+    with periods(period, since) as (
       values ('Last 7 days', now() - interval '7 days'),
              ('Last 30 days', now() - interval '30 days'),
              ('All time', '-infinity'::timestamptz)
     )
-    select w.window,
+    select w.period,
       (select count(*)::int from scans s where s.created_at >= w.since) as scans,
       (select count(*)::int from scans s where s.created_at >= w.since and s.status = 'complete') as completed,
       (select count(*)::int from scans s where s.created_at >= w.since and s.status = 'failed') as failed,
@@ -338,7 +338,7 @@ export async function stats(): Promise<Stats[]> {
       (select coalesce(sum(amount_cents), 0)::int from reports r where r.created_at >= w.since) as revenue_cents,
       (select count(*)::int from scans s where s.created_at >= w.since and s.lead_email is not null) as leads,
       (select count(*)::int from subscriptions m where m.created_at >= w.since) as monitoring_requests
-    from windows w`;
+    from periods w`;
 }
 
 export async function recentFailures(): Promise<{ id: string; host: string; error: string | null; created_at: Date }[]> {

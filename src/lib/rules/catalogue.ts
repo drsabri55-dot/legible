@@ -530,14 +530,14 @@ export const CATALOGUE: Record<string, RuleInfo> = {
   },
   label: {
     title: "Form fields have no label",
-    summary: "A form field has no label connected to it in the code. Placeholder text does not count as a label.",
-    why: 'Screen readers announce "edit text" with no clue what to type. Voice control users cannot say the field\'s name to select it. Placeholder text disappears as soon as someone starts typing.',
+    summary: "A form field has no label connected to it in the code.",
+    why: 'Screen readers announce "edit text" with no clue what to type. Voice control users cannot say the field\'s name to select it. Placeholder text is no substitute: it disappears as soon as someone starts typing.',
     who: `${SR}, voice control, people with cognitive disabilities`,
     fix: "Add a visible <label> whose for attribute matches the field's id. If there is truly no room for a visible label, use aria-label.",
     impact: "critical",
     effort: "quick",
-    before: '<input type="email" placeholder="Email">',
-    after: '<label for="email">Email</label>\n<input type="email" id="email" placeholder="you@example.com">',
+    before: '<input type="email">',
+    after: '<label for="email">Email</label>\n<input type="email" id="email">',
   },
   "link-in-text-block": {
     title: "Links in text are shown by colour alone",

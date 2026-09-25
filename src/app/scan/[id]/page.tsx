@@ -8,7 +8,7 @@ import { LeadForm } from "@/components/results/LeadForm";
 import { ScanProgress } from "@/components/results/ScanProgress";
 import { ScoreRing } from "@/components/results/ScoreRing";
 import { SeverityBars } from "@/components/results/SeverityBars";
-import { DISCLAIMER, Kicker, SiteShell } from "@/components/site/SiteShell";
+import { Kicker, SiteShell } from "@/components/site/SiteShell";
 import { getReportByScanId, getScan } from "@/lib/data";
 import { formatUsd, reportPriceCents } from "@/lib/pricing";
 import { failureMessage } from "@/lib/scans";
@@ -193,7 +193,7 @@ export default async function ScanPage(props: PageProps<"/scan/[id]">) {
       </section>
 
       <p className="mt-12 max-w-[62ch] text-[12.5px] leading-[1.7] text-nc-neutral-500">
-        {DISCLAIMER} Scanned {scan.finished_at ? new Date(scan.finished_at).toUTCString().replace(" GMT", " UTC") : ""}.{" "}
+        Scanned {scan.finished_at ? new Date(scan.finished_at).toUTCString().replace(" GMT", " UTC") : ""}.{" "}
         <Link href="/">Scan another site</Link>
       </p>
     </SiteShell>

@@ -39,9 +39,9 @@ export default async function AdminPage() {
           </thead>
           <tbody>
             {rows.map((r) => (
-              <tr key={r.window} className="border-b border-white/[0.06] tabular-nums">
+              <tr key={r.period} className="border-b border-white/[0.06] tabular-nums">
                 <th scope="row" className="py-3 pr-4 text-left font-normal text-nc-neutral-200">
-                  {r.window}
+                  {r.period}
                 </th>
                 <td className="py-3 pr-4">{r.scans}</td>
                 <td className="py-3 pr-4">{r.completed}</td>
