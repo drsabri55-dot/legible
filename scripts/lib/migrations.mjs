@@ -12,6 +12,8 @@ export async function applyMigrations(sql, log = console.log) {
     name text primary key,
     applied_at timestamptz not null default now()
   )`;
+  // Like every table here, closed to Supabase's public API roles.
+  await sql`alter table schema_migrations enable row level security`;
   const done = new Set((await sql`select name from schema_migrations`).map((r) => r.name));
   const files = (await readdir(dir)).filter((f) => f.endsWith(".sql")).sort();
   let applied = 0;
