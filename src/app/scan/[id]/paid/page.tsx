@@ -54,6 +54,7 @@ export default async function PaidPage(props: PageProps<"/scan/[id]/paid">) {
   }
 
   if (token) redirect(`/report/${token}?welcome=1`);
+  const contact = env.contactEmail();
 
   return (
     <SiteShell width="narrow">
@@ -70,8 +71,15 @@ export default async function PaidPage(props: PageProps<"/scan/[id]/paid">) {
         <>
           <h1 className="mt-6 text-[32px] leading-[1.15] tracking-[-0.02em]">We could not open your report yet</h1>
           <p className="mt-4 text-[15px] leading-[1.8] text-nc-neutral-300">
-            Your payment went through, and the report will reach you by email in the next few minutes. If it does not,
-            reply to the receipt from Stripe and we will sort it out.
+            If your payment went through, the report will reach you by email in the next few minutes.
+            {contact ? (
+              <>
+                {" "}
+                If it does not arrive, email <a href={`mailto:${contact}`}>{contact}</a> and we will sort it out.
+              </>
+            ) : (
+              " If it does not arrive, reply to any Legible email and we will sort it out."
+            )}
           </p>
         </>
       )}
