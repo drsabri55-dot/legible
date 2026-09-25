@@ -1,0 +1,270 @@
+// Builds everything a customer sees from the stored scan: the score, the
+// counts, the free sample and the full report. Pure functions, no I/O, so the
+// same raw data always gives the same report.
+
+import type { RawNode, RawPage, RawRule, RawScan } from "@/types/scan";
+import {
+  CATALOGUE,
+  GROUP_LABEL,
+  IMPACT_ORDER,
+  IMPACT_WEIGHT,
+  groupForImpact,
+  type Effort,
+  type Impact,
+  type IssueGroup,
+} from "../rules/catalogue";
+import { suggestFix } from "../rules/fixes";
+import { WCAG, criteriaFromTags } from "../rules/wcag";
+
+export const EXAMPLES_PER_ISSUE = 5;
+export const MORE_SELECTORS_PER_ISSUE = 20;
+
+export interface IssueExample {
+  pageUrl: string;
+  selector: string;
+  html: string;
+  fixed: string | null;
+  note: string | null;
+}
+
+export interface Issue {
+  ruleId: string;
+  title: string;
+  summary: string;
+  why: string;
+  who: string;
+  fix: string;
+  effort: Effort;
+  impact: Impact;
+  group: IssueGroup;
+  criteria: { sc: string; name: string; level: string }[];
+  instances: number;
+  pages: { url: string; count: number }[];
+  examples: IssueExample[];
+  moreSelectors: { pageUrl: string; selector: string }[];
+  genericBefore: string;
+  genericAfter: string;
+  helpUrl: string;
+}
+
+export type ImpactCounts = Record<Impact, number>;
+
+export interface PageSummary {
+  url: string;
+  title: string | null;
+  status: RawPage["status"];
+  reason: string | null;
+  issues: number;
+}
+
+export interface Report {
+  site: string;
+  startUrl: string;
+  scannedAt: string;
+  score: number | null;
+  totalIssues: number;
+  counts: ImpactCounts;
+  rulesFailed: number;
+  rulesPassed: number;
+  groups: { key: IssueGroup; label: string; issues: Issue[] }[];
+  issues: Issue[];
+  pages: PageSummary[];
+  pagesScanned: number;
+  needsReview: { ruleId: string; title: string; instances: number }[];
+  engine: RawScan["engine"];
+}
+
+const IMPACTS = new Set<string>(IMPACT_ORDER);
+
+function asImpact(value: string | null | undefined, fallback: Impact): Impact {
+  return value && IMPACTS.has(value) ? (value as Impact) : fallback;
+}
+
+function worst(a: Impact, b: Impact): Impact {
+  return IMPACT_ORDER.indexOf(a) <= IMPACT_ORDER.indexOf(b) ? a : b;
+}
+
+function selectorOf(node: RawNode): string {
+  return node.target.join(" ");
+}
+
+function hostOf(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return url;
+  }
+}
+
+// Score out of 100, Lighthouse-style: every WCAG rule that applied to the site
+// counts once, weighted by how badly its failure affects people. The score is
+// the weighted share of those rules the site passed on every page.
+export function scoreFrom(passed: Map<string, Impact>, failed: Map<string, Impact>): number | null {
+  let pass = 0;
+  let fail = 0;
+  for (const impact of passed.values()) pass += IMPACT_WEIGHT[impact];
+  for (const impact of failed.values()) fail += IMPACT_WEIGHT[impact];
+  if (pass + fail === 0) return null;
+  return Math.round((100 * pass) / (pass + fail));
+}
+
+export function buildReport(raw: RawScan): Report {
+  const scanned = raw.pages.filter((p) => p.status === "scanned");
+  const failedRules = new Map<string, Impact>();
+  const passedRules = new Map<string, Impact>();
+  const byRule = new Map<string, { rule: RawRule; impact: Impact; hits: { page: RawPage; rule: RawRule }[] }>();
+
+  for (const page of scanned) {
+    for (const rule of page.violations) {
+      const fallback = CATALOGUE[rule.id]?.impact ?? "moderate";
+      let impact = asImpact(rule.impact, fallback);
+      for (const n of rule.nodes) impact = worst(impact, asImpact(n.impact, impact));
+      const entry = byRule.get(rule.id);
+      if (entry) {
+        entry.impact = worst(entry.impact, impact);
+        entry.hits.push({ page, rule });
+      } else {
+        byRule.set(rule.id, { rule, impact, hits: [{ page, rule }] });
+      }
+    }
+  }
+  for (const [id, entry] of byRule) failedRules.set(id, entry.impact);
+  for (const page of scanned) {
+    for (const p of page.passes) {
+      if (failedRules.has(p.id)) continue;
+      passedRules.set(p.id, CATALOGUE[p.id]?.impact ?? "moderate");
+    }
+  }
+
+  const counts: ImpactCounts = { critical: 0, serious: 0, moderate: 0, minor: 0 };
+  const issues: Issue[] = [];
+
+  for (const [ruleId, { rule, impact, hits }] of byRule) {
+    const info = CATALOGUE[ruleId];
+    const instances = hits.reduce((sum, h) => sum + h.rule.nodeCount, 0);
+    counts[impact] += instances;
+
+    const examples: IssueExample[] = [];
+    const moreSelectors: { pageUrl: string; selector: string }[] = [];
+    for (const { page, rule: r } of hits) {
+      for (const node of r.nodes) {
+        if (examples.length < EXAMPLES_PER_ISSUE) {
+          const fix = suggestFix(ruleId, node);
+          examples.push({
+            pageUrl: page.url,
+            selector: selectorOf(node),
+            html: node.html,
+            fixed: fix?.code ?? null,
+            note: fix?.note ?? null,
+          });
+        } else if (moreSelectors.length < MORE_SELECTORS_PER_ISSUE) {
+          moreSelectors.push({ pageUrl: page.url, selector: selectorOf(node) });
+        }
+      }
+    }
+
+    issues.push({
+      ruleId,
+      title: info?.title ?? rule.help,
+      summary: info?.summary ?? rule.description,
+      why: info?.why ?? "This stops some people from using the page as intended.",
+      who: info?.who ?? "People who use assistive technology",
+      fix: info?.fix ?? `See the guidance at ${rule.helpUrl}`,
+      effort: info?.effort ?? "moderate",
+      impact,
+      group: groupForImpact(impact),
+      criteria: criteriaFromTags(rule.tags).map((sc) => ({ sc, name: WCAG[sc].name, level: WCAG[sc].level })),
+      instances,
+      pages: hits.map((h) => ({ url: h.page.url, count: h.rule.nodeCount })),
+      examples,
+      moreSelectors,
+      genericBefore: info?.before ?? "",
+      genericAfter: info?.after ?? "",
+      helpUrl: rule.helpUrl,
+    });
+  }
+
+  // Worst first; within a level, the issue affecting the most elements first.
+  issues.sort(
+    (a, b) =>
+      IMPACT_ORDER.indexOf(a.impact) - IMPACT_ORDER.indexOf(b.impact) ||
+      b.instances - a.instances ||
+      a.title.localeCompare(b.title),
+  );
+
+  const groups = (["must", "should", "nice"] as IssueGroup[]).map((key) => ({
+    key,
+    label: GROUP_LABEL[key],
+    issues: issues.filter((i) => i.group === key),
+  }));
+
+  const review = new Map<string, number>();
+  for (const page of scanned) {
+    for (const r of page.incomplete) review.set(r.id, (review.get(r.id) ?? 0) + r.nodeCount);
+  }
+  const needsReview = [...review]
+    .filter(([id]) => !byRule.has(id))
+    .map(([ruleId, instances]) => ({
+      ruleId,
+      title: CATALOGUE[ruleId]?.title ?? ruleId,
+      instances,
+    }))
+    .sort((a, b) => b.instances - a.instances);
+
+  const pages: PageSummary[] = raw.pages.map((p) => ({
+    url: p.url,
+    title: p.title ?? null,
+    status: p.status,
+    reason: p.reason ?? null,
+    issues: p.violations.reduce((sum, r) => sum + r.nodeCount, 0),
+  }));
+
+  return {
+    site: hostOf(raw.finalUrl || raw.startUrl),
+    startUrl: raw.startUrl,
+    scannedAt: raw.finishedAt,
+    score: scoreFrom(passedRules, failedRules),
+    totalIssues: IMPACT_ORDER.reduce((sum, k) => sum + counts[k], 0),
+    counts,
+    rulesFailed: failedRules.size,
+    rulesPassed: passedRules.size,
+    groups,
+    issues,
+    pages,
+    pagesScanned: scanned.length,
+    needsReview,
+    engine: raw.engine,
+  };
+}
+
+// What the free result page shows: the score, the counts and two issues in
+// full. Stored in scans.summary so the free page never loads the raw data.
+export interface FreeSummary {
+  site: string;
+  score: number | null;
+  totalIssues: number;
+  counts: ImpactCounts;
+  issueTypes: number;
+  pagesScanned: number;
+  pages: PageSummary[];
+  samples: Issue[];
+  groupCounts: Record<IssueGroup, number>;
+}
+
+export function freeSummary(report: Report): FreeSummary {
+  return {
+    site: report.site,
+    score: report.score,
+    totalIssues: report.totalIssues,
+    counts: report.counts,
+    issueTypes: report.issues.length,
+    pagesScanned: report.pagesScanned,
+    pages: report.pages,
+    samples: report.issues.slice(0, 2).map((i) => ({ ...i, examples: i.examples.slice(0, 1), moreSelectors: [] })),
+    groupCounts: {
+      must: report.groups[0].issues.length,
+      should: report.groups[1].issues.length,
+      nice: report.groups[2].issues.length,
+    },
+  };
+}

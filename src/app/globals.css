@@ -1,0 +1,282 @@
+@import "tailwindcss";
+
+/* Nocturne: the Legible design system. Values copied from
+   design/_ds/nocturne-…/styles.css. Plain :root so they always exist, for the
+   CSS modules as well as for Tailwind. */
+:root {
+  --color-bg: #161826;
+  --color-surface: #232532;
+  --color-text: #e9e9ed;
+  --color-accent: #9184d9;
+  --color-accent-2: #a7a1db;
+  --color-divider: color-mix(in srgb, #e9e9ed 16%, transparent);
+
+  --color-neutral-100: #f3f5fe;
+  --color-neutral-200: #e4e7f5;
+  --color-neutral-300: #cfd3e5;
+  --color-neutral-400: #b2b6ca;
+  --color-neutral-500: #9397ab;
+  --color-neutral-600: #75798c;
+  --color-neutral-700: #595d6c;
+  --color-neutral-800: #3f424d;
+  --color-neutral-900: #292b31;
+
+  --color-accent-100: #f5f4ff;
+  --color-accent-200: #e7e5fe;
+  --color-accent-300: #d2cefd;
+  --color-accent-400: #b5abfc;
+  --color-accent-500: #968ae0;
+  --color-accent-600: #796cbf;
+  --color-accent-700: #5d5294;
+  --color-accent-800: #423a6a;
+  --color-accent-900: #2b2741;
+
+  --color-accent-2-100: #f5f4ff;
+  --color-accent-2-200: #e7e5fe;
+  --color-accent-2-300: #d2cefd;
+  --color-accent-2-400: #b5afe8;
+  --color-accent-2-500: #9690c9;
+  --color-accent-2-600: #7972a9;
+  --color-accent-2-700: #5c5783;
+  --color-accent-2-800: #423e5d;
+  --color-accent-2-900: #2b293a;
+
+  /* Severity. Not in Nocturne; derived from the rail's gap colour
+     (oklch 0.5 0.09 25) so they sit in the same family. Always paired with a
+     text label, never colour alone. */
+  --color-critical: #e28b84;
+  --color-serious: #e0b07a;
+  --color-moderate: #b5abfc;
+  --color-minor: #9397ab;
+
+  --font-heading: var(--font-inter), system-ui, sans-serif;
+  --font-body: var(--font-inter), system-ui, sans-serif;
+
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 14px;
+
+  --shadow-sm: 0 0 0 1px #3f424d;
+  --shadow-md: 0 0 0 1px #595d6c, 0 6px 18px rgba(0, 0, 0, 0.55);
+  --shadow-lg: 0 0 0 1px #9397ab, 0 16px 40px rgba(0, 0, 0, 0.65);
+}
+
+/* Tailwind utilities for the same tokens, prefixed nc- (Nocturne). */
+@theme inline {
+  --color-nc-bg: var(--color-bg);
+  --color-nc-surface: var(--color-surface);
+  --color-nc-text: var(--color-text);
+  --color-nc-divider: var(--color-divider);
+  --color-nc-neutral-100: var(--color-neutral-100);
+  --color-nc-neutral-200: var(--color-neutral-200);
+  --color-nc-neutral-300: var(--color-neutral-300);
+  --color-nc-neutral-400: var(--color-neutral-400);
+  --color-nc-neutral-500: var(--color-neutral-500);
+  --color-nc-neutral-600: var(--color-neutral-600);
+  --color-nc-neutral-700: var(--color-neutral-700);
+  --color-nc-neutral-800: var(--color-neutral-800);
+  --color-nc-neutral-900: var(--color-neutral-900);
+  --color-nc-accent-200: var(--color-accent-200);
+  --color-nc-accent-300: var(--color-accent-300);
+  --color-nc-accent-400: var(--color-accent-400);
+  --color-nc-accent-500: var(--color-accent-500);
+  --color-nc-accent-600: var(--color-accent-600);
+  --color-nc-accent-700: var(--color-accent-700);
+  --color-nc-accent-800: var(--color-accent-800);
+  --color-nc-accent-900: var(--color-accent-900);
+  --color-nc-critical: var(--color-critical);
+  --color-nc-serious: var(--color-serious);
+  --color-nc-moderate: var(--color-moderate);
+  --color-nc-minor: var(--color-minor);
+  --font-sans: var(--font-inter), system-ui, sans-serif;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--color-bg);
+}
+body {
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-heading);
+  font-weight: 500;
+}
+h1,
+h2,
+p {
+  text-wrap: pretty;
+}
+a {
+  color: var(--color-accent-300);
+  text-underline-offset: 3px;
+}
+a:hover {
+  color: var(--color-accent-200);
+}
+:focus {
+  outline: none;
+}
+:focus-visible {
+  outline: 2px solid var(--color-accent-400);
+  outline-offset: 2px;
+}
+::selection {
+  background: color-mix(in srgb, var(--color-accent) 30%, transparent);
+}
+
+/* Nocturne components (design system classes). */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+  text-decoration: none;
+  font-family: var(--font-heading);
+  font-weight: 500;
+  font-size: 13px;
+  line-height: 1.2;
+  color: var(--color-text);
+  background: transparent;
+  border: 1px solid transparent;
+  padding: calc(5.6px * 0.85) 8.4px;
+  border-radius: var(--radius-md);
+}
+.btn:disabled,
+.btn[aria-disabled="true"] {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.btn-primary {
+  color: var(--color-accent);
+  border-color: var(--color-accent);
+}
+.btn-primary:hover {
+  background: color-mix(in srgb, var(--color-accent) 12%, transparent);
+}
+.btn-primary:active {
+  background: color-mix(in srgb, var(--color-accent) 22%, transparent);
+}
+.btn-secondary {
+  border-color: var(--color-divider);
+}
+.btn-secondary:hover {
+  background: color-mix(in srgb, var(--color-text) 7%, transparent);
+}
+.input {
+  width: 100%;
+  min-height: 36px;
+  padding: 6px 10px;
+  font: inherit;
+  font-size: 14px;
+  color: var(--color-text);
+  caret-color: var(--color-accent);
+  background: var(--color-surface);
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-md);
+}
+.input:hover {
+  border-color: color-mix(in srgb, var(--color-text) 45%, transparent);
+}
+.input:focus-visible {
+  border-color: var(--color-accent);
+  outline-offset: 0;
+}
+
+/* The large call-to-action button used across the site: the landing form's
+   "Scan a site" style, from the design. */
+.btn-cta {
+  font-size: 14px;
+  white-space: nowrap;
+  padding: 10px 16px;
+  background: oklch(0.38 0.05 280);
+  border-color: var(--color-accent-300);
+  color: #fff;
+}
+.btn-cta:hover {
+  background: oklch(0.43 0.06 280);
+  color: #fff;
+}
+.input-strong {
+  font-size: 15px;
+  min-height: 44px;
+  background: oklch(0.34 0.016 266);
+  border: 1px solid var(--color-neutral-300);
+  color: #fff;
+}
+.input-strong::placeholder {
+  color: var(--color-neutral-200);
+  opacity: 1;
+}
+.input-strong:focus {
+  outline: 2px solid var(--color-accent-400);
+  outline-offset: 2px;
+  border-color: var(--color-accent-300);
+}
+
+/* Small-caps label with a short accent rule, the chapter marker from the design. */
+.kicker {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--color-neutral-500);
+  font-variant-numeric: tabular-nums;
+}
+.kicker::before {
+  content: "";
+  display: block;
+  width: 26px;
+  height: 1px;
+  background: var(--color-accent-500);
+}
+
+.hr-fade {
+  height: 1px;
+  border: 0;
+  background: linear-gradient(
+    to right,
+    transparent,
+    var(--color-divider) 48px,
+    var(--color-divider) calc(100% - 48px),
+    transparent
+  );
+}
+
+.skip-link {
+  position: absolute;
+  left: 16px;
+  top: -100px;
+  z-index: 100;
+  padding: 8px 14px;
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text);
+  box-shadow: var(--shadow-md);
+}
+.skip-link:focus {
+  top: 12px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

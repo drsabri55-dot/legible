@@ -1,0 +1,31 @@
+{
+  "name": "legible-worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch --env-file=.env src/server.ts",
+    "start": "tsx src/server.ts",
+    "scan": "tsx src/cli.ts",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@axe-core/playwright": "^4.13.0",
+    "axe-core": "^4.13.0",
+    "express": "^5.2.1",
+    "ipaddr.js": "^2.5.0",
+    "playwright": "^1.63.0",
+    "robots-parser": "^3.0.1",
+    "tsx": "^4.23.15"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/node": "^24.13.6",
+    "typescript": "^5.9.3",
+    "vitest": "^5.0.2"
+  },
+  "engines": {
+    "node": ">=20.9"
+  }
+}

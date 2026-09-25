@@ -1,0 +1,50 @@
+{
+  "name": "legible",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "setup": "node scripts/setup.mjs",
+    "dev": "concurrently -k -n db,worker,web -c blue,magenta,green \"npm:db:start\" \"npm:worker:dev\" \"npm:web\"",
+    "web": "next dev",
+    "db:start": "node scripts/dev-db.mjs",
+    "db:migrate": "node scripts/migrate.mjs",
+    "worker:dev": "npm --prefix worker run dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "typecheck": "next typegen && tsc --noEmit && npm --prefix worker run typecheck",
+    "format": "prettier --write .",
+    "test": "vitest run",
+    "test:e2e": "playwright test"
+  },
+  "dependencies": {
+    "ipaddr.js": "^2.5.0",
+    "next": "16.3.6",
+    "postgres": "^3.4.9",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "resend": "^6.30.0",
+    "server-only": "^0.0.1",
+    "stripe": "^22.6.2"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
+    "@playwright/test": "^1.63.0",
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^24.13.6",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "concurrently": "^10.0.5",
+    "embedded-postgres": "^17.10.0-beta.17",
+    "eslint": "^9",
+    "eslint-config-next": "16.3.6",
+    "prettier": "^3.9.9",
+    "tailwindcss": "^4",
+    "tsx": "^4.23.15",
+    "typescript": "^5",
+    "vitest": "^5.0.2"
+  },
+  "engines": {
+    "node": ">=20.9"
+  }
+}

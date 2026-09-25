@@ -1,0 +1,1368 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/nocturne-88551b72-6db6-487b-b933-7ad6e31ea1fa/styles.css">
+<script src="_ds/nocturne-88551b72-6db6-487b-b933-7ad6e31ea1fa/_ds_bundle.js"></script>
+<style>
+  html, body { margin: 0; padding: 0; background: #161826; }
+  body { -webkit-font-smoothing: antialiased; }
+  h1, h2, p { text-wrap: pretty; }
+  a { color: var(--color-accent-300); text-underline-offset: 3px; }
+  a:hover { color: var(--color-accent-200); }
+  @keyframes drift-a { from { transform: translate3d(-1.5%, 1%, 0) scale(1); } to { transform: translate3d(2.5%, -1.5%, 0) scale(1.07); } }
+  @keyframes drift-b { from { transform: translate3d(2%, -1%, 0) scale(1.05); } to { transform: translate3d(-2%, 2%, 0) scale(0.97); } }
+  @media (prefers-reduced-motion: reduce) { [data-drift] { animation: none !important; } }
+  #ln-project::placeholder { color: var(--color-neutral-200); opacity: 1; }
+  #ln-project:focus { outline: 2px solid var(--color-accent-400); outline-offset: 2px; border-color: var(--color-accent-300); }
+</style>
+</helmet>
+
+<div data-a="root" style="height: 100vh; overflow-y: auto; overflow-x: hidden; background: #161826; color: var(--color-text); font-family: var(--font-body); scrollbar-width: none">
+<div style="position: relative">
+
+  <div style="position: sticky; top: 0; height: 0; z-index: 9">
+    <div data-a="gate" style="position: absolute; top: 0; left: 0; right: 0; height: 100vh; background: #161826; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; transition: none; will-change: opacity">
+      <span data-a="gpct" style="font-family: var(--font-heading); font-weight: 500; font-size: 34px; letter-spacing: -0.03em; color: var(--color-neutral-200); font-variant-numeric: tabular-nums">0%</span>
+      <span style="display: block; width: 160px; height: 1px; background: rgba(233,233,237,0.14)">
+        <span data-a="gbar" style="display: block; height: 1px; background: var(--color-accent-400); transform: scaleX(0); transform-origin: left; transition: none; will-change: transform"></span>
+      </span>
+      <span style="font-size: 10px; letter-spacing: 0.24em; text-transform: uppercase; color: var(--color-neutral-600)">Preparing your read</span>
+    </div>
+  </div>
+
+  <div style="position: sticky; top: 0; height: 0; z-index: 0">
+    <div style="position: absolute; top: 0; left: 0; right: 0; height: 100vh; overflow: hidden">
+      <div data-a="base" style="position: absolute; inset: 0; background: linear-gradient(176deg, oklch(0.128 0.022 266) 0%, oklch(0.100 0.016 264) 46%, oklch(0.074 0.010 262) 100%)"></div>
+      <canvas data-a="cv" style="position: absolute; inset: 0; width: 100%; height: 100%; display: block"></canvas>
+      <div style="position: absolute; inset: 0; background: radial-gradient(126% 98% at 62% 50%, rgba(6,7,13,0) 22%, rgba(6,7,13,0.26) 66%, rgba(6,7,13,0.74) 100%)"></div>
+      <div data-a="scrim" style="position: absolute; inset: 0; opacity: 0.34; transition: none; will-change: opacity; background: linear-gradient(90deg, rgba(6,7,13,0.97) 0%, rgba(6,7,13,0.95) 26%, rgba(6,7,13,0.74) 44%, rgba(6,7,13,0.24) 62%, rgba(6,7,13,0) 78%)"></div>
+      <div style="position: absolute; inset: 0; background: radial-gradient(58% 46% at 74% 46%, oklch(0.7 0.07 266 / 0.07) 0%, oklch(0.62 0.06 264 / 0.03) 46%, transparent 78%)"></div>
+      <div style="position: absolute; inset: 0; opacity: 0.06; background-image: url(data:image/svg+xml,%3Csvg%20xmlns=%27http://www.w3.org/2000/svg%27%20width=%27120%27%20height=%27120%27%3E%3Cfilter%20id=%27n%27%3E%3CfeTurbulence%20type=%27fractalNoise%27%20baseFrequency=%270.9%27%20numOctaves=%272%27%20stitchTiles=%27stitch%27/%3E%3C/filter%3E%3Crect%20width=%27120%27%20height=%27120%27%20filter=%27url%28%23n%29%27/%3E%3C/svg%3E)"></div>
+
+      <div data-a="edge" style="position: absolute; right: clamp(12px, 2vw, 26px); top: 50%; transform: translateY(-50%); writing-mode: vertical-rl; font-size: 10px; letter-spacing: 0.24em; text-transform: uppercase; color: var(--color-neutral-500); transition: none">01 — Launch</div>
+    </div>
+  </div>
+
+  <div style="position: sticky; top: 0; height: 0; z-index: 2">
+    <div data-a="pov" style="position: absolute; top: 0; left: 0; right: 0; height: 100vh; overflow: hidden; pointer-events: none; opacity: 0; transition: none; will-change: opacity">
+      <div style="position: absolute; left: -14%; top: -10%; width: 78%; height: 44%; border-radius: 50%; background: radial-gradient(60% 60% at 42% 44%, rgba(238,238,244,0.032) 0%, rgba(238,238,244,0.008) 48%, transparent 72%)"></div>
+    </div>
+  </div>
+
+  <div style="position: relative; z-index: 1; padding-left: clamp(24px, 6vw, 104px); padding-right: clamp(22px, 6vw, 96px)">
+
+    <header style="position: sticky; top: 0; z-index: 3; height: 64px; display: flex; align-items: center; justify-content: space-between; gap: 16px">
+      <span style="display: flex; align-items: center; gap: 10px">
+        <span style="display: inline-flex; width: 18px; height: 18px; border-radius: 6px; border: 1px solid var(--color-accent-600); align-items: center; justify-content: center">
+          <span style="display: block; width: 6px; height: 6px; border-radius: 50%; background: var(--color-accent-400)"></span>
+        </span>
+        <span style="font-family: var(--font-heading); font-weight: 500; font-size: 14px; letter-spacing: -0.01em">Legible</span>
+      </span>
+      <span data-a="idx" style="font-size: 11px; letter-spacing: 0.16em; color: var(--color-neutral-500); font-variant-numeric: tabular-nums">01 / 07</span>
+    </header>
+
+    <section data-chap="" data-screen-label="01" style="min-height: 118vh; display: flex; align-items: center; padding: 40px 0">
+      <div style="max-width: 46rem">
+        <span data-reveal="" style="display: flex; align-items: center; gap: 12px; font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--color-neutral-500); font-variant-numeric: tabular-nums; transition: none">
+          <span style="display: block; width: 26px; height: 1px; background: var(--color-accent-500)"></span>01 · Launch
+        </span>
+        <h1 data-a="ink0" style="font-family: var(--font-heading); font-weight: 500; font-size: clamp(38px, 5.4vw, 74px); line-height: 1.06; letter-spacing: -0.025em; margin: 26px 0 0; transition: none">Every site claims to be accessible. Few are ever read as one.</h1>
+        <p data-reveal="" data-reveal-delay="2" style="margin: 28px 0 0; max-width: 40ch; font-size: clamp(15px, 1.2vw, 17.5px); line-height: 1.8; color: var(--color-neutral-300); transition: none">Legible reads your pages the way a screen reader does — in order, out loud — and reports what is actually true.</p>
+        <span data-a="cue" data-reveal="" data-reveal-delay="4" style="display: block; margin-top: 44px; font-size: 10.5px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--color-neutral-500); transition: none">Scroll to launch</span>
+      </div>
+    </section>
+
+    <section data-chap="" data-screen-label="02" style="min-height: 138vh; display: flex; align-items: center; padding: 72px 0">
+      <div style="max-width: 58rem; width: 100%">
+        <span data-reveal="" style="display: flex; align-items: center; gap: 12px; font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--color-neutral-500); font-variant-numeric: tabular-nums; transition: none">
+          <span style="display: block; width: 26px; height: 1px; background: var(--color-accent-500)"></span>02 · The mission
+        </span>
+        <h2 data-reveal="" data-reveal-delay="1" style="font-family: var(--font-heading); font-weight: 500; font-size: clamp(30px, 3.8vw, 52px); line-height: 1.1; letter-spacing: -0.025em; margin: 24px 0 0; max-width: 26ch; transition: none">What Legible is, and why the trip is worth taking.</h2>
+        <p data-reveal="" data-reveal-delay="2" style="margin: 28px 0 0; max-width: 52ch; font-size: clamp(15px, 1.2vw, 17.5px); line-height: 1.8; color: var(--color-neutral-300); transition: none">Legible is an accessibility reader for the web. Point it at a site and it walks every page the way a screen-reader user does — in order, out loud, keyboard only — then hands back a plain-language report: what broke, who it stops, and the line of markup that caused it.</p>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr)); gap: 28px; margin: 52px 0 0">
+          <div data-reveal="" data-reveal-delay="3" style="display: flex; flex-direction: column; gap: 9px; transition: none">
+            <span style="display: block; width: 34px; height: 1px; background: var(--color-accent-500)"></span>
+            <span style="font-size: 10.5px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--color-neutral-500); font-variant-numeric: tabular-nums">01</span>
+            <h3 style="font-family: var(--font-heading); font-weight: 500; font-size: clamp(17px, 1.5vw, 21px); line-height: 1.24; letter-spacing: -0.015em; margin: 2px 0 0; color: var(--color-neutral-100)">Catch what a score cannot</h3>
+            <p style="margin: 0; font-size: 14px; line-height: 1.75; color: var(--color-neutral-300)">Automated checkers grade colour and markup. Legible grades the experience: unlabelled controls, focus that vanishes, headings that lead nowhere.</p>
+          </div>
+          <div data-reveal="" data-reveal-delay="4" style="display: flex; flex-direction: column; gap: 9px; transition: none">
+            <span style="display: block; width: 34px; height: 1px; background: var(--color-accent-500)"></span>
+            <span style="font-size: 10.5px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--color-neutral-500); font-variant-numeric: tabular-nums">02</span>
+            <h3 style="font-family: var(--font-heading); font-weight: 500; font-size: clamp(17px, 1.5vw, 21px); line-height: 1.24; letter-spacing: -0.015em; margin: 2px 0 0; color: var(--color-neutral-100)">Ship fixes, not findings</h3>
+            <p style="margin: 0; font-size: 14px; line-height: 1.75; color: var(--color-neutral-300)">Every failure arrives with its element, the rule it breaks and a suggested patch — ranked by how many people it unblocks first.</p>
+          </div>
+          <div data-reveal="" data-reveal-delay="5" style="display: flex; flex-direction: column; gap: 9px; transition: none">
+            <span style="display: block; width: 34px; height: 1px; background: var(--color-accent-500)"></span>
+            <span style="font-size: 10.5px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--color-neutral-500); font-variant-numeric: tabular-nums">03</span>
+            <h3 style="font-family: var(--font-heading); font-weight: 500; font-size: clamp(17px, 1.5vw, 21px); line-height: 1.24; letter-spacing: -0.015em; margin: 2px 0 0; color: var(--color-neutral-100)">Stay audit-ready</h3>
+            <p style="margin: 0; font-size: 14px; line-height: 1.75; color: var(--color-neutral-300)">Re-read on every deploy and keep a dated AA record for all twenty-eight pages, instead of a screenshot from last quarter.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section data-chap="" data-a="s2" data-screen-label="03" style="min-height: 205vh; position: relative">
+      <div style="position: sticky; top: 0; min-height: 100vh; display: flex; align-items: center; padding: 72px 0">
+        <div style="max-width: 50rem">
+          <span data-reveal="" style="display: flex; align-items: center; gap: 12px; font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--color-neutral-500); font-variant-numeric: tabular-nums; transition: none">
+            <span style="display: block; width: 26px; height: 1px; background: var(--color-accent-500)"></span>03 · The read
+          </span>
+          <h2 data-reveal="" data-reveal-delay="1" style="font-family: var(--font-heading); font-weight: 500; font-size: clamp(26px, 2.6vw, 36px); line-height: 1.2; letter-spacing: -0.02em; margin: 24px 0 0; color: var(--color-neutral-300); transition: none">Your checkout page, spoken aloud.</h2>
+          <p data-a="speech" style="margin: 30px 0 0; font-family: var(--font-heading); font-weight: 400; font-size: clamp(27px, 4vw, 52px); line-height: 1.26; letter-spacing: -0.02em; color: var(--color-neutral-100); transition: none">“Link. Empty link. Button, unlabelled. Heading level four, inside nothing.”</p>
+          <p data-reveal="" data-reveal-delay="2" style="margin: 34px 0 0; max-width: 44ch; font-size: clamp(14px, 1.1vw, 16px); line-height: 1.8; color: var(--color-neutral-300); transition: none">Twenty-eight pages, element by element: every link, label, contrast pair and focus stop, traced back to the markup that caused it.</p>
+        </div>
+      </div>
+    </section>
+
+    <section data-chap="" data-a="sel" data-screen-label="04" style="min-height: 158vh; position: relative">
+      <div style="position: sticky; top: 0; min-height: 100vh; display: flex; align-items: center; padding: 72px 0">
+        <div style="max-width: 56rem; width: 100%">
+          <span data-reveal="" style="display: flex; align-items: center; gap: 12px; font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--color-neutral-500); font-variant-numeric: tabular-nums; transition: none">
+            <span style="display: block; width: 26px; height: 1px; background: var(--color-accent-500)"></span>04 · The survey
+          </span>
+          <h2 data-reveal="" data-reveal-delay="1" style="font-family: var(--font-heading); font-weight: 500; font-size: clamp(25px, 2.5vw, 35px); line-height: 1.22; letter-spacing: -0.02em; margin: 22px 0 0; color: var(--color-neutral-300); max-width: 30ch; transition: none">Stop on one button. This is everything a reader is told about it.</h2>
+          <div style="margin: 44px 0 0">
+            <div style="display: flex; flex-direction: column; gap: 22px">
+              <span style="display: flex; align-items: center; gap: 14px">
+                <span data-a="ln0" style="display: block; width: 52px; height: 1px; flex: none; background: var(--color-accent-500); transform: scaleX(0); transform-origin: left; transition: none"></span>
+                <span data-a="lb0" style="font-size: 13.5px; line-height: 1.6; color: var(--color-neutral-200); opacity: 0; transition: none">No name — announced only as “div”</span>
+              </span>
+              <span style="display: flex; align-items: center; gap: 14px">
+                <span data-a="ln1" style="display: block; width: 52px; height: 1px; flex: none; background: var(--color-accent-500); transform: scaleX(0); transform-origin: left; transition: none"></span>
+                <span data-a="lb1" style="font-size: 13.5px; line-height: 1.6; color: var(--color-neutral-200); opacity: 0; transition: none">The icon beside it has no label at all</span>
+              </span>
+              <span style="display: flex; align-items: center; gap: 14px">
+                <span data-a="ln2" style="display: block; width: 52px; height: 1px; flex: none; background: var(--color-accent-500); transform: scaleX(0); transform-origin: left; transition: none"></span>
+                <span data-a="lb2" style="font-size: 13.5px; line-height: 1.6; color: var(--color-neutral-200); opacity: 0; transition: none">Keyboard skips it — no focus, no press</span>
+              </span>
+            </div>
+          </div>
+          <p data-reveal="" data-reveal-delay="3" style="margin: 38px 0 0; max-width: 46ch; font-size: clamp(14px, 1.1vw, 16px); line-height: 1.8; color: var(--color-neutral-300); transition: none">One element, three ways to be stopped. The report carries this card for every one of them.</p>
+        </div>
+      </div>
+    </section>
+
+    <section data-chap="" data-a="s3" data-screen-label="05" style="min-height: 190vh; position: relative">
+      <div style="position: sticky; top: 0; min-height: 100vh; display: flex; align-items: center; padding: 72px 0">
+        <div style="max-width: 52rem; width: 100%">
+          <span data-reveal="" style="display: flex; align-items: center; gap: 12px; font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--color-neutral-500); font-variant-numeric: tabular-nums; transition: none">
+            <span style="display: block; width: 26px; height: 1px; background: var(--color-accent-500)"></span>05 · The count
+          </span>
+          <div style="display: flex; align-items: baseline; gap: 18px; margin: 26px 0 0; flex-wrap: wrap">
+            <span data-a="total" style="font-family: var(--font-heading); font-weight: 500; font-size: clamp(62px, 10vw, 132px); line-height: 0.94; letter-spacing: -0.04em; font-variant-numeric: tabular-nums; transition: none">0</span>
+            <span style="font-size: clamp(15px, 1.3vw, 19px); color: var(--color-neutral-300)">failures, not warnings</span>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 16px; margin: 44px 0 0; max-width: 40rem">
+            <div style="display: grid; grid-template-columns: 96px minmax(0, 1fr) 44px; gap: 14px; align-items: center">
+              <span style="font-size: 14px; color: var(--color-neutral-300)">Critical</span>
+              <span style="display: block; height: 2px; border-radius: 2px; background: rgba(233,233,237,0.1)"><span data-a="bar0" style="display: block; height: 2px; border-radius: 2px; background: var(--color-accent-400); transform: scaleX(0); transform-origin: left; transition: none; will-change: transform"></span></span>
+              <span data-a="val0" style="font-size: 14px; text-align: right; color: var(--color-neutral-200); font-variant-numeric: tabular-nums; transition: none">0</span>
+            </div>
+            <div style="display: grid; grid-template-columns: 96px minmax(0, 1fr) 44px; gap: 14px; align-items: center">
+              <span style="font-size: 14px; color: var(--color-neutral-300)">Serious</span>
+              <span style="display: block; height: 2px; border-radius: 2px; background: rgba(233,233,237,0.1)"><span data-a="bar1" style="display: block; height: 2px; border-radius: 2px; background: var(--color-accent-2-500); transform: scaleX(0); transform-origin: left; transition: none; will-change: transform"></span></span>
+              <span data-a="val1" style="font-size: 14px; text-align: right; color: var(--color-neutral-200); font-variant-numeric: tabular-nums; transition: none">0</span>
+            </div>
+            <div style="display: grid; grid-template-columns: 96px minmax(0, 1fr) 44px; gap: 14px; align-items: center">
+              <span style="font-size: 14px; color: var(--color-neutral-300)">Moderate</span>
+              <span style="display: block; height: 2px; border-radius: 2px; background: rgba(233,233,237,0.1)"><span data-a="bar2" style="display: block; height: 2px; border-radius: 2px; background: var(--color-neutral-600); transform: scaleX(0); transform-origin: left; transition: none; will-change: transform"></span></span>
+              <span data-a="val2" style="font-size: 14px; text-align: right; color: var(--color-neutral-200); font-variant-numeric: tabular-nums; transition: none">0</span>
+            </div>
+          </div>
+          <p data-reveal="" data-reveal-delay="2" style="margin: 36px 0 0; max-width: 42ch; font-size: clamp(14px, 1.1vw, 16px); line-height: 1.8; color: var(--color-neutral-300); transition: none">Twelve of them stop someone from finishing the form today. Everything else queues behind those.</p>
+        </div>
+      </div>
+    </section>
+
+    <section data-chap="" data-a="s4" data-screen-label="06" style="min-height: 190vh; position: relative">
+      <div style="position: sticky; top: 0; min-height: 100vh; display: flex; align-items: center; padding: 72px 0">
+        <div style="max-width: 52rem; width: 100%">
+          <span data-reveal="" style="display: flex; align-items: center; gap: 12px; font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--color-neutral-500); font-variant-numeric: tabular-nums; transition: none">
+            <span style="display: block; width: 26px; height: 1px; background: var(--color-accent-500)"></span>06 · The line
+          </span>
+          <h2 data-a="ink1" style="font-family: var(--font-heading); font-weight: 500; font-size: clamp(32px, 4.4vw, 60px); line-height: 1.08; letter-spacing: -0.025em; margin: 24px 0 0; transition: none">AA is the line. You sit under it.</h2>
+          <div style="margin: 56px 0 0; max-width: 42rem">
+            <div data-a="rail" style="position: relative; height: 84px; background: linear-gradient(90deg, oklch(0.22 0.022 266) 0%, oklch(0.3 0.034 266) 100%); border-radius: var(--radius-md, 8px)">
+              <div style="position: absolute; left: 0; right: 0; top: 52px; height: 1px; background: linear-gradient(90deg, rgba(233,233,237,0) 0%, rgba(233,233,237,0.18) 10%, rgba(233,233,237,0.18) 90%, rgba(233,233,237,0) 100%)"></div>
+              <div data-a="gap" style="position: absolute; top: 46px; height: 13px; border-radius: 2px; background: oklch(0.5 0.09 25 / 0.28); transform-origin: left; transform: scaleX(0); opacity: 0; transition: none; will-change: transform, opacity"></div>
+              <div data-a="aa" style="position: absolute; top: 26px; width: 1px; height: 52px; background: var(--color-neutral-400)">
+                <span style="position: absolute; left: 9px; top: -4px; white-space: nowrap; font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-neutral-300)">AA</span>
+              </div>
+              <div data-a="mark" style="position: absolute; left: 0; top: 34px; transform: translate3d(0, 0, 0); transition: none; will-change: transform">
+                <span style="position: absolute; left: -1px; top: 0; width: 2px; height: 36px; background: var(--color-accent-300); box-shadow: 0 0 18px 3px rgba(145,132,217,0.3)"></span>
+                <span data-a="gval" style="position: absolute; left: -14px; top: -28px; width: 28px; text-align: center; font-family: var(--font-heading); font-weight: 500; font-size: 20px; color: var(--color-accent-200); font-variant-numeric: tabular-nums; transition: none">0</span>
+              </div>
+            </div>
+            <p data-a="gaplabel" style="margin: 6px 0 0; font-size: 12.5px; letter-spacing: 0.04em; color: var(--color-neutral-300); opacity: 0; transition: none">&nbsp;</p>
+          </div>
+          <p data-reveal="" data-reveal-delay="3" style="margin: 34px 0 0; max-width: 44ch; font-size: clamp(14px, 1.1vw, 16px); line-height: 1.8; color: var(--color-neutral-300); transition: none">AA is the level regulators cite. Every Legible report measures to it and names the fixes that close the distance fastest.</p>
+        </div>
+      </div>
+    </section>
+
+    <section data-chap="" data-a="s5" data-screen-label="07" style="min-height: 200vh; position: relative">
+      <div style="position: sticky; top: 0; min-height: 100vh; display: flex; align-items: center; padding: 64px 0">
+      <div style="max-width: 31rem; width: 100%">
+        <span data-reveal="" style="display: flex; align-items: center; gap: 12px; font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--color-neutral-500); font-variant-numeric: tabular-nums; transition: none">
+          <span style="display: block; width: 26px; height: 1px; background: var(--color-accent-500)"></span>07 · Landing
+        </span>
+        <h2 data-a="ink2" style="font-family: var(--font-heading); font-weight: 500; font-size: clamp(34px, 4.8vw, 64px); line-height: 1.07; letter-spacing: -0.025em; margin: 24px 0 0; transition: none">Name the project and we will read it.</h2>
+        <p data-reveal="" data-reveal-delay="1" style="margin: 22px 0 0; max-width: 46ch; font-size: clamp(14.5px, 1.15vw, 16.5px); line-height: 1.8; color: var(--color-neutral-300); transition: none">You landed. Now the useful part: a site that can be read aloud from end to end, a team that knows which twelve fixes matter, and a record you can hand to anyone who asks.</p>
+        <p data-reveal="" data-reveal-delay="2" style="margin: 26px 0 0; max-width: 40ch; font-size: clamp(14.5px, 1.15vw, 16.5px); line-height: 1.8; color: var(--color-neutral-300); transition: none">A scan takes ninety seconds. The report is yours whether or not you buy anything.</p>
+        <div data-reveal="" data-reveal-delay="3" style="display: flex; flex-direction: column; gap: 10px; margin: 38px 0 0; max-width: 30rem; transition: none">
+          <label for="ln-project" style="font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--color-neutral-100)">Project name</label>
+          <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: stretch">
+            <input class="input" id="ln-project" type="text" placeholder="name of project" value="{{ projectName }}" onChange="{{ onProjectName }}" style="flex: 1 1 14rem; min-width: 0; font-size: 15px; background: oklch(0.34 0.016 266); border: 1px solid var(--color-neutral-300); color: #fff">
+            <a class="btn btn-primary" href="#" style="white-space: nowrap; font-size: 14px; background: oklch(0.38 0.05 280); border-color: var(--color-accent-300); color: #fff">Scan a site</a>
+          </div>
+          <sc-if value="{{ hasName }}" hint-placeholder-val="{{ false }}">
+            <span style="font-size: 13px; line-height: 1.7; color: var(--color-neutral-300)">Filed as <span style="color: var(--color-accent-300)">{{ projectName }}</span> — twenty-eight pages queued.</span>
+          </sc-if>
+        </div>
+      </div>
+      </div>
+    </section>
+
+  </div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;palette&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;Aurora&quot;,&quot;options&quot;:[&quot;Aurora&quot;,&quot;Tide&quot;,&quot;Ember&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Background&quot;},&quot;glide&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:1,&quot;min&quot;:0.5,&quot;max&quot;:2.5,&quot;step&quot;:0.1,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Motion&quot;},&quot;score&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:68,&quot;min&quot;:0,&quot;max&quot;:100,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Story figures&quot;},&quot;aaLine&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:90,&quot;min&quot;:1,&quot;max&quot;:100,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Story figures&quot;}}">
+class Component extends DCLogic {
+  state = { projectName: "" };
+
+  // Aurora climate: one stop per chapter. Position is a fraction of the
+  // viewport, so the field re-composes itself as the story advances.
+  // Light, not blobs: a low sun that climbs as you read, a horizon band, a
+  // cool wash, an ember at the very bottom edge and one high spark.
+  BL = [
+    { x: [0.80, 0.66, 0.52, 0.38, 0.58], y: [0.86, 0.72, 0.55, 0.38, 0.30], s: [1.00, 1.08, 1.16, 1.24, 1.10], o: [0.90, 0.85, 0.70, 0.80, 0.60] },
+    { x: [0.50, 0.50, 0.50, 0.50, 0.50], y: [1.02, 0.98, 0.94, 0.90, 0.96], s: [1.00, 1.05, 1.10, 1.05, 1.00], o: [0.85, 0.80, 0.75, 0.70, 0.66] },
+    { x: [0.14, 0.20, 0.30, 0.22, 0.40], y: [0.20, 0.30, 0.24, 0.50, 0.66], s: [1.10, 1.00, 0.95, 1.15, 1.25], o: [0.45, 0.55, 0.40, 0.50, 0.75] },
+    { x: [0.50, 0.45, 0.55, 0.50, 0.50], y: [1.06, 1.04, 1.00, 0.98, 1.04], s: [1.00, 1.06, 1.14, 1.08, 1.00], o: [0.25, 0.35, 0.70, 0.55, 0.30] },
+    { x: [0.66, 0.50, 0.78, 0.60, 0.30], y: [0.12, 0.20, 0.30, 0.16, 0.22], s: [0.80, 0.90, 1.00, 0.85, 0.90], o: [0.20, 0.30, 0.25, 0.35, 0.40] }
+  ];
+  // Vacuum has no weather. Nothing in the sky scatters light, so the only
+  // chroma on screen is the accent, carried as a faint glow near the lit
+  // body — every other value is a step off the neutral ramp.
+  HUE = {
+    Aurora: [265, 263, 268, 260, 265],
+    Tide: [250, 249, 254, 247, 250],
+    Ember: [288, 286, 292, 284, 288]
+  };
+  LC = [[0.44, 0.06, 0.42], [0.30, 0.018, 0.3], [0.33, 0.028, 0.24], [0.26, 0.012, 0.18], [0.40, 0.05, 0.2]];
+  // Ground stops per chapter: [top, middle, foot] in OKLCH L / C / H.
+  // Space is not navy. It runs to black, and it darkens as you close.
+  GND = {
+    L: [[0.128, 0.100, 0.074], [0.122, 0.094, 0.070], [0.114, 0.088, 0.064], [0.102, 0.078, 0.056], [0.078, 0.058, 0.042]],
+    C: [[0.022, 0.016, 0.010], [0.022, 0.016, 0.010], [0.020, 0.015, 0.009], [0.018, 0.013, 0.008], [0.013, 0.009, 0.005]],
+    H: [[266, 264, 262], [264, 262, 260], [267, 265, 263], [264, 262, 260], [266, 264, 262]]
+  };
+  SEV = [12, 41, 90];
+
+  componentDidMount() { this.boot(); }
+  componentDidUpdate() { this.boot(); }
+  componentWillUnmount() {
+    this.dead = true;
+    if (this.raf) { if (this.timer) clearTimeout(this.raf); else cancelAnimationFrame(this.raf); }
+    this.raf = 0;
+    clearTimeout(this.fb);
+    clearInterval(this.beat);
+    this.beat = 0;
+    clearInterval(this.watch);
+    this.watch = 0;
+    if (this.host && this.onScroll) this.host.removeEventListener("scroll", this.onScroll);
+    if (this.onAny) {
+      document.removeEventListener("scroll", this.onAny, { capture: true });
+      document.removeEventListener("wheel", this.onAny);
+      document.removeEventListener("touchmove", this.onAny);
+      document.removeEventListener("keydown", this.onAny, true);
+      this.onAny = null;
+    }
+    if (this.onResize) removeEventListener("resize", this.onResize);
+    if (this.ro) this.ro.disconnect();
+  }
+
+  q(n) {
+    const c = this.cache || (this.cache = {});
+    const hit = c[n];
+    if (hit && hit.isConnected) return hit;
+    const el = document.querySelector('[data-a="' + n + '"]');
+    if (el) c[n] = el; else delete c[n];
+    return el;
+  }
+  txt(n, v) { const e = this.q(n); if (e && e.textContent !== v) e.textContent = v; }
+
+  boot() {
+    this.dead = false;
+    if (this.raf) { if (this.timer) clearTimeout(this.raf); else cancelAnimationFrame(this.raf); }
+    this.raf = 0;
+    this.arm();
+    this.reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const host = document.querySelector('[data-a="root"]');
+    if (!host) return;
+    if (host !== this.host) {
+      if (this.host && this.onScroll) this.host.removeEventListener("scroll", this.onScroll);
+      this.host = host;
+      this.cache = {};
+      if (!this.onScroll) this.onScroll = () => this.kick();
+      host.addEventListener("scroll", this.onScroll, { passive: true });
+      // Document-level capture can't go stale when the tree is replaced — the
+      // per-node listener alone can deadlock the loop after a re-render.
+      if (!this.onAny) {
+        this.onAny = () => this.kick();
+        document.addEventListener("scroll", this.onAny, { capture: true, passive: true });
+        document.addEventListener("wheel", this.onAny, { passive: true });
+        document.addEventListener("touchmove", this.onAny, { passive: true });
+        document.addEventListener("keydown", this.onAny, true);
+      }
+      if (!this.onResize) {
+        this.onResize = () => { this.words = null; this.kick(); };
+        addEventListener("resize", this.onResize);
+      }
+      if (!this.ro && typeof ResizeObserver !== "undefined") {
+        this.ro = new ResizeObserver(() => this.kick());
+        this.ro.observe(host.firstElementChild || host);
+      }
+    }
+    this.paint();
+    this.splitSpeech();
+    // Paint the first frame synchronously. Under reduced motion — or in a
+    // preview where rAF is throttled to nothing — the gate must still lift and
+    // the chapters must still be there, animated or not.
+    this.need = true;
+    this.moving = false;
+    try { this.frame(); } catch (e) { console.error("boot frame", e); }
+    this.kick();
+  }
+
+  paint() {
+    const name = this.HUE[this.props.palette] ? this.props.palette : "Aurora";
+    if (this._pal === name) return;
+    this._pal = name;
+    const hues = this.HUE[name];
+    for (let i = 0; i < 5; i++) {
+      const b = this.q("b" + i);
+      const inner = b && b.firstElementChild;
+      if (!inner) continue;
+      const [l, c, a] = this.LC[i];
+      const col = (ll, cc, aa) => "oklch(" + ll.toFixed(3) + " " + cc.toFixed(3) + " " + hues[i] + " / " + aa.toFixed(3) + ")";
+      inner.style.background = "radial-gradient(50% 50% at 50% 50%, " + col(l, c, a) + " 0%, " + col(l * 0.87, c * 0.92, a * 0.4) + " 39%, " + col(l * 0.78, c * 0.82, 0) + " 73%)";
+    }
+  }
+
+  splitSpeech() {
+    const el = this.q("speech");
+    if (!el) return;
+    if (this.words && this.words.length && this.words[0].isConnected && el.querySelector("[data-w]")) return;
+    const src = el.dataset.src || el.textContent.trim();
+    el.dataset.src = src;
+    el.textContent = "";
+    this.words = src.split(/\s+/).map((w) => {
+      const outer = document.createElement("span");
+      outer.style.cssText = "display:inline-block;overflow:hidden;vertical-align:bottom;padding-bottom:0.08em";
+      const inner = document.createElement("span");
+      inner.setAttribute("data-w", "1");
+      inner.textContent = w;
+      // Rests at its final position; the first frame pushes it down. A dead
+      // engine can then never blank the headline.
+      inner.style.cssText = "display:inline-block;transform:translateY(0);transition:none;will-change:transform";
+      outer.appendChild(inner);
+      el.appendChild(outer);
+      el.appendChild(document.createTextNode(" "));
+      return inner;
+    });
+  }
+
+  cl(v) { return v < 0 ? 0 : v > 1 ? 1 : v; }
+  ez(t) { return 1 - Math.pow(1 - t, 3); }
+
+  // Percentage gate: counts to 100, then lifts. Time-based, once per mount.
+  gateStep() {
+    if (this.gateDone) return;
+    const g = this.q("gate");
+    if (!g) { this.gateDone = true; return; }
+    if (this.reduced) { g.style.display = "none"; this.gateDone = true; this.ht = 9999; return; }
+    this.gt = (this.gt || 0) + this.dt * 16.67;
+    const pct = Math.min(1, this.gt / 1150);
+    this.txt("gpct", Math.round(pct * 100) + "%");
+    const bar = this.q("gbar");
+    if (bar) bar.style.transform = "scaleX(" + pct.toFixed(3) + ")";
+    const fade = this.cl((this.gt - 1340) / 460);
+    g.style.opacity = (1 - fade).toFixed(3);
+    if (fade >= 1) { g.style.display = "none"; this.gateDone = true; }
+    this.moving = true;
+  }
+
+  // Outline type that inks in: a solid copy revealed left to right while the
+  // stroked copy retreats ahead of it, word by word.
+  inkBuild(n) {
+    const el = this.q(n);
+    if (!el) return null;
+    const store = this.inks || (this.inks = {});
+    const cur = store[n];
+    if (cur && cur.el === el && cur.words.length && cur.words[0].solid.isConnected) return cur;
+    const src = el.dataset.src || el.textContent.trim();
+    el.dataset.src = src;
+    el.textContent = "";
+    const words = src.split(/\s+/).map((w) => {
+      const outer = document.createElement("span");
+      outer.style.cssText = "position:relative;display:inline-block";
+      const solid = document.createElement("span");
+      solid.textContent = w;
+      solid.style.cssText = "display:inline-block;clip-path:inset(0 100% 0 0);transition:none";
+      const line = document.createElement("span");
+      line.textContent = w;
+      line.setAttribute("aria-hidden", "true");
+      line.style.cssText = "position:absolute;left:0;top:0;white-space:pre;color:transparent;-webkit-text-stroke:1px var(--color-neutral-400);clip-path:inset(0 0 0 0);transition:none";
+      outer.appendChild(solid);
+      outer.appendChild(line);
+      el.appendChild(outer);
+      el.appendChild(document.createTextNode(" "));
+      return { solid, line };
+    });
+    store[n] = { el, words };
+    return store[n];
+  }
+
+  inkDraw(n, q, rate) {
+    const ink = this.inkBuild(n);
+    if (!ink) return;
+    ink.words.forEach((w, i) => {
+      const raw = this.cl((q - i * 0.05) / 0.3);
+      w.solid.__m = Math.max(w.solid.__m || 0, raw);
+      const e = this.d(w.solid, "__d", this.ez(w.solid.__m), rate);
+      w.solid.style.clipPath = "inset(0 " + ((1 - e) * 100).toFixed(2) + "% 0 0)";
+      w.line.style.clipPath = "inset(0 0 0 " + (e * 100).toFixed(2) + "%)";
+    });
+  }
+
+  // The photographic plate becomes a texture: the photograph carries the real
+  // maria and ray systems, and a micro-relief pass on top keeps it from
+  // reading as a blurred photo once the moon grows to fill the frame.
+  moonBuild(img) {
+    const S = 1500, c = document.createElement("canvas");
+    c.width = S;
+    c.height = S;
+    const g = c.getContext("2d");
+    g.imageSmoothingQuality = "high";
+    const iw = img.naturalWidth || img.width, ih = img.naturalHeight || img.height;
+    // Measured disc, sampled a hair inside the limb so no sky comes with it.
+    const r = Math.min(iw, ih) * 0.4315, cx = iw * 0.4985, cy = ih * 0.5064;
+    g.drawImage(img, cx - r, cy - r, r * 2, r * 2, 0, 0, S, S);
+    // A second pass in overlay restores the contrast the upscale softens.
+    g.globalCompositeOperation = "overlay";
+    g.globalAlpha = 0.32;
+    g.drawImage(img, cx - r, cy - r, r * 2, r * 2, 0, 0, S, S);
+    g.globalAlpha = 1;
+    let s = 20260913;
+    const rnd = () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; };
+    const pt = (lim) => {
+      let u, v, q;
+      do { u = rnd() * 2 - 1; v = rnd() * 2 - 1; q = u * u + v * v; } while (q > lim);
+      return [u, v, Math.sqrt(1 - q)];
+    };
+    // Micro craters, foreshortened toward the limb like the real ones.
+    for (let i = 0; i < 1600; i++) {
+      const p = pt(0.993), z = Math.max(0.16, p[2]);
+      const rr = (1.1 + Math.pow(rnd(), 3.2) * 15) * (S / 1200);
+      const x = (p[0] * 0.5 + 0.5) * S, y = (p[1] * 0.5 + 0.5) * S;
+      const rot = Math.atan2(p[1], p[0]);
+      const a = 0.05 + rnd() * 0.13;
+      g.globalCompositeOperation = "multiply";
+      g.fillStyle = "rgba(126,128,142," + a.toFixed(3) + ")";
+      g.beginPath();
+      g.ellipse(x, y, Math.max(0.5, rr * z), rr, rot, 0, 6.2832);
+      g.fill();
+      g.globalCompositeOperation = "lighter";
+      g.strokeStyle = "rgba(188,190,202," + (a * 0.5).toFixed(3) + ")";
+      g.lineWidth = Math.max(0.6, rr * 0.16);
+      g.beginPath();
+      g.ellipse(x, y, Math.max(0.5, rr * z), rr, rot, -2.5, -0.4);
+      g.stroke();
+    }
+    // Regolith grain, so close range still has something to resolve.
+    for (let i = 0; i < 7000; i++) {
+      const p = pt(0.995);
+      const x = (p[0] * 0.5 + 0.5) * S, y = (p[1] * 0.5 + 0.5) * S;
+      const up = rnd() > 0.5;
+      g.globalCompositeOperation = up ? "lighter" : "multiply";
+      g.fillStyle = up ? "rgba(200,202,214,0.05)" : "rgba(148,148,160,0.06)";
+      g.fillRect(x, y, 1 + rnd() * 2.6, 1 + rnd() * 2.6);
+    }
+    g.globalCompositeOperation = "source-over";
+    return c;
+  }
+
+  cvSetup() {
+    const cv = this.q("cv");
+    if (!cv) return null;
+    const dpr = Math.min(1.5, devicePixelRatio || 1);
+    const w = cv.clientWidth || 1, h = cv.clientHeight || 1;
+    if (cv.width !== Math.round(w * dpr) || cv.height !== Math.round(h * dpr)) {
+      cv.width = Math.round(w * dpr);
+      cv.height = Math.round(h * dpr);
+      this.ctx = null;
+    }
+    if (!this.ctx || this.cvEl !== cv) { this.ctx = cv.getContext("2d"); this.cvEl = cv; }
+    this.dpr = dpr;
+    if (!this.moonReq) {
+      this.moonReq = 1;
+      const img = new Image();
+      img.onload = () => {
+        try { this.moonTex = this.moonBuild(img); } catch (e) { console.error("moon plate", e); }
+        this.need = true;
+      };
+      img.src = "assets/moon-plate.webp";
+    }
+    if (!this.nodes || this.seedV !== 4) {
+      this.seedV = 4;
+      let s = 20260911;
+      const rnd = () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; };
+      // Dust at mixed depths: near motes large and dim, far ones tight and lit.
+      this.nodes = [];
+      for (let i = 0; i < 132; i++) {
+        this.nodes.push({ x: rnd(), y: rnd(), ph: rnd() * 6.283, sp: 0.2 + rnd() * 1.1, d: rnd(), r: 0.45 + rnd() * 1.4, big: i % 19 === 5 });
+      }
+      this.bok = [];
+      for (let i = 0; i < 14; i++) {
+        this.bok.push({ x: rnd(), y: rnd(), d: 0.12 + rnd() * 0.88, ph: rnd() * 6.283 });
+      }
+      // Starfield in polar coords around the direction of travel: each star
+      // advances outward as you read, so scrolling reads as forward motion.
+      this.stars = [];
+      for (let i = 0; i < 240; i++) {
+        this.stars.push({ a: rnd() * 6.283, r0: rnd(), sp: 0.55 + rnd() * 1.1, ph: rnd() * 6.283, r: 0.5 + rnd() * 1.3, big: i % 23 === 7, h: i % 3 });
+      }
+      // Boulders on the surface, by distance. Their shadows are what make a
+      // low sun and an airless world legible at all.
+      this.rocks = [];
+      for (let i = 0; i < 30; i++) {
+        // Angular, not spherical — lunar ejecta is broken rock, and the
+        // vertex jitter is what keeps it from reading as marbles on a table.
+        const n = 6 + ((i * 7) % 3);
+        const v = [];
+        for (let k = 0; k < n; k++) v.push(0.6 + rnd() * 0.62);
+        this.rocks.push({ x: rnd(), t: Math.pow(rnd(), 0.7), s: 0.3 + rnd() * 1.1, r: rnd() * 3.14, v: v });
+      }
+      // Ground craters: shallow saucers, lit rim away from the sun.
+      this.pits = [];
+      for (let i = 0; i < 26; i++) {
+        this.pits.push({ x: rnd(), t: Math.pow(rnd(), 0.5), s: 0.6 + rnd() * 2.2 });
+      }
+      // From the surface the sky does not move — you are standing still, and
+      // the stars are fixed points with no air to make them flicker.
+      this.sky = [];
+      for (let i = 0; i < 150; i++) {
+        this.sky.push({ x: rnd(), y: rnd(), r: 0.4 + rnd() * 1.1, a: 0.16 + rnd() * 0.66 });
+      }
+      // Craters in unit-disc coords, projected onto the sphere when drawn.
+      this.cra = [];
+      for (let i = 0; i < 54; i++) {
+        let u, v, qq;
+        do { u = rnd() * 2 - 1; v = rnd() * 2 - 1; qq = u * u + v * v; } while (qq > 0.94);
+        this.cra.push({ u: u, v: v, r: 0.012 + Math.pow(rnd(), 2.6) * 0.15 });
+      }
+    }
+    // One soft-disc sprite per hue, blitted per frame. Painting real radial
+    // gradients at this size every frame costs the whole frame budget.
+    const key = (this._pal || "Aurora") + ":" + dpr;
+    if (this.sprKey !== key) {
+      this.sprKey = key;
+      const hu = this.HUE[this._pal] || this.HUE.Aurora;
+      this.spr = [0, 1, 2].map((n) => {
+        const s = document.createElement("canvas");
+        const S = 128;
+        s.width = S;
+        s.height = S;
+        const g2 = s.getContext("2d");
+        const rg = g2.createRadialGradient(S / 2, S / 2, 0, S / 2, S / 2, S / 2);
+        rg.addColorStop(0, "oklch(0.82 0.1 " + hu[n] + " / 0.6)");
+        rg.addColorStop(0.42, "oklch(0.78 0.1 " + hu[n] + " / 0.22)");
+        rg.addColorStop(0.78, "oklch(0.74 0.1 " + hu[n] + " / 0.05)");
+        rg.addColorStop(1, "oklch(0.72 0.1 " + hu[n] + " / 0)");
+        g2.fillStyle = rg;
+        g2.fillRect(0, 0, S, S);
+        return s;
+      });
+    }
+    return cv;
+  }
+
+  // A voyage, not a diagram: the starfield streams past the direction of
+  // travel, and the moon grows from a far disc into the ground you land on.
+  cvDraw(pd, pr) {
+    const cv = this.cvSetup();
+    if (!cv || !this.ctx) return;
+    const ctx = this.ctx, W = cv.width, H = cv.height, dpr = this.dpr;
+    const hues = this.HUE[this._pal] || this.HUE.Aurora;
+    // Two clocks: reading depth (scroll) and a slow ambient one, so the field
+    // keeps breathing when the reader stops.
+    const amb = (this.amb = (this.amb || 0) + (this.dt || 1) * 0.0167);
+    const t = pd * 5.5 + amb * 0.2;
+    const cl = (v) => (v < 0 ? 0 : v > 1 ? 1 : v);
+    const col = (i, l, c, a) => "oklch(" + l + " " + c + " " + hues[i] + " / " + a + ")";
+    ctx.clearRect(0, 0, W, H);
+    ctx.globalCompositeOperation = "lighter";
+
+    // Travel speed from scroll delta: stars streak while you move and settle
+    // back to points when you stop.
+    const dp = Math.abs(pd - (this._pp == null ? pd : this._pp));
+    this._pp = pd;
+    const inst = Math.min(1, dp / (0.0045 * Math.max(0.5, this.dt || 1)));
+    this.vel = (this.vel || 0) + (inst - (this.vel || 0)) * 0.1;
+    const vel = this.vel;
+    if (vel > 0.005) this.moving = true;
+
+    const vmin = Math.min(W, H);
+    // The sun: small, fierce, high — the light everything else is lit by.
+    const hx = W * 0.58, hy = H * (0.15 + Math.sin(amb * 0.26) * 0.008);
+    const R = vmin * 0.05;
+    const vpx = W * 0.70, vpy = H * 0.36;
+    // Seven keyframed stops across the read — the moon's whole approach.
+    const kf = (arr) => {
+      const f = cl(pd) * (arr.length - 1);
+      const i = Math.min(arr.length - 2, Math.floor(f));
+      const tt = f - i, s = tt * tt * (3 - 2 * tt);
+      return arr[i] + (arr[i + 1] - arr[i]) * s;
+    };
+    const mR = Math.min(vmin * 1.5, vmin * kf([0.055, 0.075, 0.14, 0.34, 0.78, 1.2, 1.5]));
+    // How much of the frame the lit body now owns — the type scrim reads this
+    // so the copy never has to sit on brightening regolith.
+    this.mrn = mR / vmin;
+    // Past the point where the limb has left the frame there is no disc left
+    // to grow. The view becomes the ground you are standing on.
+    const gq = cl((pd - 0.80) / 0.13);
+    // Hard constraint: the limb never crosses into the left half, so as the
+    // moon grows it swings right and looms in from the edge instead of
+    // becoming a full-width field behind the type.
+    const mx = Math.max(W * kf([0.80, 0.79, 0.77, 0.75, 0.72, 0.70, 0.68]), W * 0.54 + mR);
+    const my = H * kf([0.30, 0.27, 0.22, 0.17, 0.26, 0.46, 0.58]) + mR * 0.62;
+    let ldx = hx - mx, ldy = hy - my;
+    const lnorm = Math.hypot(ldx, ldy) || 1;
+    ldx /= lnorm;
+    ldy /= lnorm;
+
+    // Out-of-focus discs at several depths: near ones huge and dim, far ones
+    // tight and bright, all sliding past at their own rate.
+    const bokeh = (near) => {
+      (this.bok || []).forEach((b, i) => {
+        if ((b.d >= 0.5) !== near) return;
+        const rr = (14 + b.d * 78) * dpr;
+        let bx = (b.x + Math.sin(t * 0.5 + b.ph) * 0.03) % 1;
+        let by = (b.y - pd * (0.25 + 1.5 * b.d) - amb * 0.008 * b.d) % 1;
+        if (bx < 0) bx += 1;
+        if (by < 0) by += 1;
+        // Dimmer toward the left column so the type never reads over clutter.
+        const a = (0.14 - b.d * 0.06) * (near ? 0.7 : 1) * (0.25 + 0.75 * Math.min(1, Math.max(0, (bx - 0.16) / 0.36)));
+        const spr = this.spr && this.spr[i % 3];
+        if (!spr) return;
+        ctx.globalAlpha = a;
+        ctx.drawImage(spr, bx * W - rr, by * H - rr, rr * 2, rr * 2);
+        ctx.globalAlpha = 1;
+      });
+    };
+    // ---- starfield: polar advance away from the heading, streaked by speed
+    const maxR = Math.hypot(W, H) * 0.82;
+    ctx.lineCap = "round";
+    (this.stars || []).forEach((s) => {
+      const adv = ((s.r0 + pd * 1.15 * s.sp + amb * 0.009 * s.sp) % 1 + 1) % 1;
+      const rad = Math.pow(adv, 2.1) * maxR;
+      const ca = Math.cos(s.a), sa = Math.sin(s.a);
+      const x = vpx + ca * rad * 1.15, y = vpy + sa * rad;
+      if (x < -60 || x > W + 60 || y < -60 || y > H + 60) return;
+      const near = Math.pow(adv, 1.4);
+      // No twinkle. Twinkle is air.
+      const a = cl(adv * 7) * (0.18 + 0.82 * near);
+      const w = (0.45 + near * 1.5) * s.r * dpr;
+      const len = Math.min(rad * 0.5, (1.5 + vel * 72 * s.sp) * dpr * (0.35 + near));
+      if (len > 3 * dpr) {
+        ctx.strokeStyle = "rgba(240,242,255," + (a * 0.85).toFixed(3) + ")";
+        ctx.lineWidth = w;
+        ctx.beginPath();
+        ctx.moveTo(x - ca * len * 1.15, y - sa * len);
+        ctx.lineTo(x, y);
+        ctx.stroke();
+      } else {
+        ctx.fillStyle = "rgba(240,242,255," + a.toFixed(3) + ")";
+        ctx.beginPath();
+        ctx.arc(x, y, w * 0.62, 0, 6.2832);
+        ctx.fill();
+      }
+      if (s.big) {
+        const br = w * 6;
+        const g = ctx.createRadialGradient(x, y, 0, x, y, br);
+        g.addColorStop(0, "rgba(247,248,255," + (a * 0.5).toFixed(3) + ")");
+        g.addColorStop(0.34, "rgba(232,234,252," + (a * 0.11).toFixed(3) + ")");
+        g.addColorStop(1, "rgba(226,228,250,0)");
+        ctx.fillStyle = g;
+        ctx.beginPath();
+        ctx.arc(x, y, br, 0, 6.2832);
+        ctx.fill();
+      }
+    });
+
+    // ---- the sun: no corona, no flare spikes, no colour. In vacuum there is
+    // nothing between the lens and the photosphere, so it is a small brutal
+    // white disc with only the optics' own bloom around it.
+    const SR = Math.max(1.6 * dpr, R * 0.3);
+    const bloom = ctx.createRadialGradient(hx, hy, SR * 0.7, hx, hy, SR * 8);
+    bloom.addColorStop(0, "rgba(255,255,251,0.46)");
+    bloom.addColorStop(0.2, "rgba(248,249,255,0.09)");
+    bloom.addColorStop(1, "rgba(244,246,255,0)");
+    ctx.fillStyle = bloom;
+    ctx.beginPath();
+    ctx.arc(hx, hy, SR * 8, 0, 6.2832);
+    ctx.fill();
+    ctx.fillStyle = "rgb(255,255,252)";
+    ctx.beginPath();
+    ctx.arc(hx, hy, SR, 0, 6.2832);
+    ctx.fill();
+
+    // ---- the moon: opaque, so it occludes the stars behind it
+    ctx.globalCompositeOperation = "source-over";
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(mx, my, mR, 0, 6.2832);
+    ctx.clip();
+    // Low-angle light: a small bright highlight falling away fast, so the
+    // regolith reads as a lit body without becoming a white field under type.
+    const lo = Math.min(mR * 0.6, vmin * 0.42);
+    const lgx = mx + ldx * lo, lgy = my + ldy * lo;
+    // Bright while it is a far disc; stepped down as it grows large enough to
+    // sit behind the type, so the surface never becomes a white field.
+    const dim = cl((mR / vmin - 0.3) / 0.55);
+    const tex = this.moonTex;
+    if (tex) {
+      // Real albedo: the plate is an orthographic view of the sphere, so it
+      // maps 1:1 onto the disc — maria, highlands and Tycho's rays included.
+      ctx.drawImage(tex, mx - mR, my - mR, mR * 2, mR * 2);
+      // Form is painted as shade over the plate, never as light, so the
+      // photograph's own values survive.
+      const b = 1 - 0.56 * dim;
+      const sv = (k, bl) => {
+        const l = k * b * 255;
+        return "rgb(" + Math.round(l * (1 - bl * 0.07)) + "," + Math.round(l * (1 - bl * 0.02)) + "," + Math.round(Math.min(255, l * (1 + bl * 0.12))) + ")";
+      };
+      ctx.globalCompositeOperation = "multiply";
+      const sg = ctx.createRadialGradient(lgx, lgy, mR * 0.04, lgx, lgy, mR * (1.72 - dim * 0.42));
+      sg.addColorStop(0, sv(1, 0));
+      sg.addColorStop(0.28, sv(0.93, 0.2));
+      sg.addColorStop(0.56, sv(0.7, 0.6));
+      sg.addColorStop(0.82, sv(0.4, 1));
+      sg.addColorStop(1, sv(0.22, 1));
+      ctx.fillStyle = sg;
+      ctx.fillRect(mx - mR, my - mR, mR * 2, mR * 2);
+      // Limb darkening: the last few percent of the sphere turns hard away.
+      const lb = ctx.createRadialGradient(mx, my, mR * 0.55, mx, my, mR);
+      lb.addColorStop(0, "rgb(255,255,255)");
+      lb.addColorStop(0.88, "rgb(238,238,246)");
+      lb.addColorStop(1, "rgb(168,170,190)");
+      ctx.fillStyle = lb;
+      ctx.fillRect(mx - mR, my - mR, mR * 2, mR * 2);
+      // Luminance ceiling. Nothing on this page is allowed to be pure white —
+      // every value comes off the ramp — and a clipped highlight behind
+      // headline-scale type is a contrast failure as well as a system one.
+      // "darken" clamps each channel, so the plate keeps its full range up to
+      // the ceiling and simply stops there.
+      const ceil = Math.round(252 - 54 * cl((this.mrn - 0.45) / 0.5));
+      if (ceil < 250) {
+        ctx.globalCompositeOperation = "darken";
+        ctx.fillStyle = "rgb(" + ceil + "," + ceil + "," + (ceil + 6) + ")";
+        ctx.fillRect(mx - mR, my - mR, mR * 2, mR * 2);
+      }
+      ctx.globalCompositeOperation = "source-over";
+    }
+    const lv = (hi, lo2) => (hi + (lo2 - hi) * dim).toFixed(3);
+    if (!tex) {
+    const reg = ctx.createRadialGradient(lgx, lgy, mR * 0.02, lgx, lgy, mR * (1.85 - dim * 0.5));
+    reg.addColorStop(0, "oklch(" + lv(0.955, 0.78) + " 0.008 92)");
+    reg.addColorStop(0.16, "oklch(" + lv(0.87, 0.6) + " 0.009 88)");
+    reg.addColorStop(0.4, "oklch(" + lv(0.63, 0.38) + " 0.016 252)");
+    reg.addColorStop(0.7, "oklch(" + lv(0.37, 0.25) + " 0.024 258)");
+    reg.addColorStop(1, "oklch(" + lv(0.245, 0.185) + " 0.03 262)");
+    ctx.fillStyle = reg;
+    ctx.fillRect(mx - mR, my - mR, mR * 2, mR * 2);
+    // Craters, foreshortened along the radial as the sphere turns away.
+    (this.cra || []).forEach((c) => {
+      const q = c.u * c.u + c.v * c.v;
+      if (q > 0.985) return;
+      const z = Math.sqrt(1 - q);
+      // Capped in screen px: at landing scale an uncapped crater paints one
+      // enormous grey bowl instead of reading as ground.
+      const cr = Math.min(c.r * mR, vmin * 0.075);
+      if (cr < 1.1 * dpr) return;
+      const cxp = mx + c.u * mR, cyp = my + c.v * mR;
+      if (cxp < -cr || cxp > W + cr || cyp < -cr || cyp > H + cr) return;
+      const rot = Math.atan2(c.v, c.u);
+      const sh = cl(c.u * ldx + c.v * ldy + z * 0.6);
+      ctx.fillStyle = "oklch(" + (0.2 + (0.52 - 0.16 * dim) * sh).toFixed(3) + " 0.014 " + (252 - 160 * sh).toFixed(0) + " / 0.5)";
+      ctx.beginPath();
+      ctx.ellipse(cxp, cyp, Math.max(0.5, cr * z), cr, rot, 0, 6.2832);
+      ctx.fill();
+      ctx.strokeStyle = "oklch(" + (0.5 + 0.34 * sh).toFixed(3) + " 0.012 92 / " + (0.1 + 0.34 * sh).toFixed(3) + ")";
+      ctx.lineWidth = Math.max(0.6, Math.min(2.6 * dpr, cr * 0.1));
+      ctx.beginPath();
+      ctx.ellipse(cxp, cyp, Math.max(0.5, cr * z), cr, rot, Math.atan2(ldy, ldx) - rot - 1.5, Math.atan2(ldy, ldx) - rot + 1.5);
+      ctx.stroke();
+    });
+    }
+    // Earthshine: the dark limb never goes fully black.
+    ctx.globalCompositeOperation = "lighter";
+    const esx = mx - ldx * mR * 0.75, esy = my - ldy * mR * 0.75;
+    const esg = ctx.createRadialGradient(esx, esy, 0, esx, esy, mR * 1.25);
+    esg.addColorStop(0, col(1, 0.55, 0.07, 0.2));
+    esg.addColorStop(1, col(1, 0.45, 0.06, 0));
+    ctx.fillStyle = esg;
+    ctx.fillRect(mx - mR, my - mR, mR * 2, mR * 2);
+    ctx.restore();
+
+    // No halo, no rim glow — an airless limb is a razor edge against black.
+    // The only thing outside the disc is the faint accent cast the design
+    // system allows itself, and it stays well under the surface's own value.
+    ctx.globalCompositeOperation = "lighter";
+    // Only while it is still a body in the distance. Once the limb is past
+    // the frame there is no "outside" left, and a ring drawn there is just a
+    // lens artifact pretending to be atmosphere.
+    if (this.mrn < 0.62) {
+      const cast = ctx.createRadialGradient(mx, my, mR * 0.99, mx, my, mR * 1.14);
+      cast.addColorStop(0, col(0, 0.62, 0.09, 0.055));
+      cast.addColorStop(1, col(0, 0.55, 0.08, 0));
+      ctx.fillStyle = cast;
+      ctx.beginPath();
+      ctx.arc(mx, my, mR * 1.14, 0, 6.2832);
+      ctx.fill();
+    }
+
+    // The survey chapter puts markers down: a lit point on the regolith with
+    // a hairline leader back toward the column of type.
+    const an = pr ? cl((pr.sel - 0.06) / 0.46) : 0;
+    if (an > 0.01) {
+      const dirs = [[-0.44, -0.32], [0.04, 0.08], [-0.62, 0.44]];
+      dirs.forEach((d, i) => {
+        const e = cl((an - i * 0.2) / 0.34);
+        if (e <= 0.01) return;
+        const len = vmin * (0.1 + i * 0.028) * (0.45 + 0.55 * e);
+        const x0 = mx + d[0] * mR, y0 = my + d[1] * mR;
+        const x1 = x0 - len, y1 = y0 - len * 0.42;
+        ctx.lineWidth = Math.max(0.5, 0.8 * dpr);
+        ctx.strokeStyle = col(1, 0.9, 0.1, (0.5 * e).toFixed(3));
+        ctx.beginPath();
+        ctx.moveTo(x0, y0);
+        ctx.lineTo(x1, y1);
+        ctx.stroke();
+        const dr = 2.4 * dpr;
+        const dg = ctx.createRadialGradient(x1, y1, 0, x1, y1, dr * 6);
+        dg.addColorStop(0, col(1, 0.97, 0.09, (0.85 * e).toFixed(3)));
+        dg.addColorStop(0.32, col(1, 0.82, 0.14, (0.24 * e).toFixed(3)));
+        dg.addColorStop(1, col(1, 0.76, 0.13, 0));
+        ctx.fillStyle = dg;
+        ctx.beginPath();
+        ctx.arc(x1, y1, dr * 6, 0, 6.2832);
+        ctx.fill();
+      });
+    }
+
+    if (gq > 0.002) this.drawGround(ctx, W, H, dpr, gq, amb, hues);
+
+    // ---- regolith dust: flecks blowing past as you come in low
+    const land = cl((pd - 0.58) / 0.3);
+    (this.nodes || []).forEach((n, i) => {
+      let x = (n.x - pd * (0.9 + 2.4 * n.d) * n.sp - amb * 0.018 * n.sp) % 1;
+      let y = (n.y + Math.sin(t * 0.5 + n.ph) * 0.01) % 1;
+      if (x < 0) x += 1;
+      if (y < 0) y += 1;
+      // Pinned below the limb — or below the real horizon once you are down —
+      // so dust only ever blows across the surface, never across the sky.
+      const hzn = this._hzn != null && gq > 0.5 ? this._hzn : Math.max(H * 0.52, my - mR);
+      const px = x * W, py = hzn + (0.03 + 0.94 * y) * Math.max(H * 0.1, H - hzn);
+      const band = land * cl((py - hzn) / (H * 0.06)) * cl((H * 1.05 - py) / (H * 0.1));
+      if (band < 0.02) return;
+      const tw = band * (0.35 + 0.65 * Math.abs(Math.sin(amb * 1.2 * n.sp + n.ph)));
+      const rr = n.r * dpr * (0.5 + n.d * 1.5);
+      const st = (2 + n.d * 26) * dpr * (0.3 + 0.7 * vel);
+      if (st > 3 * dpr) {
+        ctx.strokeStyle = "rgba(244,242,255," + (tw * (0.2 + 0.6 * n.d)).toFixed(3) + ")";
+        ctx.lineWidth = Math.max(0.5, rr * 0.8);
+        ctx.beginPath();
+        ctx.moveTo(px + st, py);
+        ctx.lineTo(px, py);
+        ctx.stroke();
+      }
+      if (n.big) {
+        const hue = hues[i % 3];
+        const g = ctx.createRadialGradient(px, py, 0, px, py, rr * 9);
+        g.addColorStop(0, "oklch(0.99 0.04 " + hue + " / " + tw.toFixed(3) + ")");
+        g.addColorStop(0.22, "oklch(0.88 0.12 " + hue + " / " + (0.44 * tw).toFixed(3) + ")");
+        g.addColorStop(0.5, "oklch(0.78 0.13 " + hue + " / " + (0.16 * tw).toFixed(3) + ")");
+        g.addColorStop(1, "oklch(0.72 0.13 " + hue + " / 0)");
+        ctx.fillStyle = g;
+        ctx.beginPath();
+        ctx.arc(px, py, rr * 9, 0, 6.2832);
+        ctx.fill();
+      }
+      ctx.fillStyle = "rgba(238,238,255," + ((0.16 + 0.62 * n.d) * tw).toFixed(3) + ")";
+      ctx.beginPath();
+      ctx.arc(px, py, n.big ? rr * 1.4 : rr * 0.8, 0, 6.2832);
+      ctx.fill();
+    });
+
+    ctx.globalCompositeOperation = "source-over";
+    if (!this.reduced) this.moving = true;
+  }
+
+  // The arrival. Not more zoom — a different silhouette: a flat razor
+  // horizon with black running right down to it, because there is no air to
+  // hold a glow, and Earth hanging fixed in that black because the moon
+  // keeps one face turned home and never lets it set.
+  drawGround(ctx, W, H, dpr, q, amb, hues) {
+    const vmin = Math.min(W, H);
+    const hz = H * (0.495 - 0.04 * q);
+    this._hzn = hz;
+    ctx.save();
+    ctx.globalAlpha = q;
+    ctx.globalCompositeOperation = "source-over";
+    ctx.fillStyle = "oklch(0.048 0.010 264)";
+    ctx.fillRect(0, 0, W, Math.ceil(hz) + 1);
+
+    // Fixed stars: you are standing on rock now, not travelling.
+    (this.sky || []).forEach((s) => {
+      const y = s.y * hz * 0.94;
+      const x = s.x * W;
+      ctx.fillStyle = "rgba(240,242,255," + (s.a * 0.62).toFixed(3) + ")";
+      ctx.beginPath();
+      ctx.arc(x, y, s.r * dpr * 0.7, 0, 6.2832);
+      ctx.fill();
+    });
+
+    // Earth: a small marble, about four times the width the moon shows us
+    // from home, gibbous, and quite obviously not a light source.
+    const ex = W * 0.795, ey = hz * 0.3, er = vmin * 0.058 * (0.72 + 0.28 * q);
+    const eg = ctx.createRadialGradient(ex - er * 0.45, ey - er * 0.4, er * 0.05, ex, ey, er * 1.05);
+    eg.addColorStop(0, "oklch(0.80 0.055 235)");
+    eg.addColorStop(0.42, "oklch(0.58 0.075 248)");
+    eg.addColorStop(0.72, "oklch(0.34 0.055 256)");
+    eg.addColorStop(1, "oklch(0.13 0.024 260)");
+    ctx.fillStyle = eg;
+    ctx.beginPath();
+    ctx.arc(ex, ey, er, 0, 6.2832);
+    ctx.fill();
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(ex, ey, er, 0, 6.2832);
+    ctx.clip();
+    ctx.globalCompositeOperation = "multiply";
+    const term = ctx.createLinearGradient(ex + er * 0.1, ey, ex + er, ey + er * 0.3);
+    term.addColorStop(0, "rgb(255,255,255)");
+    term.addColorStop(0.55, "rgb(96,98,120)");
+    term.addColorStop(1, "rgb(26,27,38)");
+    ctx.fillStyle = term;
+    ctx.fillRect(ex - er, ey - er, er * 2, er * 2);
+    ctx.restore();
+
+    // Regolith in perspective: bands of the real plate, each stretched by the
+    // distance it stands at, so grain coarsens correctly toward your boots.
+    const tex = this.moonTex;
+    const N = 54, depth = H - hz;
+    for (let i = 0; i < N; i++) {
+      const t0 = i / N, t1 = (i + 1) / N;
+      const y0 = hz + Math.pow(t0, 2.15) * depth, y1 = hz + Math.pow(t1, 2.15) * depth;
+      const hgt = Math.max(1, y1 - y0 + 1);
+      const wid = W * (1 + Math.pow(t0, 1.6) * 2.4);
+      if (tex) {
+        const sy = (0.1 + 0.8 * t0) * tex.height;
+        ctx.drawImage(tex, tex.width * 0.16, sy, tex.width * 0.68, Math.max(2, (tex.height / N) * 0.9), (W - wid) / 2, y0, wid, hgt);
+      } else {
+        ctx.fillStyle = "oklch(" + (0.34 + 0.16 * t0).toFixed(3) + " 0.008 92)";
+        ctx.fillRect(0, y0, W, hgt);
+      }
+    }
+    // Value ramp: a low sun means the ground at your feet is brighter than
+    // the ground at the horizon, and the horizon line itself stays hard.
+    ctx.globalCompositeOperation = "multiply";
+    const vr = ctx.createLinearGradient(0, hz, 0, H);
+    vr.addColorStop(0, "rgb(56,58,74)");
+    vr.addColorStop(0.16, "rgb(104,106,124)");
+    vr.addColorStop(0.58, "rgb(198,199,208)");
+    vr.addColorStop(1, "rgb(216,216,224)");
+    ctx.fillStyle = vr;
+    ctx.fillRect(0, hz, W, H - hz);
+    // Same ceiling on the surface you stand on.
+    ctx.globalCompositeOperation = "darken";
+    ctx.fillStyle = "rgb(198,199,208)";
+    ctx.fillRect(0, hz, W, H - hz);
+    ctx.globalCompositeOperation = "source-over";
+
+    // Shallow pits: a soft floor and a rim that catches light on the far
+    // side only. On the real surface these are barely there — the moment
+    // they read as holes, the ground reads as a cartoon.
+    (this.pits || []).forEach((p) => {
+      const y = hz + Math.pow(p.t, 2.15) * depth;
+      const x = ((p.x * 1.7) % 1) * W;
+      const rr = (0.01 + 0.105 * Math.pow(p.t, 2.2)) * vmin * p.s;
+      if (rr < 5 * dpr) return;
+      const g = ctx.createLinearGradient(x, y - rr * 0.28, x, y + rr * 0.28);
+      g.addColorStop(0, "oklch(0.30 0.010 262 / 0.26)");
+      g.addColorStop(1, "oklch(0.58 0.007 92 / 0.10)");
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.ellipse(x, y, rr, rr * 0.26, 0, 0, 6.2832);
+      ctx.fill();
+      ctx.strokeStyle = "oklch(0.86 0.006 92 / 0.16)";
+      ctx.lineWidth = Math.max(0.8, rr * 0.035);
+      ctx.beginPath();
+      ctx.ellipse(x, y, rr, rr * 0.26, 0, 3.52, 5.94);
+      ctx.stroke();
+    });
+
+    // Near-field grit: at arm's length the ground is not a texture, it is
+    // individual chips each throwing its own shadow. This is the pass that
+    // gives the frame a sense of how close your boots are.
+    for (let i = 0; i < 260; i++) {
+      const t = 0.42 + ((i * 0.0179) % 0.58);
+      const y = hz + Math.pow(t, 2.15) * depth;
+      const x = ((i * 0.0713 + Math.sin(i) * 0.31) % 1 + 1) % 1 * W;
+      const g2 = (0.7 + ((i * 13) % 7) * 0.42) * dpr * (0.4 + t);
+      ctx.fillStyle = "oklch(0.06 0.008 264 / 0.7)";
+      ctx.fillRect(x - g2 * 2.2, y, g2 * 2.2, g2 * 0.7);
+      ctx.fillStyle = "oklch(0.96 0.004 92 / 0.72)";
+      ctx.fillRect(x, y - g2 * 0.3, g2, g2 * 0.8);
+    }
+
+    // The horizon. One pixel of transition, because there is nothing to
+    // soften it — this hard edge is the whole tell of an airless world.
+    ctx.strokeStyle = "oklch(0.72 0.006 92 / 0.44)";
+    ctx.lineWidth = Math.max(1, dpr);
+    ctx.beginPath();
+    ctx.moveTo(0, hz + 0.5);
+    ctx.lineTo(W, hz + 0.5);
+    ctx.stroke();
+    ctx.restore();
+    ctx.globalAlpha = 1;
+  }
+
+  // Frame-synced like the original: scroll only ever requests a frame, and
+  // every value is scrubbed inside one rAF — motion lands in step with the
+  // compositor instead of on a timer that drifts against it. A slow watchdog
+  // re-arms the loop if rAF is throttled to nothing offscreen, so the read
+  // can never park mid-story.
+  // rAF is the preferred clock but never the authority: some preview hosts
+  // never deliver it, and the host can mount two instances of this logic, so
+  // neither a pending frame request nor a per-instance timer handle can be
+  // trusted. The heartbeat therefore lives on the window and always calls
+  // whichever instance booted last; liveness is read off the DOM, not a flag;
+  // and any request older than a beat is treated as lost and reissued.
+  alive() { return !!document.querySelector('[data-a="root"]'); }
+  arm() {
+    window.__legibleTick = this.watchStep;
+    if (window.__legibleBeat) return;
+    window.__legibleBeat = setInterval(() => { const f = window.__legibleTick; if (f) f(); }, 100);
+    this.watch = window.__legibleBeat;
+  }
+  req(force) {
+    if (!this.alive()) return;
+    const stale = this.raf && performance.now() - (this._req || 0) > 100;
+    if (this.raf && !stale && !force) return;
+    if (this.raf) { if (this.timer) clearTimeout(this.raf); else { this.rafOk = false; cancelAnimationFrame(this.raf); } this.raf = 0; }
+    this._req = performance.now();
+    if (this.rafOk === false) {
+      this.timer = true;
+      this.raf = setTimeout(() => this.tick(performance.now()), 16);
+    } else {
+      this.timer = false;
+      this.raf = requestAnimationFrame(this.rafTick);
+    }
+  }
+  rafTick = (ts) => { this.rafOk = true; this.tick(ts); };
+  kick() {
+    if (!this.alive()) return;
+    this.dead = false;
+    this.need = true;
+    this.arm();
+    this.req();
+  }
+  watchStep = () => {
+    const el = document.querySelector('[data-a="root"]');
+    if (!el) return;
+    this.dead = false;
+    if (el.scrollTop !== this._lastTop) this.need = true;
+    if (!this.need && !this.moving) return;
+    if (performance.now() - (this._req || 0) < 100) return;
+    // The request went unanswered: this host is not delivering rAF. Demote to
+    // timers for good and run the frame off the beat instead of waiting on a
+    // callback that is not coming.
+    if (this.raf) {
+      if (!this.timer) { this.rafOk = false; cancelAnimationFrame(this.raf); }
+      else clearTimeout(this.raf);
+      this.raf = 0;
+    }
+    this.tick(performance.now());
+  };
+  tick = (ts) => {
+    this.raf = 0;
+    if (!this.alive()) return;
+    this.dead = false;
+    this.dt = this._ts ? Math.min(Math.max((ts - this._ts) / 16.67, 0.35), 3) : 1;
+    this._ts = ts;
+    this.need = false;
+    this.moving = false;
+    try { this.frame(); } catch (e) { this.moving = false; console.error("scroll frame", e); }
+    if (this.moving) { this.idle = 0; this.req(true); }
+    else if ((this.idle = (this.idle || 0) + 1) < 3) this.req(true);
+    else this._ts = 0;
+  };
+
+  // Damped scrub: every value chases its scroll-derived target instead of
+  // snapping to it, which is what keeps long reads easy on the eyes.
+  d(el, k, target, rate) {
+    if (this.reduced) { el[k] = target; return target; }
+    const cur = el[k];
+    if (cur == null) { el[k] = target; return target; }
+    const next = cur + (target - cur) * (1 - Math.pow(1 - Math.min(0.94, rate), this.dt));
+    if (Math.abs(target - next) < 0.0006) { el[k] = target; return target; }
+    el[k] = next;
+    this.moving = true;
+    return next;
+  }
+
+  frame() {
+    // The streamed tree gets replaced under us, so trust the live document
+    // rather than the node captured at mount — a stale host means a page that
+    // looks alive but never responds to scroll.
+    const live = document.querySelector('[data-a="root"]');
+    let host = this.host;
+    if (live && live !== host) {
+      host = this.host = live;
+      this.cache = {};
+      this.ctx = null;
+      this.inks = null;
+      this.words = null;
+      this._pal = null;
+      if (!this.onScroll) this.onScroll = () => this.kick();
+      if (!this.bound) this.bound = new WeakSet();
+      if (!this.bound.has(host)) {
+        host.addEventListener("scroll", this.onScroll, { passive: true });
+        this.bound.add(host);
+      }
+      // Bounded: rebuilding split text every frame would churn the DOM.
+      if ((this.rebuilds = (this.rebuilds || 0) + 1) < 8) {
+        this.paint();
+        this.splitSpeech();
+      }
+    }
+    if (!host || !host.isConnected) return;
+    const cl = (v) => (v < 0 ? 0 : v > 1 ? 1 : v);
+    const expo = (t) => 1 - Math.pow(1 - t, 3);
+    const sm = (t) => t * t * (3 - 2 * t);
+    const G = Math.max(0.5, Math.min(2.5, Number(this.props.glide ?? 1)));
+    const r = (v) => Math.min(0.94, v / G);
+
+    const vh = host.clientHeight || 1;
+    const span = Math.max(1, host.scrollHeight - vh);
+    const p = cl(host.scrollTop / span);
+    this._lastTop = host.scrollTop;
+    const hostTop = host.getBoundingClientRect().top;
+    this.gateStep();
+
+    // ---- reads ----
+    const revs = [...host.querySelectorAll("[data-reveal]")];
+    const revY = revs.map((el) => el.getBoundingClientRect().top - hostTop);
+    const chaps = [...host.querySelectorAll("[data-chap]")];
+    const chapY = chaps.map((el) => el.getBoundingClientRect().top - hostTop);
+    const scrub = (n) => {
+      const el = this.q(n);
+      if (!el) return 0;
+      const b = el.getBoundingClientRect();
+      const room = b.height - vh;
+      return room > 8 ? cl((hostTop - b.top) / room) : cl((vh * 0.7 - (b.top - hostTop)) / (vh * 0.7));
+    };
+    const q2 = scrub("s2"), qsel = scrub("sel"), q3 = scrub("s3"), q4 = scrub("s4"), q5 = scrub("s5");
+    const gRail = this.q("rail");
+    const gW = gRail ? gRail.clientWidth : 0;
+
+    // ---- writes ----
+    const travel = this.reduced ? 0 : 14;
+    revs.forEach((el, i) => {
+      const delay = Number(el.dataset.revealDelay || 0);
+      const raw = cl((vh * 0.94 - revY[i]) / (vh * 0.26) - delay * 0.06);
+      el.__m = Math.max(el.__m || 0, raw);
+      const e = this.d(el, "__d", expo(el.__m), r(0.14));
+      el.style.opacity = e.toFixed(3);
+      el.style.transform = "translate3d(0," + ((1 - e) * travel).toFixed(2) + "px,0)";
+      if (e > 0.999 && el.style.willChange !== "auto") el.style.willChange = "auto";
+    });
+
+    const pd = this.d(host, "__p", p, r(0.16));
+    const fracs = chapY.map((y) => cl((y + host.scrollTop) / span));
+
+    let idx = 1;
+    fracs.forEach((f, i) => { if (p >= f - 0.012) idx = i + 1; });
+    this.txt("idx", "0" + idx + " / 07");
+    this.txt("edge", "0" + idx + " — " + ["Launch", "The mission", "The read", "The survey", "The count", "The line", "Landing"][idx - 1]);
+    const cue = this.q("cue");
+    if (cue) cue.style.opacity = String(Math.min(Number(cue.style.opacity || 1), 1 - cl((p - 0.01) / 0.05)));
+
+    for (let i = 0; i < 5; i++) {
+      const b = this.q("b" + i);
+      if (!b) continue;
+      const k = this.BL[i];
+      const f = pd * 4;
+      const a = Math.min(3, Math.floor(f)), t = sm(f - a), bx = Math.min(4, a + 1);
+      const x = (k.x[a] + (k.x[bx] - k.x[a]) * t) * (host.clientWidth || 1);
+      const y = (k.y[a] + (k.y[bx] - k.y[a]) * t) * vh;
+      const s = k.s[a] + (k.s[bx] - k.s[a]) * t;
+      const o = k.o[a] + (k.o[bx] - k.o[a]) * t;
+      b.style.transform = "translate3d(calc(" + x.toFixed(1) + "px - 50%), calc(" + y.toFixed(1) + "px - 50%), 0) scale(" + s.toFixed(3) + ")";
+      b.style.opacity = (o * 0.62).toFixed(3);
+    }
+
+    // The ground itself travels: each chapter lands on its own deep stop and
+    // the page crossfades between them as you read.
+    const base = this.q("base");
+    if (base) {
+      const f = pd * 4;
+      const a = Math.min(3, Math.floor(f)), tt = sm(f - a), bx = Math.min(4, a + 1);
+      const key = (a * 100 + Math.round(tt * 100)) | 0;
+      if (base.__k !== key) {
+        base.__k = key;
+        const st = [0, 1, 2].map((s) => {
+          const l = this.GND.L[a][s] + (this.GND.L[bx][s] - this.GND.L[a][s]) * tt;
+          const c = this.GND.C[a][s] + (this.GND.C[bx][s] - this.GND.C[a][s]) * tt;
+          const h0 = this.GND.H[a][s];
+          let h1 = this.GND.H[bx][s];
+          if (h1 - h0 > 180) h1 -= 360; else if (h0 - h1 > 180) h1 += 360;
+          const h = h0 + (h1 - h0) * tt;
+          return "oklch(" + l.toFixed(3) + " " + c.toFixed(3) + " " + h.toFixed(1) + ")";
+        });
+        base.style.background = "linear-gradient(176deg, " + st[0] + " 0%, " + st[1] + " 46%, " + st[2] + " 100%)";
+      }
+    }
+
+    this.cvDraw(pd, { sel: qsel, s2: q2, s3: q3, s4: q4, s5: q5 });
+
+    // Contrast is not negotiable on a product that sells legibility: the ink
+    // scrim under the type column deepens in step with how much lit surface
+    // the frame now holds, so the headline keeps its ratio the whole way in.
+    const scrim = this.q("scrim");
+    if (scrim) {
+      const need = cl(((this.mrn || 0) - 0.2) / 0.62);
+      const e = this.d(scrim, "__d", 0.34 + 0.66 * need, r(0.12));
+      scrim.style.opacity = e.toFixed(3);
+      // Opacity alone cannot save a band that sits past the gradient's own
+      // falloff, so the falloff itself migrates right as the lit surface
+      // grows — the ink follows the light instead of just getting heavier.
+      const k = cl(((this.mrn || 0) - 0.3) / 0.6);
+      const gk = Math.round(k * 60);
+      if (scrim.__gk !== gk) {
+        scrim.__gk = gk;
+        const kk = gk / 60;
+        const p1 = 26 + 14 * kk, p2 = 44 + 14 * kk, p3 = 62 + 8 * kk, p4 = 78 + 4 * kk;
+        const a2 = 0.74 + 0.14 * kk, a3 = 0.24 + 0.21 * kk;
+        scrim.style.background = "linear-gradient(90deg, rgba(6,7,13,0.97) 0%, rgba(6,7,13,0.95) " +
+          p1.toFixed(1) + "%, rgba(6,7,13," + a2.toFixed(3) + ") " + p2.toFixed(1) +
+          "%, rgba(6,7,13," + a3.toFixed(3) + ") " + p3.toFixed(1) + "%, rgba(6,7,13,0) " + p4.toFixed(1) + "%)";
+      }
+    }
+
+    if (this.gateDone) this.ht = (this.ht || 0) + this.dt * 16.67;
+    const q0 = this.cl((this.ht || 0) / 1000);
+    this.inkDraw("ink0", q0, r(0.2));
+    if (q0 < 1) this.moving = true;
+    this.inkDraw("ink1", this.cl((q4 - 0.02) / 0.32), r(0.16));
+    this.inkDraw("ink2", this.cl((q5 - 0.05) / 0.4), r(0.16));
+
+    if (this.words && this.words.length) {
+      this.words.forEach((w, i) => {
+        const raw = cl((q2 - 0.08 - i * 0.028) / 0.26);
+        w.__m = Math.max(w.__m || 0, raw);
+        const e = this.d(w, "__d", expo(w.__m), r(0.18));
+        w.style.transform = "translateY(" + ((1 - e) * 112).toFixed(2) + "%)";
+        if (e > 0.999 && w.style.willChange !== "auto") w.style.willChange = "auto";
+      });
+    }
+
+    // Act 03: each finding's hairline draws out to its label, one at a time.
+    for (let i = 0; i < 3; i++) {
+      const ln = this.q("ln" + i), lb = this.q("lb" + i);
+      if (!ln) continue;
+      const raw = this.cl((qsel - 0.12 - i * 0.17) / 0.2);
+      ln.__m = Math.max(ln.__m || 0, raw);
+      const e = this.d(ln, "__d", this.ez(ln.__m), r(0.16));
+      ln.style.transform = "scaleX(" + e.toFixed(3) + ")";
+      if (lb) {
+        lb.style.opacity = e.toFixed(3);
+        lb.style.transform = "translate3d(" + ((1 - e) * -10).toFixed(2) + "px,0,0)";
+      }
+    }
+
+    const total = this.SEV.reduce((a, b) => a + b, 0);
+    const big = this.q("total");
+    if (big) {
+      const e = this.d(big, "__d", expo(cl((q3 - 0.05) / 0.55)), r(0.1));
+      this.txt("total", String(Math.round(total * e)));
+    }
+    for (let i = 0; i < 3; i++) {
+      const bar = this.q("bar" + i);
+      if (!bar) continue;
+      const e = this.d(bar, "__d", expo(cl((q3 - 0.12 - i * 0.07) / 0.5)), r(0.1));
+      bar.style.transform = "scaleX(" + (e * (this.SEV[i] / total)).toFixed(4) + ")";
+      this.txt("val" + i, String(Math.round(this.SEV[i] * e)));
+    }
+
+    // Chapter 07 — you are down on the regolith: the visor and suit close in.
+    const pov = this.q("pov");
+    if (pov) {
+      const e = this.d(pov, "__d", expo(cl((q5 - 0.02) / 0.46)), r(0.13));
+      pov.style.opacity = e.toFixed(3);
+    }
+
+    // Chapter 06 — the score against the AA line, and the gap between them.
+    const score = Math.max(0, Math.min(100, Number(this.props.score ?? 68)));
+    const line = Math.max(1, Math.min(100, Number(this.props.aaLine ?? 90)));
+    const aa = this.q("aa");
+    if (aa && aa.__l !== line) { aa.__l = line; aa.style.left = line + "%"; }
+    const mark = this.q("mark");
+    if (mark && gW > 0) {
+      const e = this.d(mark, "__d", expo(cl((q4 - 0.08) / 0.62)), r(0.09));
+      mark.style.transform = "translate3d(" + (e * (score / 100) * gW).toFixed(1) + "px,0,0)";
+      this.txt("gval", String(Math.round(score * e)));
+      const gap = this.q("gap");
+      if (gap) {
+        const shown = cl((e - 0.82) / 0.18);
+        if (gap.__geom !== score + ":" + line) {
+          gap.__geom = score + ":" + line;
+          gap.style.left = score + "%";
+          gap.style.width = Math.max(0, line - score) + "%";
+        }
+        gap.style.opacity = shown.toFixed(3);
+        gap.style.transform = "scaleX(" + shown.toFixed(3) + ")";
+      }
+      const gl = this.q("gaplabel");
+      if (gl) {
+        gl.style.opacity = cl((e - 0.86) / 0.14).toFixed(3);
+        const short = Math.max(0, line - score);
+        this.txt("gaplabel", short > 0 ? short + " points short of AA — twelve fixes close most of it" : "At AA across all twenty-eight pages");
+      }
+    }
+  }
+
+  renderVals() {
+    const projectName = this.state.projectName || "";
+    return {
+      projectName,
+      hasName: projectName.trim().length > 0,
+      onProjectName: (e) => this.setState({ projectName: e.target.value })
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,7 @@
+design/
+emails/
+.next/
+.data/
+node_modules/
+worker/node_modules/
+package-lock.json
