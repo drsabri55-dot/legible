@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useId, useState } from "react";
-import { normaliseSite } from "@/lib/url";
+import { normaliseSite, siteName } from "@/lib/url";
 
 type State = { kind: "idle" } | { kind: "error"; message: string } | { kind: "sending"; host: string };
 
@@ -25,7 +25,7 @@ export function ScanForm({ variant = "landing" }: { variant?: "landing" | "compa
       setState({ kind: "error", message: site.error });
       return;
     }
-    setState({ kind: "sending", host: site.host });
+    setState({ kind: "sending", host: siteName(site.host) });
     try {
       const res = await fetch("/api/scans", {
         method: "POST",

@@ -4,6 +4,7 @@ import { createReportOnce, getScan, markReportDelivered, upsertUser, type Report
 import { alertOwner, sendEmail } from "./email/send";
 import { env } from "./env";
 import { formatUsd } from "./pricing";
+import { siteName } from "./url";
 import { renderPdf } from "./worker";
 
 export interface PaidScan {
@@ -32,7 +33,7 @@ export async function fulfil(paid: PaidScan): Promise<{ report: ReportRow; creat
 }
 
 export function pdfFilename(host: string, date: Date): string {
-  return `legible-report-${host.replace(/[^a-z0-9.-]/gi, "")}-${date.toISOString().slice(0, 10)}.pdf`;
+  return `legible-report-${siteName(host).replace(/[^a-z0-9.-]/gi, "")}-${date.toISOString().slice(0, 10)}.pdf`;
 }
 
 // Emails the report with the PDF attached. If the PDF cannot be made, the
@@ -52,7 +53,7 @@ export async function deliverReport(report: ReportRow, email: string): Promise<v
     to: email,
     template: "report-ready",
     vars: {
-      site: scan.host,
+      site: siteName(scan.host),
       score: scan.summary.score ?? "–",
       total: scan.summary.totalIssues,
       must: scan.summary.groupCounts.must,

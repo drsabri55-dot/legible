@@ -15,6 +15,7 @@ import {
 } from "../rules/catalogue";
 import { completeSnippet, suggestFix } from "../rules/fixes";
 import { WCAG, criteriaFromTags } from "../rules/wcag";
+import { siteName } from "../url";
 
 export const EXAMPLES_PER_ISSUE = 5;
 export const MORE_SELECTORS_PER_ISSUE = 20;
@@ -114,7 +115,7 @@ function elementKey(node: RawNode): string {
 
 function hostOf(url: string): string {
   try {
-    return new URL(url).hostname.replace(/^www\./, "");
+    return siteName(new URL(url).hostname);
   } catch {
     return url;
   }

@@ -3,6 +3,7 @@ import { env } from "@/lib/env";
 import { json, sameOrigin } from "@/lib/http";
 import { reportPriceCents } from "@/lib/pricing";
 import { PRODUCT_NAME, stripe } from "@/lib/stripe";
+import { siteName } from "@/lib/url";
 
 // POST /api/checkout { scanId } → { url } of the Stripe Checkout page.
 export async function POST(req: Request) {
@@ -31,7 +32,7 @@ export async function POST(req: Request) {
           unit_amount: reportPriceCents(),
           product_data: {
             name: PRODUCT_NAME,
-            description: `Accessibility report for ${scan.host}, measured against WCAG 2.1 Level AA.`,
+            description: `Accessibility report for ${siteName(scan.host)}, measured against WCAG 2.1 Level AA.`,
           },
         },
       },

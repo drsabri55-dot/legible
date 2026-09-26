@@ -4,6 +4,7 @@ import { Kicker, SiteShell } from "@/components/site/SiteShell";
 import { getUserByEmail, listReportsForEmail } from "@/lib/data";
 import { env } from "@/lib/env";
 import { getSessionEmail } from "@/lib/session";
+import { siteName } from "@/lib/url";
 import { savePreferences, signOut } from "./actions";
 import { SignInForm } from "./SignInForm";
 
@@ -55,17 +56,17 @@ export default async function AccountPage(props: PageProps<"/account">) {
           {reports.map((r) => (
             <li key={r.token} className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 py-5">
               <div className="min-w-0">
-                <p className="m-0 text-[17px] break-words text-nc-neutral-100">{r.host}</p>
+                <p className="m-0 text-[17px] break-words text-nc-neutral-100">{siteName(r.host)}</p>
                 <p className="mt-1 mb-0 text-[13px] text-nc-neutral-400">
                   Score {r.score ?? "–"} · scanned {date(r.scanned_at)} · bought {date(r.created_at)}
                 </p>
               </div>
               <div className="flex gap-5 text-[14px]">
                 <Link href={`/report/${r.token}`}>
-                  Open report<span className="sr-only"> for {r.host}</span>
+                  Open report<span className="sr-only"> for {siteName(r.host)}</span>
                 </Link>
                 <a href={`/report/${r.token}/pdf`}>
-                  PDF<span className="sr-only"> for {r.host}</span>
+                  PDF<span className="sr-only"> for {siteName(r.host)}</span>
                 </a>
               </div>
             </li>

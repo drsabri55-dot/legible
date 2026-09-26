@@ -4,6 +4,7 @@ import { sendEmail } from "@/lib/email/send";
 import { env } from "@/lib/env";
 import { json, sameOrigin } from "@/lib/http";
 import { formatUsd, reportPriceCents } from "@/lib/pricing";
+import { siteName } from "@/lib/url";
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -27,7 +28,7 @@ export async function POST(req: Request, ctx: RouteContext<"/api/scans/[id]/emai
         to: email,
         template: "free-result",
         vars: {
-          site: scan.host,
+          site: siteName(scan.host),
           score: summary.score ?? "–",
           total: summary.totalIssues,
           pages: summary.pagesScanned,

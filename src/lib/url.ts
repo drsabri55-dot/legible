@@ -6,6 +6,13 @@ export const SITE_ERROR = "Enter a website address, like yourbusiness.com.";
 
 export type SiteResult = { ok: true; url: string; host: string } | { ok: false; error: string };
 
+// The site's name as customers see it everywhere (report, PDF, emails,
+// account): the host without "www.". The stored host keeps it, because rate
+// limits and the block list work on the exact host.
+export function siteName(host: string): string {
+  return host.replace(/^www\./i, "");
+}
+
 const RESERVED_SUFFIXES = [".localhost", ".local", ".internal", ".test", ".invalid", ".onion", ".arpa", ".home", ".lan"];
 
 export function normaliseSite(input: string, opts: { allowPrivate?: boolean } = {}): SiteResult {

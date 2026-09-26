@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { normaliseSite, SITE_ERROR } from "@/lib/url";
+import { pdfFilename } from "@/lib/fulfil";
+import { normaliseSite, siteName, SITE_ERROR } from "@/lib/url";
 
 describe("normaliseSite", () => {
   it.each([
@@ -44,5 +45,17 @@ describe("normaliseSite", () => {
 
   it("uses the approved error message", () => {
     expect(SITE_ERROR).toBe("Enter a website address, like yourbusiness.com.");
+  });
+});
+
+describe("siteName", () => {
+  it("drops www. so every page, email and file names the site the same way", () => {
+    expect(siteName("www.w3.org")).toBe("w3.org");
+    expect(siteName("shop.example.co.uk")).toBe("shop.example.co.uk");
+    expect(siteName("wwwexample.com")).toBe("wwwexample.com");
+  });
+
+  it("names the PDF file after the site as the report does", () => {
+    expect(pdfFilename("www.w3.org", new Date("2026-09-26T09:26:00Z"))).toBe("legible-report-w3.org-2026-09-26.pdf");
   });
 });

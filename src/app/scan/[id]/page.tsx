@@ -13,6 +13,7 @@ import { getReportByScanId, getScan } from "@/lib/data";
 import { formatUsd, reportPriceCents } from "@/lib/pricing";
 import { reasonCode, reasonText } from "@/lib/report/reasons";
 import { failureMessage } from "@/lib/scans";
+import { siteName } from "@/lib/url";
 
 export const metadata: Metadata = { title: "Your free result", robots: { index: false, follow: false } };
 
@@ -49,11 +50,11 @@ export default async function ScanPage(props: PageProps<"/scan/[id]">) {
     return (
       <SiteShell>
         <Kicker>Scanning</Kicker>
-        <h1 className="mt-6 mb-0 text-[clamp(30px,4vw,48px)] leading-[1.1] tracking-[-0.025em] break-words">{scan.host}</h1>
+        <h1 className="mt-6 mb-0 text-[clamp(30px,4vw,48px)] leading-[1.1] tracking-[-0.025em] break-words">{siteName(scan.host)}</h1>
         <div className="mt-8">
           <ScanProgress
             scanId={scan.id}
-            host={scan.host}
+            host={siteName(scan.host)}
             initial={{ status: scan.status, pagesDone: scan.pages_done, pagesTotal: scan.pages_total, error: null }}
           />
         </div>
@@ -65,7 +66,7 @@ export default async function ScanPage(props: PageProps<"/scan/[id]">) {
     return (
       <SiteShell>
         <Kicker>Scan stopped</Kicker>
-        <h1 className="mt-6 mb-0 text-[clamp(30px,4vw,48px)] leading-[1.1] tracking-[-0.025em] break-words">{scan.host}</h1>
+        <h1 className="mt-6 mb-0 text-[clamp(30px,4vw,48px)] leading-[1.1] tracking-[-0.025em] break-words">{siteName(scan.host)}</h1>
         <p className="mt-6 max-w-[48ch] text-[16px] leading-[1.8] text-nc-neutral-300" role="alert">
           {failureMessage(scan.error)}
         </p>

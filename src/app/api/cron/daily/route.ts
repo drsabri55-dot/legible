@@ -4,6 +4,7 @@ import { sendEmail } from "@/lib/email/send";
 import { env } from "@/lib/env";
 import { bearer, json } from "@/lib/http";
 import { MONITORING_PRICE } from "@/lib/pricing";
+import { siteName } from "@/lib/url";
 
 export const maxDuration = 60;
 
@@ -26,7 +27,7 @@ export async function GET(req: Request) {
         to: r.email,
         template: "monitoring-offer",
         vars: {
-          site: r.host,
+          site: siteName(r.host),
           price_monthly: MONITORING_PRICE,
           monitor_link: `${base}/monitoring?r=${r.token}`,
           unsubscribe_link: unsubscribe,

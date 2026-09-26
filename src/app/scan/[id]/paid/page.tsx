@@ -8,6 +8,7 @@ import { alertOwner } from "@/lib/email/send";
 import { env } from "@/lib/env";
 import { deliverReport, fulfil } from "@/lib/fulfil";
 import { stripe } from "@/lib/stripe";
+import { siteName } from "@/lib/url";
 
 export const metadata: Metadata = { title: "Payment received", robots: { index: false, follow: false } };
 export const maxDuration = 60;
@@ -63,7 +64,7 @@ export default async function PaidPage(props: PageProps<"/scan/[id]/paid">) {
         <>
           <h1 className="mt-6 text-[32px] leading-[1.15] tracking-[-0.02em]">Your payment is being confirmed</h1>
           <p className="mt-4 text-[15px] leading-[1.8] text-nc-neutral-300">
-            Some payment methods take a few minutes to clear. We will email the report for {scan.host} as soon as it
+            Some payment methods take a few minutes to clear. We will email the report for {siteName(scan.host)} as soon as it
             does. You can close this page.
           </p>
         </>
