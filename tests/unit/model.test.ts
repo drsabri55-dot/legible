@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildReport, freeSummary, scoreFrom } from "@/lib/report/model";
+import { buildReport, displaySelector, freeSummary, scoreFrom } from "@/lib/report/model";
 import { page, rawScan, rule, sampleScan } from "./fixture";
 
 describe("scoreFrom", () => {
@@ -72,5 +72,55 @@ describe("freeSummary", () => {
     expect(s.samples[0].examples).toHaveLength(1);
     expect(s.issueTypes).toBe(3);
     expect(s.groupCounts).toEqual({ must: 1, should: 1, nice: 1 });
+  });
+});
+
+describe("elements repeated across pages", () => {
+  const header = '<button class="menu"><svg></svg></button>';
+  const repeated = rawScan(
+    ["https://shop.example/", "https://shop.example/a", "https://shop.example/b"].map((url) =>
+      page(url, [{ ...rule("button-name", "critical", [header]), nodes: [{ html: header, target: [".menu"], impact: "critical" }] }], [
+        "html-has-lang",
+      ]),
+    ),
+  );
+  const r = buildReport(repeated);
+
+  it("counts a shared header button once, not once per page", () => {
+    expect(r.issues[0].instances).toBe(1);
+    expect(r.totalIssues).toBe(1);
+    expect(r.counts.critical).toBe(1);
+    expect(r.issues[0].pages).toHaveLength(3);
+  });
+
+  it("shows it as one example that also appears on the other pages", () => {
+    expect(r.issues[0].examples).toHaveLength(1);
+    expect(r.issues[0].examples[0]).toMatchObject({ pageUrl: "https://shop.example/", alsoOn: 2 });
+  });
+
+  it("keeps each page's own count in the page list", () => {
+    expect(r.pages.map((p) => p.issues)).toEqual([1, 1, 1]);
+  });
+});
+
+describe("site name", () => {
+  it("uses the address the customer entered and notes a redirect", () => {
+    const raw = { ...sampleScan(), startUrl: "https://www.bbc.co.uk/", finalUrl: "https://www.bbc.com/" };
+    expect(buildReport(raw)).toMatchObject({ site: "bbc.co.uk", redirectedTo: "bbc.com" });
+    expect(buildReport(sampleScan()).redirectedTo).toBeNull();
+  });
+
+  it("marks steps into frames in selectors", () => {
+    const raw = rawScan([page("https://x.example/", [{ ...rule("image-alt", "critical", ["<img>"]), nodes: [{ html: "<img>", target: ["iframe#map", "img.pin"], impact: "critical" }] }], [])]);
+    expect(buildReport(raw).issues[0].examples[0].selector).toBe("iframe#map → img.pin");
+  });
+});
+
+describe("displaySelector", () => {
+  it("keeps short selectors and trims generated ones to their last step", () => {
+    expect(displaySelector(["#main .price"])).toBe("#main .price");
+    const long = ".a1b2c3.Card-styles__CardStyled-sc-123:nth-child(4) > div[data-testid=\"inner\"] > .Image-styles__ImageStyled-sc-9 > img.hero";
+    expect(displaySelector([long])).toBe("… > img.hero");
+    expect(displaySelector(["iframe#map", long])).toBe("iframe#map → … > img.hero");
   });
 });

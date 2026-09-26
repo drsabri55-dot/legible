@@ -37,6 +37,22 @@ export interface SuggestedFix {
 
 const TAG = /^(\s*<[a-zA-Z][^\s/>]*)((?:\s+[^\s=/>]+(?:\s*=\s*(?:"[^"]*"|'[^']*'|[^\s"'>]+))?)*)(\s*\/?>)/;
 
+const VOID_ELEMENTS = new Set([
+  "area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param", "source", "track", "wbr",
+]);
+
+// axe records only the opening tag of an element with long contents. Shown
+// alone, "<select …>" reads as broken code, so the omitted contents are
+// marked "…" and the element is closed.
+export function completeSnippet(html: string): string {
+  const trimmed = html.trim();
+  const m = TAG.exec(trimmed);
+  if (!m || m[0].length !== trimmed.length || /\/>$/.test(trimmed)) return html;
+  const name = /^\s*<([a-zA-Z][^\s/>]*)/.exec(trimmed)![1].toLowerCase();
+  if (VOID_ELEMENTS.has(name) || name === "html" || name === "body" || name === "head") return html;
+  return `${trimmed}…</${name}>`;
+}
+
 function escapeAttr(value: string): string {
   return value.replace(/&/g, "&amp;").replace(/"/g, "&quot;");
 }
@@ -91,6 +107,14 @@ function withLabel(html: string): SuggestedFix | null {
   };
 }
 
+// The element's own step of its selector: "a > b > .price" gives ".price".
+function lastStep(target: string[] | undefined, fallback: string): string {
+  const last = target?.[target.length - 1];
+  if (!last) return fallback;
+  const steps = last.split(" > ");
+  return steps[steps.length - 1];
+}
+
 function contrastFix(node: NodeData): SuggestedFix | null {
   const d = node.data || {};
   const fg = typeof d.fgColor === "string" ? parseHex(d.fgColor) : null;
@@ -102,7 +126,7 @@ function contrastFix(node: NodeData): SuggestedFix | null {
   if (!next) return null;
   const before = contrastRatio(fg, bg);
   const after = contrastRatio(next, bg);
-  const selector = node.target?.[node.target.length - 1] || "selector";
+  const selector = lastStep(node.target, "selector");
   return {
     code: `${selector} {\n  color: ${toHex(next)}; /* was ${toHex(fg)} */\n}`,
     note: `The text is ${toHex(fg)} on ${toHex(bg)}, a ratio of ${formatRatio(before)}. This needs at least ${formatRatio(expected)}. ${toHex(next)} gives ${formatRatio(after)} and stays close to the original colour. Changing the background works too.`,
@@ -218,7 +242,7 @@ export function suggestFix(ruleId: string, node: NodeData): SuggestedFix | null 
     case "color-contrast":
       return contrastFix(node);
     case "link-in-text-block": {
-      const selector = node.target?.[node.target.length - 1] || "a";
+      const selector = lastStep(node.target, "a");
       return { code: `${selector} {\n  text-decoration: underline;\n}` };
     }
     case "no-autoplay-audio": {

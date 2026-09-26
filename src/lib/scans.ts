@@ -75,6 +75,12 @@ export async function startScan(input: string, ip: string): Promise<StartResult>
 // worker and the site store in scans.error.
 export function failureMessage(code: string | null): string {
   switch (code) {
+    case "unresolvable":
+      return MESSAGES.unresolvable;
+    case "not_found":
+      return "That address answered \u201cpage not found\u201d. Check it, or enter just the site\u2019s main address, like yourbusiness.com.";
+    case "refused":
+      return "The site turned our scanner away. Some sites block automated visitors, so we could not read it. If it is your site, allow LegibleBot in its security settings and try again.";
     case "robots":
       return "This site's robots.txt asks automated tools not to visit its home page, so we did not scan it.";
     case "unreachable":

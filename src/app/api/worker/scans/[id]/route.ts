@@ -30,7 +30,7 @@ export async function POST(req: Request, ctx: RouteContext<"/api/worker/scans/[i
   if (msg.type === "failed") {
     const code = String(msg.error || "error").slice(0, 40);
     await failScan(id, code);
-    if (!["robots", "unreachable", "not_html", "blocked_target"].includes(code)) {
+    if (!["robots", "unreachable", "not_html", "blocked_target", "unresolvable", "not_found", "refused"].includes(code)) {
       await alertOwner(`A scan of ${scan.host} failed`, `${code}: ${msg.detail || ""}`, `${env.appUrl()}/scan/${id}`);
     }
     return json({ ok: true });

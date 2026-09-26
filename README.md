@@ -59,6 +59,12 @@ npm run test:e2e
 npm --prefix worker test
 ```
 
+To check how Legible handles any real website (pages chosen, score, every issue, and why pages were not scanned):
+
+```bash
+npm run qa -- yourbusiness.com another-site.com
+```
+
 `npm test` runs the unit and database tests. `test:e2e` builds the site and runs the whole customer journey in a
 browser against a small test website with known faults. It also checks our own pages for accessibility failures.
 

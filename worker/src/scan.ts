@@ -1,11 +1,13 @@
 import AxeBuilder from "@axe-core/playwright";
 import axeCore from "axe-core";
 import { chromium, type Browser, type BrowserContext, type Page } from "playwright";
-import { makeHostGuard } from "./net";
+import { allowPrivateTargets, classifyHost, makeHostGuard } from "./net";
 import { BOT_NAME, loadRobots } from "./robots";
 import type { RawNode, RawPage, RawRule, RawScan } from "./types";
 
 export const MAX_PAGES = 6;
+// Page loads allowed after the home page, including ones that fail.
+export const MAX_ATTEMPTS = 8;
 export const PAGE_TIMEOUT_MS = 30_000;
 export const PAUSE_BETWEEN_PAGES_MS = 1000;
 export const WCAG_TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"];
@@ -110,6 +112,39 @@ function sameSite(a: string, b: string): boolean {
   return a.replace(/^www\./, "") === b.replace(/^www\./, "");
 }
 
+// Links that lead to sign-in, account, basket or search pages. They are
+// rarely public content, often answer 401/403, and a search page with no
+// query says nothing about the site.
+const SKIP_PATHS =
+  /(^|[/_-])(auth|oauth|sso|login|log-in|logout|log-out|signin|sign-in|signout|sign-out|signup|sign-up|register|account|my-account|profile|settings|preferences|order-history|orders|cart|basket|checkout|wishlist|search|recherche|suche|buscar|cerca|wp-admin|wp-login)([/_.-]|$)/i;
+// Links that exist to send people somewhere else: a parameter named like
+// "…redirect…", "…return…" or "callback", or one whose value is a web address
+// (tracking redirects), and search queries.
+const SKIP_QUERY = /[?&]([^=&]*(callback|redirect|return|continue)[^=&]*|next|q|query|s)=|=(https?(:|%3a))/i;
+
+// Parameters that track a click without changing the page.
+const TRACKING_PARAM = /^(utm_.*|ref|ref_|fbclid|gclid|msclkid|mc_[a-z]+|_encoding|ie|_ga|_gl)$/i;
+
+// One key per page: scheme, www, trailing slash and tracking parameters do
+// not make a new page.
+export function pageKey(u: URL): string {
+  const params = new URLSearchParams(u.search);
+  for (const name of [...params.keys()]) if (TRACKING_PARAM.test(name)) params.delete(name);
+  params.sort();
+  const query = params.toString();
+  return u.hostname.replace(/^www\./, "") + u.pathname.replace(/\/+$/, "") + (query ? `?${query}` : "");
+}
+
+// Bot-protection screens ("Just a moment…", "Client Challenge") answer with
+// a normal page. Scanning them would score the challenge, not the site.
+const CHALLENGE_TITLE =
+  /(just a moment|client challenge|attention required|access denied|checking (your|the) browser|verify(ing)? (you are|that you are) (a )?human|are you (a )?(human|robot)|robot or human|security check|pardon our interruption|request unsuccessful|ddos-guard)/i;
+const CHALLENGE_PROBE = `(function () {
+  var marker = document.querySelector('#challenge-form, #challenge-running, #cf-challenge-running, .cf-browser-verification, #px-captcha, #sec-if-cpt-container');
+  var text = (document.body && document.body.innerText || '').trim().length;
+  return !!marker && text < 2000;
+})()`;
+
 // Up to five more pages, taken from the site's navigation first. Sites with
 // no <nav> fall back to the header, then to links anywhere on the page.
 async function collectLinks(page: Page, base: URL): Promise<string[]> {
@@ -125,7 +160,7 @@ async function collectLinks(page: Page, base: URL): Promise<string[]> {
       return Array.prototype.map.call(document.querySelectorAll(selector), function (a) { return a.href; });
     })
   `)) as string[][];
-  const seen = new Set<string>([base.origin + base.pathname.replace(/\/$/, "") + base.search]);
+  const seen = new Set<string>([pageKey(base)]);
   const out: string[] = [];
   for (const group of groups) {
     for (const href of group) {
@@ -138,9 +173,9 @@ async function collectLinks(page: Page, base: URL): Promise<string[]> {
       if (u.protocol !== "http:" && u.protocol !== "https:") continue;
       if (!sameSite(u.hostname, base.hostname)) continue;
       if (SKIP_EXTENSIONS.test(u.pathname)) continue;
-      if (/\/(wp-admin|wp-login|login|logout|signin|signout|cart|checkout|account)(\/|$)/i.test(u.pathname)) continue;
+      if (SKIP_PATHS.test(u.pathname) || SKIP_QUERY.test(u.search)) continue;
       u.hash = "";
-      const key = u.origin + u.pathname.replace(/\/$/, "") + u.search;
+      const key = pageKey(u);
       if (seen.has(key)) continue;
       seen.add(key);
       out.push(u.toString());
@@ -166,29 +201,42 @@ async function scanPage(context: BrowserContext, url: string, first: boolean) {
       (async () => {
         let response;
         try {
-          response = await page.goto(url, { waitUntil: "load", timeout: PAGE_TIMEOUT_MS });
+          // The document first; then up to 10 more seconds for images and
+          // scripts. Waiting for every last resource timed out on busy news
+          // and shop pages that were perfectly readable.
+          response = await page.goto(url, { waitUntil: "domcontentloaded", timeout: PAGE_TIMEOUT_MS });
         } catch (e) {
           const msg = String((e as Error).message);
           if (msg.includes("ERR_BLOCKED_BY_CLIENT")) throw new ScanError("blocked_target", msg);
+          if (/timeout/i.test(msg)) throw new ScanError("timeout", msg.split("\n")[0]);
           throw new ScanError("unreachable", msg.split("\n")[0]);
         }
         if (!response) throw new ScanError("unreachable", "no response");
         const status = response.status();
+        if (status === 404 || status === 410) throw new ScanError("not_found", `HTTP ${status}`);
+        if ([401, 403, 429, 503].includes(status)) throw new ScanError("refused", `HTTP ${status}`);
         if (status >= 400) throw new ScanError("unreachable", `HTTP ${status}`);
         const type = response.headers()["content-type"] || "";
         if (type && !/html/i.test(type)) throw new ScanError("not_html", type);
+        await page.waitForLoadState("load", { timeout: 10_000 }).catch(() => {});
         // Give late scripts a moment to render, without waiting forever on
         // pages that never go quiet (chat widgets, analytics beacons).
         await page.waitForLoadState("networkidle", { timeout: 4000 }).catch(() => {});
+        const heading = await page.title().catch(() => "");
+        // Challenge screens have short titles; a long title is a real page
+        // that happens to use one of these words.
+        const challengeTitle = heading.length <= 60 && CHALLENGE_TITLE.test(heading);
+        if (challengeTitle || (await page.evaluate(CHALLENGE_PROBE).catch(() => false))) {
+          throw new ScanError("refused", "bot challenge");
+        }
         // runOnly and resultTypes go in one options call: AxeBuilder.options()
         // replaces anything withTags() set earlier.
         const axe = await new AxeBuilder({ page })
           .options({ runOnly: { type: "tag", values: WCAG_TAGS }, resultTypes: ["violations", "incomplete"] })
           .analyze();
-        const title = await page.title().catch(() => "");
         const finalUrl = page.url();
         const links = first ? await collectLinks(page, new URL(finalUrl)) : [];
-        return { raw: toRawPage(finalUrl, title, axe), links, finalUrl };
+        return { raw: toRawPage(finalUrl, heading, axe), links, finalUrl };
       })(),
       PAGE_TIMEOUT_MS + 5000,
       "timeout",
@@ -225,7 +273,11 @@ export async function scanSite(startUrl: string, opts: ScanOptions = {}): Promis
   const ua = userAgent();
   const start = new URL(startUrl);
   const guard = makeHostGuard();
-  if (!(await guard(start.hostname))) throw new ScanError("blocked_target");
+  if (!allowPrivateTargets()) {
+    const kind = await classifyHost(start.hostname);
+    if (kind === "unresolvable") throw new ScanError("unresolvable");
+    if (kind === "private") throw new ScanError("blocked_target");
+  }
 
   const robots = await loadRobots(start.origin, ua);
   if (!robots.isAllowed(start.toString())) throw new ScanError("robots");
@@ -255,32 +307,54 @@ export async function scanSite(startUrl: string, opts: ScanOptions = {}): Promis
   const pages: RawPage[] = [];
   let finalUrl = start.toString();
   try {
+    // If the start page fails, the whole scan fails with its reason.
     const home = await scanPage(context, start.toString(), true);
     pages.push(home.raw);
     finalUrl = home.finalUrl;
+    const homeUrl = new URL(finalUrl);
+    const scannedKeys = new Set<string>([pageKey(homeUrl)]);
 
-    const allowed: string[] = [];
+    // Robots-excluded links are listed (up to 3) so the owner knows why
+    // they are missing; they cost nothing, since they are never fetched.
+    const candidates: string[] = [];
     for (const link of home.links) {
-      if (allowed.length >= MAX_PAGES - 1) break;
-      if (robots.isAllowed(link)) allowed.push(link);
-      else if (pages.filter((p) => p.status === "skipped").length < 3) {
-        pages.push(emptyPage(link, "skipped", "robots"));
-      }
+      if (robots.isAllowed(link)) candidates.push(link);
+      else if (pages.filter((p) => p.status === "skipped").length < 3) pages.push(emptyPage(link, "skipped", "robots"));
     }
-    const total = 1 + allowed.length;
-    await opts.onProgress?.(1, total);
 
+    // Up to five more pages. A link that fails, redirects off the site or
+    // lands on a page already scanned is replaced by the next candidate,
+    // within a limit of attempts so a broken site is not hammered.
+    const wanted = Math.min(MAX_PAGES - 1, candidates.length);
+    let total = 1 + wanted;
     let done = 1;
-    for (const link of allowed) {
+    let attempts = 0;
+    let failedListed = 0;
+    await opts.onProgress?.(done, total);
+    for (const link of candidates) {
+      if (done - 1 >= wanted || attempts >= MAX_ATTEMPTS) break;
+      attempts++;
       await new Promise((r) => setTimeout(r, Math.max(opts.pauseMs ?? PAUSE_BETWEEN_PAGES_MS, robots.crawlDelayMs)));
       try {
         const result = await scanPage(context, link, false);
+        const landed = new URL(result.finalUrl);
+        if (!sameSite(landed.hostname, homeUrl.hostname)) continue; // redirected to another website
+        const key = pageKey(landed);
+        if (scannedKeys.has(key)) continue; // redirected to a page already scanned
+        scannedKeys.add(key);
         pages.push(result.raw);
+        done++;
+        await opts.onProgress?.(done, total);
       } catch (e) {
         const code = e instanceof ScanError ? e.message : "error";
-        pages.push(emptyPage(link, "failed", code));
+        if (failedListed < 3) {
+          pages.push(emptyPage(link, "failed", code));
+          failedListed++;
+        }
       }
-      done++;
+    }
+    if (done < total) {
+      total = done;
       await opts.onProgress?.(done, total);
     }
   } finally {

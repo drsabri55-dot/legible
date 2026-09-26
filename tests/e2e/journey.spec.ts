@@ -19,7 +19,7 @@ test("a visitor scans a site from the landing page and sees the free result", as
 
   await expect(page.getByRole("heading", { level: 1, name: "127.0.0.1" })).toBeVisible({ timeout: 60_000 });
   await expect(page.getByText("Free result")).toBeVisible();
-  await expect(page.getByText(/Scored \d+ out of 100, measured against WCAG 2\.1 Level AA across 3 pages/)).toBeVisible();
+  await expect(page.getByText(/Scored \d+ out of 100, measured against WCAG 2\.1 Level AA across 4 pages/)).toBeVisible();
   await expect(page.getByRole("heading", { name: "Two of your issues, in full" })).toBeVisible();
   await expect(page.locator("article")).toHaveCount(2);
   await expect(page.getByRole("heading", { name: /more issues? in the full report/ })).toBeVisible();

@@ -13,7 +13,7 @@ import {
   type Impact,
   type IssueGroup,
 } from "../rules/catalogue";
-import { suggestFix } from "../rules/fixes";
+import { completeSnippet, suggestFix } from "../rules/fixes";
 import { WCAG, criteriaFromTags } from "../rules/wcag";
 
 export const EXAMPLES_PER_ISSUE = 5;
@@ -21,6 +21,9 @@ export const MORE_SELECTORS_PER_ISSUE = 20;
 
 export interface IssueExample {
   pageUrl: string;
+  // Other scanned pages where the same element appears (shared headers and
+  // footers usually repeat on every page).
+  alsoOn: number;
   selector: string;
   html: string;
   fixed: string | null;
@@ -38,6 +41,7 @@ export interface Issue {
   impact: Impact;
   group: IssueGroup;
   criteria: { sc: string; name: string; level: string }[];
+  // Distinct elements: one repeated on several pages counts once.
   instances: number;
   pages: { url: string; count: number }[];
   examples: IssueExample[];
@@ -58,7 +62,10 @@ export interface PageSummary {
 }
 
 export interface Report {
+  // The address the customer entered, without www.
   site: string;
+  // Set when that address redirected to a different host.
+  redirectedTo: string | null;
   startUrl: string;
   scannedAt: string;
   score: number | null;
@@ -84,8 +91,25 @@ function worst(a: Impact, b: Impact): Impact {
   return IMPACT_ORDER.indexOf(a) <= IMPACT_ORDER.indexOf(b) ? a : b;
 }
 
+// axe gives one selector per frame level; "→" marks a step into a frame.
+// Generated selectors can run to hundreds of characters; past 70, only the
+// last step is shown, which is the part that names the element.
+export function displaySelector(target: string[]): string {
+  return target
+    .map((part) => {
+      if (part.length <= 70) return part;
+      const steps = part.split(" > ");
+      return steps.length > 1 ? `… > ${steps[steps.length - 1]}` : part;
+    })
+    .join(" → ");
+}
+
 function selectorOf(node: RawNode): string {
-  return node.target.join(" ");
+  return displaySelector(node.target);
+}
+
+function elementKey(node: RawNode): string {
+  return `${node.target.join(" → ")}|${node.html}`;
 }
 
 function hostOf(url: string): string {
@@ -141,25 +165,45 @@ export function buildReport(raw: RawScan): Report {
 
   for (const [ruleId, { rule, impact, hits }] of byRule) {
     const info = CATALOGUE[ruleId];
-    const instances = hits.reduce((sum, h) => sum + h.rule.nodeCount, 0);
+
+    // The same element on several pages (a shared header, say) is one thing
+    // to fix. Only stored nodes can be compared; elements beyond the stored
+    // sample are counted as distinct.
+    const byElement = new Map<string, { node: RawNode; pages: string[] }>();
+    let repeats = 0;
+    for (const { page, rule: r } of hits) {
+      for (const node of r.nodes) {
+        const key = elementKey(node);
+        const seen = byElement.get(key);
+        if (seen) {
+          if (!seen.pages.includes(page.url)) {
+            seen.pages.push(page.url);
+            repeats++;
+          }
+        } else {
+          byElement.set(key, { node, pages: [page.url] });
+        }
+      }
+    }
+    const instances = hits.reduce((sum, h) => sum + h.rule.nodeCount, 0) - repeats;
     counts[impact] += instances;
 
     const examples: IssueExample[] = [];
     const moreSelectors: { pageUrl: string; selector: string }[] = [];
-    for (const { page, rule: r } of hits) {
-      for (const node of r.nodes) {
-        if (examples.length < EXAMPLES_PER_ISSUE) {
-          const fix = suggestFix(ruleId, node);
-          examples.push({
-            pageUrl: page.url,
-            selector: selectorOf(node),
-            html: node.html,
-            fixed: fix?.code ?? null,
-            note: fix?.note ?? null,
-          });
-        } else if (moreSelectors.length < MORE_SELECTORS_PER_ISSUE) {
-          moreSelectors.push({ pageUrl: page.url, selector: selectorOf(node) });
-        }
+    for (const { node, pages: on } of byElement.values()) {
+      if (examples.length < EXAMPLES_PER_ISSUE) {
+        const html = completeSnippet(node.html);
+        const fix = suggestFix(ruleId, { ...node, html });
+        examples.push({
+          pageUrl: on[0],
+          alsoOn: on.length - 1,
+          selector: selectorOf(node),
+          html,
+          fixed: fix?.code ?? null,
+          note: fix?.note ?? null,
+        });
+      } else if (moreSelectors.length < MORE_SELECTORS_PER_ISSUE) {
+        moreSelectors.push({ pageUrl: on[0], selector: selectorOf(node) });
       }
     }
 
@@ -219,8 +263,11 @@ export function buildReport(raw: RawScan): Report {
     issues: p.violations.reduce((sum, r) => sum + r.nodeCount, 0),
   }));
 
+  const site = hostOf(raw.startUrl);
+  const landed = raw.finalUrl ? hostOf(raw.finalUrl) : site;
   return {
-    site: hostOf(raw.finalUrl || raw.startUrl),
+    site,
+    redirectedTo: landed !== site ? landed : null,
     startUrl: raw.startUrl,
     scannedAt: raw.finishedAt,
     score: scoreFrom(passedRules, failedRules),
@@ -241,6 +288,7 @@ export function buildReport(raw: RawScan): Report {
 // full. Stored in scans.summary so the free page never loads the raw data.
 export interface FreeSummary {
   site: string;
+  redirectedTo?: string | null;
   score: number | null;
   totalIssues: number;
   counts: ImpactCounts;
@@ -254,6 +302,7 @@ export interface FreeSummary {
 export function freeSummary(report: Report): FreeSummary {
   return {
     site: report.site,
+    redirectedTo: report.redirectedTo,
     score: report.score,
     totalIssues: report.totalIssues,
     counts: report.counts,

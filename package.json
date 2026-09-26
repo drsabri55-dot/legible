@@ -15,7 +15,8 @@
     "typecheck": "next typegen && tsc --noEmit && npm --prefix worker run typecheck",
     "format": "prettier --write .",
     "test": "vitest run",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "qa": "tsx scripts/qa-scan.mts"
   },
   "dependencies": {
     "ipaddr.js": "^2.5.0",

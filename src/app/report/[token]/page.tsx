@@ -5,6 +5,7 @@ import { getReportByToken } from "@/lib/data";
 import { buildReport, type Issue, type Report } from "@/lib/report/model";
 import type { Effort, Impact } from "@/lib/rules/catalogue";
 import { understandingUrl } from "@/lib/rules/wcag";
+import { reasonText } from "@/lib/report/reasons";
 import "./report.css";
 
 export const metadata: Metadata = { title: "Accessibility report", robots: { index: false, follow: false } };
@@ -25,23 +26,12 @@ const GROUP_INTRO: Record<string, string> = {
   should: "Serious failures. They make the site hard to use for some people.",
   nice: "Moderate and minor failures. They add friction. They still fail WCAG 2.1 AA, so fix them once the others are done.",
 };
-const PAGE_REASON: Record<string, string> = {
-  robots: "Skipped: the site's robots.txt asks tools like ours not to visit it",
-  unreachable: "Could not be loaded",
-  timeout: "Took too long to load",
-  not_html: "Not a web page",
-  blocked_target: "Points to an address we do not scan",
-};
+
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
 }
 
-function reasonText(reason: string | null): string {
-  if (!reason) return "";
-  const code = reason.split(":")[0];
-  return PAGE_REASON[code] ?? "Could not be scanned";
-}
 
 function Mark() {
   return (
@@ -70,7 +60,7 @@ function Summary({ r }: { r: Report }) {
         {r.totalIssues === 0
           ? "The automated checks found nothing to fix. The limitations page explains what still needs a person to check."
           : must > 0
-            ? `${must} of those ${must === 1 ? "kind is" : "kinds are"} in the must-fix group: ${must === 1 ? "it stops" : "they stop"} some people from using the site at all.`
+            ? `${must} of those kinds ${must === 1 ? "is" : "are"} in the must-fix group: ${must === 1 ? "it stops" : "they stop"} some people from using the site at all.`
             : "None of them is critical, so the site can be used, but some people will find parts of it hard."}
       </p>
 
@@ -152,7 +142,11 @@ function Pages({ r }: { r: Report }) {
               <td>
                 <span className="rp-url">{p.url}</span>
                 {p.title && <span className="rp-sub">{p.title}</span>}
-                {p.status !== "scanned" && <span className="rp-sub">{reasonText(p.reason)}</span>}
+                {p.status !== "scanned" && (
+                  <span className="rp-sub">
+                    {p.status === "skipped" ? "Skipped" : "Not scanned"}: {reasonText(p.reason)}
+                  </span>
+                )}
               </td>
               <td className="rp-num">{p.status === "scanned" ? p.issues : "–"}</td>
             </tr>
@@ -208,7 +202,10 @@ function IssueBlock({ issue, n }: { issue: Issue; n: string }) {
       {issue.examples.map((ex, i) => (
         <div className="rp-example" key={i}>
           <p className="rp-where">
-            <span>{ex.pageUrl}</span>
+            <span>
+              {ex.pageUrl}
+              {ex.alsoOn > 0 && ` and ${ex.alsoOn} other ${ex.alsoOn === 1 ? "page" : "pages"}`}
+            </span>
             <code>{ex.selector}</code>
           </p>
           <div className={ex.fixed ? "rp-code-pair" : "rp-code-pair rp-single"}>
@@ -451,6 +448,7 @@ export default async function ReportPage(props: PageProps<"/report/[token]">) {
             <p className="rp-cover-sub">
               Measured against WCAG 2.1 Level AA · {r.pagesScanned} {r.pagesScanned === 1 ? "page" : "pages"} ·{" "}
               {formatDate(r.scannedAt)}
+              {r.redirectedTo && ` · Scanned at ${r.redirectedTo}, where ${r.site} redirects`}
             </p>
             <div className="rp-cover-score">
               <span className="rp-cover-num">{r.score ?? "–"}</span>

@@ -11,6 +11,10 @@ const types = { ".html": "text/html; charset=utf-8", ".txt": "text/plain", ".png
 export function serveFixture(port = Number(process.argv[2] || 5055)) {
   const server = createServer(async (req, res) => {
     const url = new URL(req.url || "/", "http://x");
+    // A link that redirects back to the home page, and one that leaves the
+    // site (127.0.0.1 and localhost count as different sites).
+    if (url.pathname === "/home") return res.writeHead(302, { location: "/" }).end();
+    if (url.pathname === "/elsewhere") return res.writeHead(302, { location: `http://localhost:${port}/about.html` }).end();
     const file = path.join(root, url.pathname === "/" ? "index.html" : path.normalize(url.pathname));
     if (!file.startsWith(root)) return res.writeHead(403).end();
     try {

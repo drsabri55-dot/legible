@@ -15,6 +15,7 @@ approved design and landing copy: `docs/superpowers/specs/2026-09-19-legible-des
 - `npm run lint` · `npm run typecheck` (runs `next typegen` first, which generates the global `PageProps`/`RouteContext` types, then checks the worker too)
 - `npm test` (Vitest: unit + database tests against a throwaway embedded Postgres) · one file: `npx vitest run tests/unit/model.test.ts` · one test: `-t "name"`
 - `npm --prefix worker test` (real Chromium scan of `tests/fixtures/site`) · `npm run test:e2e` (Playwright, builds the site) · one: `npx playwright test tests/e2e/landing.spec.ts -g "320px"`
+- `npm run qa -- site.com other.com` scans real sites through the real scanner + report builder and prints what a customer sees.
 - `npm run db:migrate` applies `supabase/migrations/*.sql` to `DATABASE_URL`, tracked in `schema_migrations`.
 
 ## Architecture

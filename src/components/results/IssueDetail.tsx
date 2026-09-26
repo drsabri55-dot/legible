@@ -82,7 +82,9 @@ export function IssueDetail({ issue, headingLevel = 3 }: { issue: Issue; heading
       {example?.note && <p className="mt-[12px] mb-0 text-[13px] leading-[1.7] text-nc-neutral-400">{example.note}</p>}
       {example && (
         <p className="mt-[10px] mb-0 text-[12px] text-nc-neutral-500 break-all">
-          Found on {example.pageUrl} at <code className="text-nc-neutral-400">{example.selector}</code>
+          Found on {example.pageUrl}
+          {example.alsoOn > 0 && ` and ${example.alsoOn} other ${example.alsoOn === 1 ? "page" : "pages"}`} at{" "}
+          <code className="text-nc-neutral-400">{example.selector}</code>
         </p>
       )}
     </article>

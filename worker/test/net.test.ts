@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isPublicAddress, resolvesPublic } from "../src/net";
+import { classifyHost, isPublicAddress, resolvesPublic } from "../src/net";
 
 describe("SSRF guard", () => {
   it("blocks private, loopback, link-local and metadata addresses", () => {
@@ -14,5 +14,17 @@ describe("SSRF guard", () => {
     expect(await resolvesPublic("[::1]")).toBe(false);
     expect(await resolvesPublic("localhost")).toBe(false);
     expect(await resolvesPublic("no-such-host.invalid")).toBe(false);
+    expect(await classifyHost("no-such-host.invalid")).toBe("unresolvable");
+    expect(await classifyHost("127.0.0.1")).toBe("private");
+  });
+});
+
+import { pageKey } from "../src/scan";
+
+describe("pageKey", () => {
+  it("treats tracking tags, www, scheme and a trailing slash as the same page", () => {
+    const a = pageKey(new URL("https://www.shop.example/about/?utm_source=x&ref_=nav"));
+    expect(pageKey(new URL("http://shop.example/about"))).toBe(a);
+    expect(pageKey(new URL("https://shop.example/about?page=2"))).not.toBe(a);
   });
 });

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { removeAttr, setAttr, suggestFix } from "@/lib/rules/fixes";
+import { completeSnippet, removeAttr, setAttr, suggestFix } from "@/lib/rules/fixes";
 import { contrastRatio, parseHex } from "@/lib/rules/contrast";
 
 describe("attribute editing", () => {
@@ -70,5 +70,32 @@ describe("suggestFix", () => {
   it("returns null when it cannot help", () => {
     expect(suggestFix("nested-interactive", { html: "<button><a href='/'>x</a></button>" })).toBeNull();
     expect(suggestFix("color-contrast", { html: "<p>x</p>", data: null })).toBeNull();
+  });
+});
+
+describe("completeSnippet", () => {
+  it("closes an element recorded as its opening tag only", () => {
+    expect(completeSnippet('<select id="size" class="x">')).toBe('<select id="size" class="x">…</select>');
+    expect(completeSnippet("<button>")).toBe("<button>…</button>");
+  });
+
+  it("leaves complete, void and page-level elements alone", () => {
+    expect(completeSnippet('<button aria-label="Close"><svg></svg></button>')).toBe('<button aria-label="Close"><svg></svg></button>');
+    expect(completeSnippet('<img src="a.png">')).toBe('<img src="a.png">');
+    expect(completeSnippet('<html class="js">')).toBe('<html class="js">');
+    expect(completeSnippet('<div class="cut-off-mid-attribute…')).toBe('<div class="cut-off-mid-attribute…');
+  });
+
+  it("keeps the label fix readable", () => {
+    expect(suggestFix("select-name", { html: completeSnippet('<select class="x">') })?.code).toBe(
+      '<label>\n  [Field name]\n  <select class="x">…</select>\n</label>',
+    );
+  });
+});
+
+describe("CSS fixes name the element, not its whole ancestry", () => {
+  it("uses the last step of a long selector", () => {
+    const fix = suggestFix("link-in-text-block", { html: "<a href='/x'>x</a>", target: ["main > div.content > p:nth-child(3) > a.more"] });
+    expect(fix?.code).toBe("a.more {\n  text-decoration: underline;\n}");
   });
 });

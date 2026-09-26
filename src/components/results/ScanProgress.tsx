@@ -75,7 +75,7 @@ export function ScanProgress({ scanId, host, initial }: { scanId: string; host: 
       </div>
       <p className="mt-6 max-w-[46ch] text-[14px] leading-[1.8] text-nc-neutral-400">
         Legible loads {host} in a real browser, checks every link, label, image and colour pair on each page, then
-        moves to the next page after a short pause. Most scans take under a minute.
+        moves to the next page after a short pause. Most scans take under two minutes.
       </p>
       {slow && (
         <p className="mt-3 text-[14px] text-nc-neutral-300">

@@ -11,6 +11,7 @@ import { SeverityBars } from "@/components/results/SeverityBars";
 import { Kicker, SiteShell } from "@/components/site/SiteShell";
 import { getReportByScanId, getScan } from "@/lib/data";
 import { formatUsd, reportPriceCents } from "@/lib/pricing";
+import { reasonCode, reasonText } from "@/lib/report/reasons";
 import { failureMessage } from "@/lib/scans";
 
 export const metadata: Metadata = { title: "Your free result", robots: { index: false, follow: false } };
@@ -80,6 +81,13 @@ export default async function ScanPage(props: PageProps<"/scan/[id]">) {
   const hidden = Math.max(0, s.issueTypes - s.samples.length);
   const report = await getReportByScanId(scan.id);
   const scannedPages = s.pages.filter((p) => p.status === "scanned");
+  // Pages we tried but could not scan, grouped by reason.
+  const notScanned = new Map<string, number>();
+  for (const p of s.pages) {
+    if (p.status === "scanned") continue;
+    const code = reasonCode(p.reason);
+    notScanned.set(code, (notScanned.get(code) ?? 0) + 1);
+  }
 
   return (
     <SiteShell>
@@ -88,6 +96,11 @@ export default async function ScanPage(props: PageProps<"/scan/[id]">) {
         <ScoreRing score={s.score} />
         <div className="min-w-0 flex-[1_1_18rem]">
           <h1 className="m-0 text-[clamp(30px,4vw,48px)] leading-[1.1] tracking-[-0.025em] break-words">{s.site}</h1>
+          {s.redirectedTo && (
+            <p className="mt-2 mb-0 text-[13px] text-nc-neutral-400 break-words">
+              This address redirects to {s.redirectedTo}, so that is what we scanned.
+            </p>
+          )}
           <p className="mt-3 mb-0 max-w-[46ch] text-[15px] leading-[1.8] text-nc-neutral-300">
             Scored {s.score ?? "–"} out of 100, measured against WCAG 2.1 Level AA across {s.pagesScanned}{" "}
             {s.pagesScanned === 1 ? "page" : "pages"}. The score is a guide, not a certificate: automated checks cannot
@@ -190,6 +203,15 @@ export default async function ScanPage(props: PageProps<"/scan/[id]">) {
               </li>
             ))}
           </ul>
+          {notScanned.size > 0 && (
+            <ul className="mt-4 mb-0 list-none space-y-[6px] p-0 text-[13px] leading-[1.6] text-nc-neutral-400">
+              {[...notScanned].map(([code, n]) => (
+                <li key={code}>
+                  {n} more {n === 1 ? "page" : "pages"} not scanned: {reasonText(code)}.
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       </section>
 

@@ -15,15 +15,24 @@ export function isPublicAddress(address: string): boolean {
   return ip.range() === "unicast";
 }
 
-export async function resolvesPublic(hostname: string): Promise<boolean> {
+export type HostKind = "public" | "private" | "unresolvable";
+
+// "unresolvable" (no such website) is told apart from "private" so the
+// customer gets the right message.
+export async function classifyHost(hostname: string): Promise<HostKind> {
   const host = hostname.replace(/^\[|\]$/g, "");
-  if (ipaddr.isValid(host)) return isPublicAddress(host);
+  if (ipaddr.isValid(host)) return isPublicAddress(host) ? "public" : "private";
   try {
     const records = await lookup(host, { all: true, verbatim: true });
-    return records.length > 0 && records.every((r) => isPublicAddress(r.address));
+    if (!records.length) return "unresolvable";
+    return records.every((r) => isPublicAddress(r.address)) ? "public" : "private";
   } catch {
-    return false;
+    return "unresolvable";
   }
+}
+
+export async function resolvesPublic(hostname: string): Promise<boolean> {
+  return (await classifyHost(hostname)) === "public";
 }
 
 export function allowPrivateTargets(): boolean {
