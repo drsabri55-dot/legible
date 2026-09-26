@@ -69,6 +69,8 @@ export async function textOverCanvasFailures(page: Page): Promise<string[]> {
       return 0.2126 * lin(m[0] / 255) + 0.7152 * lin(m[1] / 255) + 0.0722 * lin(m[2] / 255);
     };
     const out: { text: string; x: number; y: number; w: number; h: number; L: number; need: number }[] = [];
+    // Text scrolled up behind the sticky header is covered by it, not read.
+    const headerBottom = document.querySelector("header")?.getBoundingClientRect().bottom ?? 0;
     const walker = document.createTreeWalker(document.querySelector("main")!, NodeFilter.SHOW_TEXT);
     while (walker.nextNode()) {
       const n = walker.currentNode;
@@ -82,7 +84,7 @@ export async function textOverCanvasFailures(page: Page): Promise<string[]> {
       const range = document.createRange();
       range.selectNodeContents(n);
       for (const r of range.getClientRects()) {
-        if (r.bottom < 0 || r.top > innerHeight || r.width < 2) continue;
+        if (r.top < headerBottom || r.top > innerHeight || r.width < 2) continue;
         const size = parseFloat(cs.fontSize);
         const need = size >= 24 || (parseInt(cs.fontWeight) >= 700 && size >= 18.66) ? 3 : 4.5;
         out.push({ text: n.textContent.trim().slice(0, 40), x: r.left, y: r.top, w: r.width, h: r.height, L: lum(cs.color), need });

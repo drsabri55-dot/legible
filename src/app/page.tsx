@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ScanForm } from "@/components/ScanForm";
+import { ScanShortcut } from "@/components/landing/ScanShortcut";
 import { StoryEngineMount } from "@/components/landing/StoryEngineMount";
 import { formatUsd, reportPriceCents } from "@/lib/pricing";
 import { AA_LINE, SCORE, SEVERITY } from "@/lib/story/engine";
@@ -84,8 +85,11 @@ export default function Home() {
               </span>
               <span className={s.brandName}>Legible</span>
             </Link>
-            <span data-a="idx" className={s.idx} aria-hidden="true">
-              01 / 07
+            <span className={s.headerEnd}>
+              <ScanShortcut className={s.shortcut} />
+              <span data-a="idx" className={s.idx} aria-hidden="true">
+                01 / 07
+              </span>
             </span>
           </header>
 
@@ -288,7 +292,7 @@ export default function Home() {
               </div>
             </section>
 
-            <section data-chap="" data-a="s5" aria-labelledby="ch7-title" className={s.ch7}>
+            <section id="scan" data-chap="" data-a="s5" aria-labelledby="ch7-title" className={s.ch7}>
               <div className={s.stick7}>
                 <div className={s.w7}>
                   <div data-reveal="">

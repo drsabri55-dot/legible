@@ -302,6 +302,13 @@ export class StoryEngine {
       this.ht = 9999;
       return;
     }
+    // Shown once per browser: a return visit goes straight to the story, and
+    // the headline inks in as it does after the gate.
+    if (document.documentElement.classList.contains("gate-seen")) {
+      g.style.display = "none";
+      this.gateDone = true;
+      return;
+    }
     this.gt += this.dt * 16.67;
     const pct = Math.min(1, this.gt / 1150);
     this.txt("gpct", Math.round(pct * 100) + "%");
@@ -312,6 +319,11 @@ export class StoryEngine {
     if (fade >= 1) {
       g.style.display = "none";
       this.gateDone = true;
+      try {
+        localStorage.setItem("legible-gate-seen", "1");
+      } catch {
+        // Storage blocked (private mode): the gate simply shows again next time.
+      }
     }
     this.moving = true;
   }
@@ -1002,8 +1014,8 @@ export class StoryEngine {
       // about 2:1). Here the ink covers the full width instead, deepening as
       // the moon grows, which keeps text above 4.5:1 over the brightest
       // regolith.
-      const need = cl((this.mrn - 0.045) / 0.1);
-      const e = this.d(scrim, "d", 0.3 + 0.7 * need, r(0.12));
+      const need = cl((this.mrn - 0.04) / 0.08);
+      const e = this.d(scrim, "d", 0.45 + 0.55 * need, r(0.12));
       scrim.style.opacity = e.toFixed(3);
       const rec = this.v(scrim);
       if (rec.gk !== -1) {

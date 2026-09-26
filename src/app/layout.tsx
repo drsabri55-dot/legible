@@ -25,12 +25,19 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    // The "js" class lets CSS show script-only UI (the landing page's loading
-    // gate) without a flash; it is set before first paint, so React is told
-    // not to treat it as a mismatch.
+    // The "js" and "gate-seen" classes let CSS show or skip script-only UI
+    // (the landing page's loading gate) without a flash; they are set before
+    // first paint, so React is told not to treat them as a mismatch.
     <html lang="en-GB" className={inter.variable} suppressHydrationWarning>
       <head>
-        <script dangerouslySetInnerHTML={{ __html: "document.documentElement.classList.add('js')" }} />
+        <script
+          dangerouslySetInnerHTML={{
+            // "gate-seen": the landing page's loading screen has been shown
+            // once in this browser, so return visits skip it.
+            __html:
+              "document.documentElement.classList.add('js');try{if(localStorage.getItem('legible-gate-seen'))document.documentElement.classList.add('gate-seen')}catch(e){}",
+          }}
+        />
       </head>
       <body>{children}</body>
     </html>

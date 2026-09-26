@@ -104,3 +104,47 @@ test.describe("landing page text over the moon", () => {
     });
   }
 });
+
+test.describe("landing page shortcuts", () => {
+  test.use({ reducedMotion: "no-preference" });
+
+  test("'Scan your site' jumps to the form and puts the cursor in it", async ({ page }) => {
+    await page.goto("/");
+    await expect(page.locator('[data-a="gate"]')).toBeHidden({ timeout: 6000 });
+    await page.getByRole("link", { name: "Scan your site" }).click();
+    await expect(page.getByLabel("Website address")).toBeFocused();
+    await expect(page.getByLabel("Website address")).toBeInViewport();
+  });
+
+  test("shows the loading screen on the first visit only", async ({ page }) => {
+    await page.goto("/");
+    await expect(page.locator('[data-a="gate"]')).toBeVisible();
+    await expect(page.locator('[data-a="gate"]')).toBeHidden({ timeout: 6000 });
+    await page.reload();
+    await expect(page.locator('[data-a="gate"]')).toBeHidden();
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+  });
+
+  test("the header fits on a small phone", async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 700 });
+    await page.goto("/");
+    const boxes = await page.evaluate(() =>
+      ['header a[aria-label="Legible, home"]', 'header a[href="#scan"]', '[data-a="idx"]'].map((sel) => {
+        const r = document.querySelector(sel)!.getBoundingClientRect();
+        return { left: r.left, right: r.right };
+      }),
+    );
+    expect(boxes[0].right).toBeLessThanOrEqual(boxes[1].left);
+    expect(boxes[1].right).toBeLessThanOrEqual(boxes[2].left);
+    expect(boxes[2].right).toBeLessThanOrEqual(320);
+  });
+});
+
+test("links shared elsewhere show the share image", async ({ page, request }) => {
+  await page.goto("/");
+  const og = await page.locator('meta[property="og:image"]').getAttribute("content");
+  expect(og).toContain("/opengraph-image");
+  const res = await request.get(new URL(og!).pathname);
+  expect(res.status()).toBe(200);
+  expect(res.headers()["content-type"]).toBe("image/png");
+});

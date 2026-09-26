@@ -15,7 +15,7 @@ const nextConfig: NextConfig = {
   distDir: process.env.NEXT_DIST_DIR || ".next",
   // Email templates are read from disk at run time; make sure Vercel ships them.
   outputFileTracingIncludes: {
-    "/*": ["./emails/**/*.html"],
+    "/*": ["./emails/**/*.html", "./assets/**/*"],
   },
   async headers() {
     return [
