@@ -16,9 +16,11 @@ test("a visitor scans a site from the landing page and sees the free result", as
   await page.getByRole("button", { name: "Scan a site" }).click();
   await page.waitForURL(/\/scan\/[0-9a-f-]{36}$/);
   resultUrl = page.url();
+  await expect(page).toHaveTitle("Scanning 127.0.0.1 · Legible");
 
   // The scanning screen shows the same heading, so wait for the result itself.
-  await expect(page.getByText("Free result")).toBeVisible({ timeout: 90_000 });
+  await expect(page.getByText("Free result", { exact: true })).toBeVisible({ timeout: 90_000 });
+  await expect(page).toHaveTitle("Your free result · Legible");
   await expect(page.getByRole("heading", { level: 1, name: "127.0.0.1" })).toBeVisible();
   await expect(page.getByText(/Scored \d+ out of 100, measured against WCAG 2\.1 Level AA across 4 pages/)).toBeVisible();
   await expect(page.getByRole("heading", { name: "Two of your issues, in full" })).toBeVisible();

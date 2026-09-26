@@ -20,9 +20,14 @@ import { siteName } from "@/lib/url";
 // One database read per request, shared by the metadata and the page.
 const loadScan = cache(getScan);
 
+// The tab title follows the scan, so a screen reader announces "Scanning…"
+// rather than a result that does not exist yet.
 export async function generateMetadata(props: PageProps<"/scan/[id]">): Promise<Metadata> {
   const { id } = await props.params;
-  return privatePage((await loadScan(id)) ? "Your free result" : null);
+  const scan = await loadScan(id);
+  if (!scan) return privatePage(null);
+  if (scan.status === "queued" || scan.status === "running") return privatePage(`Scanning ${siteName(scan.host)}`);
+  return privatePage(scan.status === "failed" || !scan.summary ? "Scan stopped" : "Your free result");
 }
 
 function Locked({ count }: { count: number }) {
