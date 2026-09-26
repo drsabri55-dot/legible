@@ -1,14 +1,16 @@
 import { describe, expect, it } from "vitest";
 import { fill, htmlToText, renderEmail, TEMPLATES } from "@/lib/email/render";
+import { countOf, freeResultNextStep, reportStartWith } from "@/lib/email/wording";
 
 const VARS = {
   link: "https://legible.example/auth/verify?token=abc",
   email: "owner@example.com",
   site: "shop.example",
   score: 68,
-  total: 143,
-  pages: 6,
-  must: 4,
+  failures: "143 failures",
+  pages: "6 pages",
+  next_step: "The full report lists every failure. It costs $99, once.",
+  start_with: "Must-fix issues: 4. Start with those.",
   result_link: "https://legible.example/scan/1",
   report_link: "https://legible.example/report/abc",
   account_link: "https://legible.example/account",
@@ -55,5 +57,24 @@ describe("email templates", () => {
     expect(htmlToText('<p>Open <a href="https://a.example/x">your report</a></p>')).toBe(
       "Open your report (https://a.example/x)",
     );
+  });
+});
+
+describe("email wording", () => {
+  it("counts in words that agree with the number", () => {
+    expect(countOf(1, "failure")).toBe("1 failure");
+    expect(countOf(0, "failure")).toBe("0 failures");
+    expect(countOf(6, "page")).toBe("6 pages");
+  });
+
+  it("offers the report only when there is something in it", () => {
+    expect(freeResultNextStep(0, "$99")).not.toContain("$99");
+    expect(freeResultNextStep(0, "$99")).toContain("no report to buy");
+    expect(freeResultNextStep(3, "$99")).toContain("It costs $99, once.");
+  });
+
+  it("never says to start with zero must-fix issues", () => {
+    expect(reportStartWith(0)).toBe("None are in the must-fix group, so start with the should-fix issues.");
+    expect(reportStartWith(4)).toBe("Must-fix issues: 4. Start with those.");
   });
 });

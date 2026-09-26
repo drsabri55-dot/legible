@@ -1,6 +1,7 @@
 import { after } from "next/server";
 import { getScan, setLeadEmail } from "@/lib/data";
 import { sendEmail } from "@/lib/email/send";
+import { countOf, freeResultNextStep } from "@/lib/email/wording";
 import { env } from "@/lib/env";
 import { json, sameOrigin } from "@/lib/http";
 import { formatUsd, reportPriceCents } from "@/lib/pricing";
@@ -30,10 +31,10 @@ export async function POST(req: Request, ctx: RouteContext<"/api/scans/[id]/emai
         vars: {
           site: siteName(scan.host),
           score: summary.score ?? "–",
-          total: summary.totalIssues,
-          pages: summary.pagesScanned,
+          failures: countOf(summary.totalIssues, "failure"),
+          pages: countOf(summary.pagesScanned, "page"),
           result_link: `${env.appUrl()}/scan/${scan.id}`,
-          price: formatUsd(reportPriceCents()),
+          next_step: freeResultNextStep(summary.totalIssues, formatUsd(reportPriceCents())),
           app_url: env.appUrl().replace(/^https?:\/\//, ""),
         },
       });

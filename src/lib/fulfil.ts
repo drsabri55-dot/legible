@@ -2,6 +2,7 @@ import "server-only";
 import { randomToken } from "./crypto";
 import { createReportOnce, getScan, markReportDelivered, upsertUser, type ReportRow } from "./data";
 import { alertOwner, sendEmail } from "./email/send";
+import { countOf, reportStartWith } from "./email/wording";
 import { env } from "./env";
 import { formatUsd } from "./pricing";
 import { siteName } from "./url";
@@ -55,8 +56,8 @@ export async function deliverReport(report: ReportRow, email: string): Promise<v
     vars: {
       site: siteName(scan.host),
       score: scan.summary.score ?? "–",
-      total: scan.summary.totalIssues,
-      must: scan.summary.groupCounts.must,
+      failures: countOf(scan.summary.totalIssues, "failure"),
+      start_with: reportStartWith(scan.summary.groupCounts.must),
       report_link: `${base}/report/${report.token}`,
       account_link: `${base}/account`,
       amount: formatUsd(report.amount_cents),
