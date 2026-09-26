@@ -156,7 +156,7 @@ Lines not listed are exactly as in the design file.
 - Body: *Legible tests your home page and up to five linked pages against WCAG 2.1 AA. The report explains each failure, who it affects and the code change that fixes it.*
 - Card 01 — **Readable findings**: *Most scanners return rule IDs and raw code. Legible explains each failure in terms a site owner understands.*
 - Card 02 — **Fixes in priority order**: *Every failure comes with the affected element, the WCAG rule it breaks and corrected code, sorted into must fix, should fix and nice to have.*
-- Card 03 — **A dated record**: *Re-scan after each release and keep a dated history of your results against WCAG 2.1 AA.*
+- Card 03 — **A dated record**: *Every report carries the date of its scan and stays in your account, so you can show what was checked and when.* (Changed 26 September 2026: the first wording promised re-scans and a history, which only arrive with monthly monitoring.)
 
 **03 · The read**
 - H2: *What a screen reader hears on a typical checkout page.*

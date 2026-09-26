@@ -34,11 +34,11 @@ export function SiteShell({ children, width = "normal" }: { children: React.Reac
           {children}
         </main>
         <footer className="-mx-[clamp(20px,6vw,96px)] border-t border-white/[0.08] bg-[#0b0c14] px-[clamp(20px,6vw,96px)] py-10 text-[12px] leading-[1.7] text-nc-neutral-500">
-          <p className="m-0 text-[11px] uppercase tracking-[0.18em] text-nc-neutral-400">
+          <p className="m-0 text-[12px] uppercase tracking-[0.18em] text-nc-neutral-400">
             An independent audit. No overlay widgets.
           </p>
           <p className="mt-3 max-w-[62ch]">{DISCLAIMER}</p>
-          <ul className="mt-2 flex list-none flex-wrap gap-x-[18px] p-0 text-[11px] uppercase tracking-[0.16em]">
+          <ul className="mt-2 flex list-none flex-wrap gap-x-[18px] p-0 text-[12px] uppercase tracking-[0.16em]">
             {[
               ["/", "Home"],
               ["/terms", "Terms"],

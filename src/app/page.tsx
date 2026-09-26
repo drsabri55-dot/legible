@@ -153,7 +153,8 @@ export default function Home() {
                     </span>
                     <h3 className={s.cardTitle}>A dated record</h3>
                     <p className={s.cardBody}>
-                      Re-scan after each release and keep a dated history of your results against WCAG 2.1 AA.
+                      Every report carries the date of its scan and stays in your account, so you can show what was
+                      checked and when.
                     </p>
                   </li>
                 </ul>

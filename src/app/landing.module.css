@@ -72,7 +72,7 @@
   will-change: transform;
 }
 .gateCaption {
-  font-size: 10px;
+  font-size: 12px;
   letter-spacing: 0.24em;
   text-transform: uppercase;
   /* neutral-500, not the design's neutral-600 (4.1:1, below 4.5:1). */
@@ -152,7 +152,7 @@
   top: 50%;
   transform: translateY(-50%);
   writing-mode: vertical-rl;
-  font-size: 10px;
+  font-size: 12px;
   letter-spacing: 0.24em;
   text-transform: uppercase;
   color: var(--color-neutral-500);
@@ -279,7 +279,7 @@
   border-color: var(--color-accent-300);
 }
 .idx {
-  font-size: 11px;
+  font-size: 12px;
   letter-spacing: 0.16em;
   color: var(--color-neutral-500);
   font-variant-numeric: tabular-nums;
@@ -336,7 +336,7 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  font-size: 11px;
+  font-size: 12px;
   letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--color-neutral-500);
@@ -371,7 +371,7 @@
 .cue {
   display: block;
   margin-top: 44px;
-  font-size: 10.5px;
+  font-size: 12px;
   letter-spacing: 0.2em;
   text-transform: uppercase;
   color: var(--color-neutral-500);
@@ -418,7 +418,7 @@
   background: var(--color-accent-500);
 }
 .cardNum {
-  font-size: 10.5px;
+  font-size: 12px;
   letter-spacing: 0.2em;
   text-transform: uppercase;
   color: var(--color-neutral-500);
@@ -645,7 +645,7 @@
   right: 9px;
   top: -4px;
   white-space: nowrap;
-  font-size: 11px;
+  font-size: 12px;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--color-neutral-300);
@@ -736,7 +736,7 @@
   padding-right: clamp(22px, 6vw, 96px);
 }
 .footerLead {
-  font-size: 11px;
+  font-size: 12px;
   letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--color-neutral-400);
@@ -752,7 +752,7 @@
   margin: 0;
   padding: 0;
   list-style: none;
-  font-size: 11px;
+  font-size: 12px;
   letter-spacing: 0.16em;
   text-transform: uppercase;
 }
@@ -766,6 +766,20 @@
 .footerLinks a:hover {
   color: var(--color-accent-200);
   text-decoration: underline;
+}
+
+/* ── tablets ──────────────────────────────────────────────────────
+   Between phone and desktop widths the chapter 3 and 4 text would run
+   under the moon, which keeps to the right. The text keeps to the left
+   instead, as it does on desktop. */
+@media (min-width: 641px) and (max-width: 1279px) {
+  .w3 {
+    max-width: 58vw;
+  }
+  /* The moon is larger by chapter 4. */
+  .w4 {
+    max-width: 46vw;
+  }
 }
 
 /* ── phones ───────────────────────────────────────────────────────

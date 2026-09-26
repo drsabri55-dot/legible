@@ -125,6 +125,31 @@ test.describe("landing page shortcuts", () => {
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
   });
 
+  test("the moon stops redrawing while the reader is idle, and resumes on scroll", async ({ page }) => {
+    test.setTimeout(60_000);
+    await page.addInitScript(() => {
+      const w = window as unknown as { __draws: number };
+      w.__draws = 0;
+      const clear = CanvasRenderingContext2D.prototype.clearRect;
+      CanvasRenderingContext2D.prototype.clearRect = function (...args) {
+        w.__draws++;
+        return clear.apply(this, args);
+      };
+    });
+    await page.goto("/");
+    await expect(page.locator('[data-a="gate"]')).toBeHidden({ timeout: 6000 });
+    const drawsIn = async (ms: number) => {
+      const start = await page.evaluate(() => (window as unknown as { __draws: number }).__draws);
+      await page.waitForTimeout(ms);
+      return (await page.evaluate(() => (window as unknown as { __draws: number }).__draws)) - start;
+    };
+    expect(await drawsIn(1000)).toBeGreaterThan(20);
+    await page.waitForTimeout(11_000);
+    expect(await drawsIn(1000)).toBe(0);
+    await page.mouse.wheel(0, 500);
+    expect(await drawsIn(1000)).toBeGreaterThan(20);
+  });
+
   test("the header fits on a small phone", async ({ page }) => {
     await page.setViewportSize({ width: 320, height: 700 });
     await page.goto("/");

@@ -86,7 +86,7 @@ export default async function AccountPage(props: PageProps<"/account">) {
               type="checkbox"
               name="marketing"
               defaultChecked={user?.marketing_emails ?? true}
-              className="h-[18px] w-[18px] accent-[var(--color-accent-500)]"
+              className="h-[18px] w-[18px] shrink-0 accent-[var(--color-accent-500)]"
             />
             Send me occasional offers, such as monthly monitoring
           </label>

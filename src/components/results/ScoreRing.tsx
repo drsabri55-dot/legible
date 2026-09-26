@@ -24,7 +24,7 @@ export function ScoreRing({ score, size = 148 }: { score: number | null; size?: 
         <span className="text-[40px] font-medium leading-none tracking-[-0.04em] tabular-nums text-nc-neutral-100">
           {score ?? "–"}
         </span>
-        <span className="mt-1 text-[11px] uppercase tracking-[0.18em] text-nc-neutral-400">out of 100</span>
+        <span className="mt-1 text-[12px] uppercase tracking-[0.18em] text-nc-neutral-400">out of 100</span>
       </div>
     </div>
   );

@@ -204,7 +204,7 @@ export default async function ScanPage(props: PageProps<"/scan/[id]">) {
           <LeadForm scanId={scan.id} alreadySent={!!scan.lead_email} />
         </div>
         <div>
-          <h2 className="m-0 text-[11px] font-normal uppercase tracking-[0.16em] text-nc-neutral-400">Pages scanned</h2>
+          <h2 className="m-0 text-[12px] font-normal uppercase tracking-[0.16em] text-nc-neutral-400">Pages scanned</h2>
           <ul className="mt-3 mb-0 list-none space-y-[6px] p-0 text-[13px] leading-[1.6] text-nc-neutral-300">
             {scannedPages.map((p) => (
               <li key={p.url} className="break-all">

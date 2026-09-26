@@ -5,7 +5,7 @@ import { ImpactTag } from "./ImpactTag";
 function Code({ label, code, tone }: { label: string; code: string; tone: "bad" | "good" }) {
   return (
     <figure className="m-0 min-w-0">
-      <figcaption className="mb-[6px] text-[11px] uppercase tracking-[0.16em] text-nc-neutral-400">{label}</figcaption>
+      <figcaption className="mb-[6px] text-[12px] uppercase tracking-[0.16em] text-nc-neutral-400">{label}</figcaption>
       <pre
         className="m-0 overflow-x-auto rounded-[8px] border p-[12px] text-[12.5px] leading-[1.6] whitespace-pre-wrap break-words"
         style={{
@@ -39,13 +39,13 @@ export function IssueDetail({ issue, headingLevel = 3 }: { issue: Issue; heading
       </H>
       <p className="mt-[10px] mb-0 text-[14.5px] leading-[1.75] text-nc-neutral-300">{issue.summary}</p>
       <dl className="mt-[18px] grid gap-x-6 gap-y-[14px] text-[14px] leading-[1.7] sm:grid-cols-[9rem_minmax(0,1fr)]">
-        <dt className="text-[11px] uppercase tracking-[0.16em] text-nc-neutral-400 sm:pt-[3px]">Why it matters</dt>
+        <dt className="text-[12px] uppercase tracking-[0.16em] text-nc-neutral-400 sm:pt-[3px]">Why it matters</dt>
         <dd className="m-0 text-nc-neutral-200">{issue.why}</dd>
-        <dt className="text-[11px] uppercase tracking-[0.16em] text-nc-neutral-400 sm:pt-[3px]">Who it affects</dt>
+        <dt className="text-[12px] uppercase tracking-[0.16em] text-nc-neutral-400 sm:pt-[3px]">Who it affects</dt>
         <dd className="m-0 text-nc-neutral-200">{issue.who}</dd>
-        <dt className="text-[11px] uppercase tracking-[0.16em] text-nc-neutral-400 sm:pt-[3px]">How to fix it</dt>
+        <dt className="text-[12px] uppercase tracking-[0.16em] text-nc-neutral-400 sm:pt-[3px]">How to fix it</dt>
         <dd className="m-0 text-nc-neutral-200">{issue.fix}</dd>
-        <dt className="text-[11px] uppercase tracking-[0.16em] text-nc-neutral-400 sm:pt-[3px]">WCAG 2.1</dt>
+        <dt className="text-[12px] uppercase tracking-[0.16em] text-nc-neutral-400 sm:pt-[3px]">WCAG 2.1</dt>
         <dd className="m-0 text-nc-neutral-200">
           {issue.criteria.length
             ? issue.criteria.map((c, i) => (

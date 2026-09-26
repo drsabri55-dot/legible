@@ -41,7 +41,7 @@ export default async function AdminPage() {
             Scans, sales and conversion by period
           </caption>
           <thead>
-            <tr className="text-left text-[11px] uppercase tracking-[0.14em] text-nc-neutral-400">
+            <tr className="text-left text-[12px] uppercase tracking-[0.14em] text-nc-neutral-400">
               {["Period", "Scans", "Completed", "Failed", "Paid", "Conversion", "Revenue", "Leads", "Monitoring"].map((h) => (
                 <th key={h} scope="col" className="border-b border-white/10 py-2 pr-4 font-normal">
                   {h}

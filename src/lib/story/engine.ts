@@ -12,9 +12,15 @@
    - the server renders every value in its final state (so the page reads
      correctly without JavaScript); the engine rewinds them on start;
    - under prefers-reduced-motion nothing animates: all content shows in its
-     final state and the canvas only redraws on scroll and resize. */
+     final state and the canvas only redraws on scroll and resize;
+   - the ambient drift (stars, twinkle, the light's bob) stops AMBIENT_MS after
+     the last scroll or resize and resumes on the next one, so a page left
+     open does not redraw 60 times a second. */
 
 type Ctx = CanvasRenderingContext2D;
+
+// How long the ambient drift keeps running after the reader stops.
+const AMBIENT_MS = 10_000;
 
 const HUES = [265, 263, 268, 260, 265]; // Aurora
 const GND = {
@@ -64,6 +70,7 @@ export class StoryEngine {
   private idle = 0;
   private ts = 0;
   private dt = 1;
+  private lastInput = 0;
   private moving = false;
   private reduced = false;
   private stopped = false;
@@ -103,31 +110,37 @@ export class StoryEngine {
     this.mq = matchMedia("(prefers-reduced-motion: reduce)");
     this.reduced = this.mq.matches;
     this.mq.addEventListener("change", this.onMotionChange);
-    addEventListener("scroll", this.kick, { passive: true });
-    addEventListener("resize", this.kick);
+    addEventListener("scroll", this.onInput, { passive: true });
+    addEventListener("resize", this.onInput);
     if (typeof ResizeObserver !== "undefined") {
-      this.ro = new ResizeObserver(() => this.kick());
+      this.ro = new ResizeObserver(() => this.onInput());
       this.ro.observe(this.root);
     }
     this.seed();
     this.splitSpeech();
     this.rewind();
     this.frame();
-    this.kick();
+    this.onInput();
   }
 
   stop(): void {
     this.stopped = true;
     if (this.raf) cancelAnimationFrame(this.raf);
     this.raf = 0;
-    removeEventListener("scroll", this.kick);
-    removeEventListener("resize", this.kick);
+    removeEventListener("scroll", this.onInput);
+    removeEventListener("resize", this.onInput);
     this.mq?.removeEventListener("change", this.onMotionChange);
     this.ro?.disconnect();
   }
 
   private onMotionChange = () => {
     this.reduced = !!this.mq?.matches;
+    this.onInput();
+  };
+
+  // Scroll and resize: the reader is active, so the drift runs again.
+  private onInput = () => {
+    this.lastInput = performance.now();
     this.kick();
   };
 
@@ -789,7 +802,7 @@ export class StoryEngine {
     });
 
     ctx.globalCompositeOperation = "source-over";
-    if (!this.reduced) this.moving = true;
+    if (!this.reduced && performance.now() - this.lastInput < AMBIENT_MS) this.moving = true;
   }
 
   // The arrival: a flat razor horizon with black down to it, and Earth

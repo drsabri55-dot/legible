@@ -50,7 +50,7 @@ export function ScanForm({ variant = "landing" }: { variant?: "landing" | "compa
         htmlFor={id}
         className={
           variant === "landing"
-            ? "text-[11px] uppercase tracking-[0.2em] text-nc-neutral-100"
+            ? "text-[12px] uppercase tracking-[0.2em] text-nc-neutral-100"
             : "text-[12px] text-nc-neutral-300"
         }
       >
