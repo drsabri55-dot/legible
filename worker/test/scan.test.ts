@@ -28,13 +28,14 @@ describe("scanSite", () => {
     });
     const scanned = raw.pages.filter((p) => p.status === "scanned").map((p) => new URL(p.url).pathname);
     // Broken, challenge, duplicate and off-site links are replaced by later
-    // ones, so Contact and Services are still reached.
+    // ones, so Contact and Services are still reached. /index.html is the
+    // home page by another address, recognised by its content.
     expect(scanned).toEqual(["/", "/about.html", "/contact.html", "/services.html"]);
     expect(raw.pages.find((p) => p.url.endsWith("/private.html"))).toMatchObject({ status: "skipped", reason: "robots" });
     expect(raw.pages.find((p) => p.url.endsWith("/missing.html"))).toMatchObject({ status: "failed", reason: "not_found: HTTP 404" });
     expect(raw.pages.find((p) => p.url.endsWith("/challenge.html"))).toMatchObject({ status: "failed", reason: "refused: bot challenge" });
     // Never visited or silently dropped: sign-in link, PDF, the redirect home and the off-site redirect.
-    for (const gone of ["/login", ".pdf", "/home", "/elsewhere", "localhost"]) {
+    for (const gone of ["/login", ".pdf", "/home", "/elsewhere", "localhost", "/index.html", "/vote"]) {
       expect(raw.pages.some((p) => p.url.includes(gone)), gone).toBe(false);
     }
     expect(progress[0]).toBe("1/6");

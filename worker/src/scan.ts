@@ -157,7 +157,7 @@ const SKIP_PATHS =
 // Links that exist to send people somewhere else: a parameter named like
 // "…redirect…", "…return…" or "callback", or one whose value is a web address
 // (tracking redirects), and search queries.
-const SKIP_QUERY = /[?&]([^=&]*(callback|redirect|return|continue)[^=&]*|next|q|query|s)=|=(https?(:|%3a))/i;
+const SKIP_QUERY = /[?&]([^=&]*(callback|redirect|return|continue|goto)[^=&]*|next|q|query|s)=|=(https?(:|%3a))/i;
 
 // Parameters that track a click without changing the page.
 const TRACKING_PARAM = /^(utm_.*|ref|ref_|fbclid|gclid|msclkid|mc_[a-z]+|_encoding|ie|_ga|_gl)$/i;
@@ -184,6 +184,19 @@ const CHALLENGE_PROBE = `(function () {
 
 // Up to five more pages, taken from the site's navigation first. Sites with
 // no <nav> fall back to the header, then to links anywhere on the page.
+// What makes two addresses the same page ("/" and "/index.html", or "/" and
+// "/news"): the same title and the same visible text once numbers are
+// removed, since counts and times change between loads. Pages with little
+// text (an app shell still loading, a gallery) are never matched.
+const PAGE_SIGNATURE = `(function () {
+  var t = (document.title + " | " + (document.body ? document.body.innerText : "")).toLowerCase();
+  t = t.replace(/[0-9]+/g, "").replace(/\\s+/g, " ").trim();
+  if (t.length < 200) return null;
+  var h = 5381;
+  for (var i = 0; i < t.length; i++) h = ((h * 33) ^ t.charCodeAt(i)) >>> 0;
+  return t.length + ":" + h;
+})()`;
+
 async function collectLinks(page: Page, base: URL): Promise<string[]> {
   // Passed as a string: tsx adds helper calls to compiled functions that do
   // not exist inside the page.
@@ -275,7 +288,8 @@ async function scanPage(context: BrowserContext, url: string, first: boolean) {
         const links = first ? await collectLinks(page, new URL(finalUrl)) : [];
         const raw = toRawPage(finalUrl, heading, axe);
         await addFrameHosts(page, raw.violations);
-        return { raw, links, finalUrl };
+        const signature = (await page.evaluate(PAGE_SIGNATURE).catch(() => null)) as string | null;
+        return { raw, links, finalUrl, signature };
       })(),
       PAGE_TIMEOUT_MS + 5000,
       "timeout",
@@ -352,6 +366,7 @@ export async function scanSite(startUrl: string, opts: ScanOptions = {}): Promis
     finalUrl = home.finalUrl;
     const homeUrl = new URL(finalUrl);
     const scannedKeys = new Set<string>([pageKey(homeUrl)]);
+    const signatures = new Set<string>(home.signature ? [home.signature] : []);
 
     // Robots-excluded links are listed (up to 3) so the owner knows why
     // they are missing; they cost nothing, since they are never fetched.
@@ -380,7 +395,9 @@ export async function scanSite(startUrl: string, opts: ScanOptions = {}): Promis
         if (!sameSite(landed.hostname, homeUrl.hostname)) continue; // redirected to another website
         const key = pageKey(landed);
         if (scannedKeys.has(key)) continue; // redirected to a page already scanned
+        if (result.signature && signatures.has(result.signature)) continue; // a page already scanned, by another address
         scannedKeys.add(key);
+        if (result.signature) signatures.add(result.signature);
         pages.push(result.raw);
         done++;
         await opts.onProgress?.(done, total);
