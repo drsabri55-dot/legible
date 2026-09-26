@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildReport, displaySelector, freeSummary, scoreFrom } from "@/lib/report/model";
+import { buildReport, displaySelector, freeSummary, scoreFrom, siteKey } from "@/lib/report/model";
 import { page, rawScan, rule, sampleScan } from "./fixture";
 
 describe("scoreFrom", () => {
@@ -122,5 +122,67 @@ describe("displaySelector", () => {
     const long = ".a1b2c3.Card-styles__CardStyled-sc-123:nth-child(4) > div[data-testid=\"inner\"] > .Image-styles__ImageStyled-sc-9 > img.hero";
     expect(displaySelector([long])).toBe("… > img.hero");
     expect(displaySelector(["iframe#map", long])).toBe("iframe#map → … > img.hero");
+  });
+});
+
+describe("content embedded from other sites", () => {
+  // A YouTube player on the home page, a map from the shop's own subdomain,
+  // and an image of the shop's own.
+  const inFrame = (html: string, frameHost: string) => ({ html, target: ["iframe", ".x"], impact: "critical", frameHost });
+  const raw = rawScan([
+    page(
+      "https://www.shop.example/",
+      [
+        { ...rule("button-name", "critical", []), nodeCount: 1, nodes: [inFrame('<button class="x"></button>', "www.youtube.com")] },
+        { ...rule("aria-allowed-attr", "critical", []), nodeCount: 1, nodes: [{ ...inFrame('<a class="x" aria-level="2">x</a>', "maps.shop.example"), failureSummary: 'ARIA attribute is not allowed: aria-level="2"' }] },
+        rule("image-alt", "critical", ['<img src="a.jpg">']),
+      ],
+      ["html-has-lang"],
+    ),
+  ]);
+  const r = buildReport(raw);
+  const issue = (id: string) => r.issues.find((i) => i.ruleId === id)!;
+
+  it("names the other site and offers no corrected code for it", () => {
+    const ex = issue("button-name").examples[0];
+    expect(ex.embeddedFrom).toBe("youtube.com");
+    expect(ex.fixed).toBeNull();
+    expect(ex.note).toBe(
+      "This is part of content embedded from youtube.com, so its code comes from youtube.com and you cannot change it yourself. Check the embed's settings, report the problem to youtube.com, or link to the content instead of embedding it.",
+    );
+    expect(issue("button-name").embeddedFrom).toBe("youtube.com");
+  });
+
+  it("treats frames from the site's own domain as the owner's code", () => {
+    const ex = issue("aria-allowed-attr").examples[0];
+    expect(ex.embeddedFrom).toBeNull();
+    expect(ex.fixed).toBe('<a class="x">x</a>');
+    expect(issue("aria-allowed-attr").embeddedFrom).toBeNull();
+  });
+
+  it("still counts embedded failures, because visitors still meet them", () => {
+    expect(r.totalIssues).toBe(3);
+  });
+
+  it("shows fixable issues first in the free sample", () => {
+    expect(freeSummary(r).samples.map((i) => i.ruleId)).not.toContain("button-name");
+  });
+
+  it("only calls a whole issue embedded when every element is known to be", () => {
+    const partly = rawScan([
+      page(
+        "https://www.shop.example/",
+        [{ ...rule("button-name", "critical", []), nodeCount: 40, nodes: [inFrame('<button class="x"></button>', "www.youtube.com")] }],
+        [],
+      ),
+    ]);
+    expect(buildReport(partly).issues[0].embeddedFrom).toBeNull();
+  });
+
+  it("compares sites by registrable domain", () => {
+    expect(siteKey("www.bbc.co.uk")).toBe("bbc.co.uk");
+    expect(siteKey("player.vimeo.com")).toBe("vimeo.com");
+    expect(siteKey("shop.example")).toBe("shop.example");
+    expect(siteKey("127.0.0.1")).toBe("127.0.0.1");
   });
 });

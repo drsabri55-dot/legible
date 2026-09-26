@@ -29,6 +29,10 @@ export interface IssueExample {
   html: string;
   fixed: string | null;
   note: string | null;
+  // Set when the element is part of content embedded from another site (a
+  // YouTube player, say): that site's name. Its code is not the owner's to
+  // change, so there is no corrected version.
+  embeddedFrom: string | null;
 }
 
 export interface Issue {
@@ -46,7 +50,10 @@ export interface Issue {
   instances: number;
   pages: { url: string; count: number }[];
   examples: IssueExample[];
-  moreSelectors: { pageUrl: string; selector: string }[];
+  moreSelectors: { pageUrl: string; selector: string; embeddedFrom: string | null }[];
+  // Set when every element of the issue is known to be in content embedded
+  // from other sites: their names, for example "youtube.com".
+  embeddedFrom: string | null;
   genericBefore: string;
   genericAfter: string;
   helpUrl: string;
@@ -121,6 +128,38 @@ function hostOf(url: string): string {
   }
 }
 
+// Roughly the registrable domain, so a site's own subdomains count as the
+// same site: "player.vimeo.com" gives "vimeo.com", "www.bbc.co.uk" "bbc.co.uk".
+const SECOND_LEVEL = /^(ac|co|com|edu|gob|gov|ltd|net|nhs|org|plc|sch)$/;
+export function siteKey(host: string): string {
+  const h = host.toLowerCase().replace(/\.$/, "");
+  if (/^[\d.]+$/.test(h) || h.includes(":")) return h;
+  const labels = h.split(".");
+  const n = labels.length > 2 && labels[labels.length - 1].length === 2 && SECOND_LEVEL.test(labels[labels.length - 2]) ? 3 : 2;
+  return labels.slice(-n).join(".");
+}
+
+// The other site an element's code comes from, or null when it is on the
+// owner's own page or in a frame from their own domain.
+function embeddedFrom(node: RawNode, pageUrl: string): string | null {
+  if (!node.frameHost) return null;
+  let pageHost: string;
+  try {
+    pageHost = new URL(pageUrl).hostname;
+  } catch {
+    return null;
+  }
+  return siteKey(node.frameHost) === siteKey(pageHost) ? null : siteName(node.frameHost);
+}
+
+function embedNote(from: string): string {
+  return `This is part of content embedded from ${from}, so its code comes from ${from} and you cannot change it yourself. Check the embed's settings, report the problem to ${from}, or link to the content instead of embedding it.`;
+}
+
+function listOf(names: string[]): string {
+  return names.length > 1 ? `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}` : names[0];
+}
+
 // Score out of 100, Lighthouse-style: every WCAG rule that applied to the site
 // counts once, weighted by how badly its failure affects people. The score is
 // the weighted share of those rules the site passed on every page.
@@ -190,23 +229,32 @@ export function buildReport(raw: RawScan): Report {
     counts[impact] += instances;
 
     const examples: IssueExample[] = [];
-    const moreSelectors: { pageUrl: string; selector: string }[] = [];
+    const moreSelectors: { pageUrl: string; selector: string; embeddedFrom: string | null }[] = [];
+    const embeds = new Set<string>();
+    let ownElements = 0;
     for (const { node, pages: on } of byElement.values()) {
+      const from = embeddedFrom(node, on[0]);
+      if (from) embeds.add(from);
+      else ownElements++;
       if (examples.length < EXAMPLES_PER_ISSUE) {
         const html = completeSnippet(node.html);
-        const fix = suggestFix(ruleId, { ...node, html });
+        const fix = from ? null : suggestFix(ruleId, { ...node, html });
         examples.push({
           pageUrl: on[0],
           alsoOn: on.length - 1,
           selector: selectorOf(node),
           html,
           fixed: fix?.code ?? null,
-          note: fix?.note ?? null,
+          note: from ? embedNote(from) : (fix?.note ?? null),
+          embeddedFrom: from,
         });
       } else if (moreSelectors.length < MORE_SELECTORS_PER_ISSUE) {
-        moreSelectors.push({ pageUrl: on[0], selector: selectorOf(node) });
+        moreSelectors.push({ pageUrl: on[0], selector: selectorOf(node), embeddedFrom: from });
       }
     }
+    // Only elements axe kept can be checked, so a whole issue is called
+    // embedded only when none were left out.
+    const allKept = hits.every((h) => h.rule.nodes.length === h.rule.nodeCount);
 
     issues.push({
       ruleId,
@@ -223,6 +271,7 @@ export function buildReport(raw: RawScan): Report {
       pages: hits.map((h) => ({ url: h.page.url, count: h.rule.nodeCount })),
       examples,
       moreSelectors,
+      embeddedFrom: allKept && ownElements === 0 && embeds.size > 0 ? listOf([...embeds]) : null,
       genericBefore: info?.before ?? "",
       genericAfter: info?.after ?? "",
       helpUrl: rule.helpUrl,
@@ -310,7 +359,10 @@ export function freeSummary(report: Report): FreeSummary {
     issueTypes: report.issues.length,
     pagesScanned: report.pagesScanned,
     pages: report.pages,
-    samples: report.issues.slice(0, 2).map((i) => ({ ...i, examples: i.examples.slice(0, 1), moreSelectors: [] })),
+    // Issues the owner can fix come first: the sample shows what they will do.
+    samples: [...report.issues.filter((i) => !i.embeddedFrom), ...report.issues.filter((i) => i.embeddedFrom)]
+      .slice(0, 2)
+      .map((i) => ({ ...i, examples: i.examples.slice(0, 1), moreSelectors: [] })),
     groupCounts: {
       must: report.groups[0].issues.length,
       should: report.groups[1].issues.length,

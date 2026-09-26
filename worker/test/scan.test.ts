@@ -53,6 +53,13 @@ describe("scanSite", () => {
 
     const contact = raw.pages.find((p) => p.url.endsWith("/contact.html"))!;
     expect(contact.violations.map((v) => v.id).sort()).toEqual(["link-name", "select-name"]);
+
+    // Elements inside an embedded frame carry the host of the frame's page,
+    // so the report can tell the owner's code from someone else's.
+    const services = raw.pages.find((p) => p.url.endsWith("/services.html"))!;
+    const embedded = services.violations.find((v) => v.id === "button-name")!;
+    expect(embedded.nodes[0]).toMatchObject({ target: ["iframe", "button"], frameHost: "localhost" });
+    expect(home.violations.flatMap((v) => v.nodes).every((n) => n.frameHost === undefined)).toBe(true);
     expect(raw.engine.userAgent).toContain("LegibleBot/1.0");
   });
 

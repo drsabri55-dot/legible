@@ -18,7 +18,9 @@ export function serveFixture(port = Number(process.argv[2] || 5055)) {
     const file = path.join(root, url.pathname === "/" ? "index.html" : path.normalize(url.pathname));
     if (!file.startsWith(root)) return res.writeHead(403).end();
     try {
-      const body = await readFile(file);
+      let body = await readFile(file);
+      // Pages embed content from "another site" (localhost) on the same port.
+      if (file.endsWith(".html")) body = Buffer.from(body.toString("utf8").replaceAll("__PORT__", String(port)));
       res.writeHead(200, { "content-type": types[path.extname(file)] || "application/octet-stream" }).end(body);
     } catch {
       res.writeHead(404, { "content-type": "text/html" }).end("<!doctype html><title>Not found</title><h1>Not found</h1>");

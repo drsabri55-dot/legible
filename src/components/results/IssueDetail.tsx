@@ -69,9 +69,13 @@ export function IssueDetail({ issue, headingLevel = 3 }: { issue: Issue; heading
       {example && !example.fixed && (
         <>
           <div className="mt-[22px]">
-            <Code label="Your code" code={example.html} tone="bad" />
+            <Code
+              label={example.embeddedFrom ? `Code from ${example.embeddedFrom}` : "Your code"}
+              code={example.html}
+              tone="bad"
+            />
           </div>
-          {issue.genericBefore && (
+          {issue.genericBefore && !example.embeddedFrom && (
             <div className="mt-[14px] grid gap-[14px] md:grid-cols-2">
               <Code label="General example: before" code={issue.genericBefore} tone="bad" />
               <Code label="General example: after" code={issue.genericAfter} tone="good" />

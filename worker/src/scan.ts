@@ -1,6 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import axeCore from "axe-core";
-import { chromium, type Browser, type BrowserContext, type Page } from "playwright";
+import { chromium, type Browser, type BrowserContext, type Frame, type Page } from "playwright";
 import { allowPrivateTargets, classifyHost, makeHostGuard } from "./net";
 import { BOT_NAME, loadRobots } from "./robots";
 import type { RawNode, RawPage, RawRule, RawScan } from "./types";
@@ -104,6 +104,43 @@ function toRawPage(url: string, title: string, axe: AxeResult): RawPage {
     passes: axe.passes.map((r) => ({ id: r.id, nodeCount: r.nodes.length })),
     inapplicable: axe.inapplicable.map((r) => r.id),
   };
+}
+
+// The host of the page loaded in the frame an element sits in. axe gives one
+// selector per frame level, so all but the last lead through the frames.
+// Returns null for frames without a web address of their own (about:blank,
+// srcdoc) or ones that cannot be found again.
+async function frameHostOf(page: Page, framePath: string[]): Promise<string | null> {
+  let frame: Frame = page.mainFrame();
+  try {
+    for (const selector of framePath) {
+      const handle = await frame.$(`css=${selector}`);
+      const inner = handle ? await handle.contentFrame() : null;
+      await handle?.dispose();
+      if (!inner) return null;
+      frame = inner;
+    }
+    const url = new URL(frame.url());
+    return url.protocol === "http:" || url.protocol === "https:" ? url.hostname : null;
+  } catch {
+    return null;
+  }
+}
+
+// Marks failing elements that sit inside frames with the frame's host, so the
+// report can tell the owner's own code from content embedded from elsewhere.
+async function addFrameHosts(page: Page, rules: RawRule[]): Promise<void> {
+  const hosts = new Map<string, string | null>();
+  for (const rule of rules) {
+    for (const node of rule.nodes) {
+      if (node.target.length < 2) continue;
+      const framePath = node.target.slice(0, -1);
+      const key = framePath.join("\u0000");
+      if (!hosts.has(key)) hosts.set(key, await frameHostOf(page, framePath));
+      const host = hosts.get(key);
+      if (host) node.frameHost = host;
+    }
+  }
 }
 
 const SKIP_EXTENSIONS = /\.(pdf|jpe?g|png|gif|webp|svg|zip|docx?|xlsx?|pptx?|mp4|mp3|mov|avi|ics|csv|xml|rss|json)$/i;
@@ -236,7 +273,9 @@ async function scanPage(context: BrowserContext, url: string, first: boolean) {
           .analyze();
         const finalUrl = page.url();
         const links = first ? await collectLinks(page, new URL(finalUrl)) : [];
-        return { raw: toRawPage(finalUrl, heading, axe), links, finalUrl };
+        const raw = toRawPage(finalUrl, heading, axe);
+        await addFrameHosts(page, raw.violations);
+        return { raw, links, finalUrl };
       })(),
       PAGE_TIMEOUT_MS + 5000,
       "timeout",

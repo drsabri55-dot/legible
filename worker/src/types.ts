@@ -11,6 +11,9 @@ export interface RawNode {
   // axe-core check data, kept for colour contrast (fgColor, bgColor,
   // contrastRatio, expectedContrastRatio, fontSize, fontWeight).
   data?: Record<string, unknown> | null;
+  // For an element inside a frame (target has more than one selector): the
+  // host of the page loaded in that frame, such as www.youtube.com.
+  frameHost?: string;
 }
 
 export interface RawRule {

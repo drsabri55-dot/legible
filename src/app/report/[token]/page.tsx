@@ -48,7 +48,8 @@ function Pill({ impact }: { impact: Impact }) {
 function Summary({ r }: { r: Report }) {
   const must = r.groups[0].issues.length;
   const pagesWord = r.pagesScanned === 1 ? "page" : "pages";
-  const start = r.issues.slice(0, 5);
+  // Issues in content embedded from other sites are not the owner's to fix.
+  const start = r.issues.filter((i) => !i.embeddedFrom).slice(0, 5);
   return (
     <section className="rp-section rp-break" aria-labelledby="summary">
       <p className="rp-kicker">Summary</p>
@@ -114,6 +115,12 @@ function Summary({ r }: { r: Report }) {
           Each issue shows code from your site and a corrected version. Text in [square brackets] is for you to write,
           such as a description of an image. Give these pages to whoever builds your site.
         </li>
+        {r.issues.some((i) => i.examples.some((ex) => ex.embeddedFrom)) && (
+          <li>
+            Code from content embedded from another site, such as a video player, is labelled with that site&apos;s name.
+            It has no corrected version, because only that site can change it.
+          </li>
+        )}
       </ul>
     </section>
   );
@@ -170,7 +177,7 @@ function IssueBlock({ issue, n }: { issue: Issue; n: string }) {
               {issue.instances} {issue.instances === 1 ? "element" : "elements"} on {issue.pages.length}{" "}
               {issue.pages.length === 1 ? "page" : "pages"}
             </span>
-            <span>{EFFORT_LABEL[issue.effort]}</span>
+            <span>{issue.embeddedFrom ? `In content from ${issue.embeddedFrom}` : EFFORT_LABEL[issue.effort]}</span>
           </p>
         </div>
       </header>
@@ -210,7 +217,7 @@ function IssueBlock({ issue, n }: { issue: Issue; n: string }) {
           </p>
           <div className={ex.fixed ? "rp-code-pair" : "rp-code-pair rp-single"}>
             <figure>
-              <figcaption>Your code</figcaption>
+              <figcaption>{ex.embeddedFrom ? `Code from ${ex.embeddedFrom}` : "Your code"}</figcaption>
               <pre>
                 <code>{ex.html}</code>
               </pre>
@@ -230,7 +237,7 @@ function IssueBlock({ issue, n }: { issue: Issue; n: string }) {
         </div>
       ))}
 
-      {issue.examples.some((ex) => !ex.fixed) && issue.genericBefore && (
+      {issue.examples.some((ex) => !ex.fixed && !ex.embeddedFrom) && issue.genericBefore && (
         <div className="rp-example">
           <p className="rp-where">
             <span>How the fix looks in general</span>
@@ -265,7 +272,11 @@ function IssueBlock({ issue, n }: { issue: Issue; n: string }) {
           <ul>
             {issue.moreSelectors.map((m, i) => (
               <li key={i}>
-                <code>{m.selector}</code> <span>on {m.pageUrl}</span>
+                <code>{m.selector}</code>{" "}
+                <span>
+                  on {m.pageUrl}
+                  {m.embeddedFrom && `, in content from ${m.embeddedFrom}`}
+                </span>
               </li>
             ))}
           </ul>
