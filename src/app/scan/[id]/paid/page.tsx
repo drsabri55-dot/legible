@@ -2,15 +2,24 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { after } from "next/server";
+import { cache } from "react";
 import { Kicker, SiteShell } from "@/components/site/SiteShell";
 import { getScan } from "@/lib/data";
 import { alertOwner } from "@/lib/email/send";
 import { env } from "@/lib/env";
 import { deliverReport, fulfil } from "@/lib/fulfil";
+import { privatePage } from "@/lib/page-meta";
 import { stripe } from "@/lib/stripe";
 import { siteName } from "@/lib/url";
 
-export const metadata: Metadata = { title: "Payment received", robots: { index: false, follow: false } };
+const loadScan = cache(getScan);
+
+export async function generateMetadata(props: PageProps<"/scan/[id]/paid">): Promise<Metadata> {
+  const { id } = await props.params;
+  const { session_id } = await props.searchParams;
+  const found = (await loadScan(id)) && typeof session_id === "string" && env.stripeSecretKey();
+  return privatePage(found ? "Payment received" : null);
+}
 export const maxDuration = 60;
 
 // Stripe sends the buyer here after paying. The webhook usually gets there
@@ -18,7 +27,7 @@ export const maxDuration = 60;
 export default async function PaidPage(props: PageProps<"/scan/[id]/paid">) {
   const { id } = await props.params;
   const { session_id } = await props.searchParams;
-  const scan = await getScan(id);
+  const scan = await loadScan(id);
   if (!scan || typeof session_id !== "string" || !env.stripeSecretKey()) notFound();
 
   let token: string | null = null;
@@ -85,7 +94,9 @@ export default async function PaidPage(props: PageProps<"/scan/[id]/paid">) {
         </>
       )}
       <p className="mt-8 text-[14px]">
-        <Link href="/account">Go to your reports</Link>
+        <Link href="/account" className="inline-flex min-h-6 items-center">
+          Go to your reports
+        </Link>
       </p>
     </SiteShell>
   );

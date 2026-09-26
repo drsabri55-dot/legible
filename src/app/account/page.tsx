@@ -48,7 +48,9 @@ export default async function AccountPage(props: PageProps<"/account">) {
             There are no reports for this address yet. Reports appear here after you buy one from a free scan result.
           </p>
           <p className="mt-4">
-            <Link href="/">Start a free scan</Link>
+            <Link href="/" className="inline-flex min-h-6 items-center">
+              Start a free scan
+            </Link>
           </p>
         </div>
       ) : (
@@ -62,10 +64,10 @@ export default async function AccountPage(props: PageProps<"/account">) {
                 </p>
               </div>
               <div className="flex gap-5 text-[14px]">
-                <Link href={`/report/${r.token}`}>
+                <Link href={`/report/${r.token}`} className="inline-flex min-h-6 items-center">
                   Open report<span className="sr-only"> for {siteName(r.host)}</span>
                 </Link>
-                <a href={`/report/${r.token}/pdf`}>
+                <a href={`/report/${r.token}/pdf`} className="inline-flex min-h-6 items-center">
                   PDF<span className="sr-only"> for {siteName(r.host)}</span>
                 </a>
               </div>
@@ -79,12 +81,12 @@ export default async function AccountPage(props: PageProps<"/account">) {
           Email preferences
         </h2>
         <form action={savePreferences} className="mt-4 flex flex-wrap items-center gap-4">
-          <label className="flex items-center gap-3 text-[14.5px] text-nc-neutral-200">
+          <label className="flex min-h-6 items-center gap-3 text-[14.5px] text-nc-neutral-200">
             <input
               type="checkbox"
               name="marketing"
               defaultChecked={user?.marketing_emails ?? true}
-              className="h-4 w-4 accent-[var(--color-accent-500)]"
+              className="h-[18px] w-[18px] accent-[var(--color-accent-500)]"
             />
             Send me occasional offers, such as monthly monitoring
           </label>
@@ -106,7 +108,11 @@ export default async function AccountPage(props: PageProps<"/account">) {
             Sign out
           </button>
         </form>
-        {isAdmin && <Link href="/admin">Owner dashboard</Link>}
+        {isAdmin && (
+          <Link href="/admin" className="inline-flex min-h-6 items-center">
+            Owner dashboard
+          </Link>
+        )}
       </div>
     </SiteShell>
   );

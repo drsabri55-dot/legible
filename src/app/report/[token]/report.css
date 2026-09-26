@@ -33,6 +33,7 @@
 .rp-brand {
   display: flex;
   align-items: center;
+  min-height: 24px;
   gap: 10px;
   color: var(--color-text);
   text-decoration: none;
@@ -350,6 +351,9 @@
   font-weight: 500;
 }
 .rp-start a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
   font-weight: 500;
   text-decoration: none;
   color: var(--rp-ink);

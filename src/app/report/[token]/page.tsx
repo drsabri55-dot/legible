@@ -1,14 +1,22 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { cache } from "react";
 import { getReportByToken } from "@/lib/data";
+import { privatePage } from "@/lib/page-meta";
 import { buildReport, type Issue, type Report } from "@/lib/report/model";
 import type { Effort, Impact } from "@/lib/rules/catalogue";
 import { understandingUrl } from "@/lib/rules/wcag";
 import { reasonText } from "@/lib/report/reasons";
 import "./report.css";
 
-export const metadata: Metadata = { title: "Accessibility report", robots: { index: false, follow: false } };
+// One database read per request, shared by the metadata and the page.
+const loadReport = cache(getReportByToken);
+
+export async function generateMetadata(props: PageProps<"/report/[token]">): Promise<Metadata> {
+  const { token } = await props.params;
+  return privatePage((await loadReport(token)) ? "Accessibility report" : null);
+}
 
 const IMPACT_LABEL: Record<Impact, string> = {
   critical: "Critical",
@@ -409,7 +417,7 @@ function Limitations({ r }: { r: Report }) {
 export default async function ReportPage(props: PageProps<"/report/[token]">) {
   const { token } = await props.params;
   const sp = await props.searchParams;
-  const row = await getReportByToken(token);
+  const row = await loadReport(token);
   if (!row) notFound();
   const r = buildReport(row.raw);
   const print = sp.print === "1";

@@ -3,10 +3,19 @@ import { notFound } from "next/navigation";
 import { Kicker, SiteShell } from "@/components/site/SiteShell";
 import { recentFailures, stats } from "@/lib/data";
 import { env } from "@/lib/env";
+import { privatePage } from "@/lib/page-meta";
 import { formatUsd } from "@/lib/pricing";
 import { getSessionEmail } from "@/lib/session";
 
-export const metadata: Metadata = { title: "Owner dashboard", robots: { index: false, follow: false } };
+async function isAdmin(): Promise<boolean> {
+  const email = await getSessionEmail();
+  return !!email && env.adminEmails().includes(email);
+}
+
+// Everyone else sees an ordinary "Page not found", title included.
+export async function generateMetadata(): Promise<Metadata> {
+  return privatePage((await isAdmin()) ? "Owner dashboard" : null);
+}
 
 function pct(a: number, b: number): string {
   return b ? `${((100 * a) / b).toFixed(1)}%` : "–";
@@ -14,8 +23,7 @@ function pct(a: number, b: number): string {
 
 // The one metric that matters (brief §13): paid reports ÷ free scans.
 export default async function AdminPage() {
-  const email = await getSessionEmail();
-  if (!email || !env.adminEmails().includes(email)) notFound();
+  if (!(await isAdmin())) notFound();
   const [rows, failures] = await Promise.all([stats(), recentFailures()]);
 
   return (
@@ -26,8 +34,12 @@ export default async function AdminPage() {
         Conversion is paid reports divided by free scans started. Under 3 in 100 means the result page is not
         convincing enough: change the sales page, not the scanner.
       </p>
-      <div className="mt-8 overflow-x-auto">
+      {/* Scrolls sideways on phones, so it takes keyboard focus and has a name. */}
+      <div className="mt-8 overflow-x-auto" tabIndex={0} role="region" aria-labelledby="funnel-caption">
         <table className="w-full min-w-[640px] border-collapse text-[14px]">
+          <caption id="funnel-caption" className="sr-only">
+            Scans, sales and conversion by period
+          </caption>
           <thead>
             <tr className="text-left text-[11px] uppercase tracking-[0.14em] text-nc-neutral-400">
               {["Period", "Scans", "Completed", "Failed", "Paid", "Conversion", "Revenue", "Leads", "Monitoring"].map((h) => (
@@ -64,7 +76,9 @@ export default async function AdminPage() {
         <ul className="mt-4 list-none space-y-2 p-0 text-[14px]">
           {failures.map((f) => (
             <li key={f.id} className="flex flex-wrap gap-x-4 text-nc-neutral-300">
-              <a href={`/scan/${f.id}`}>{f.host}</a>
+              <a href={`/scan/${f.id}`} className="inline-flex min-h-6 items-center">
+                {f.host}
+              </a>
               <span className="text-nc-neutral-400">{f.error}</span>
               <span className="text-nc-neutral-500">{new Date(f.created_at).toUTCString()}</span>
             </li>

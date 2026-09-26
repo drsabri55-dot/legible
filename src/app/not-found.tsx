@@ -10,7 +10,9 @@ export default function NotFound() {
         The link may be mistyped or out of date. Report links stay valid, so check the address in your email.
       </p>
       <p className="mt-6">
-        <Link href="/">Go to the home page</Link>
+        <Link href="/" className="inline-flex min-h-6 items-center">
+          Go to the home page
+        </Link>
       </p>
     </SiteShell>
   );

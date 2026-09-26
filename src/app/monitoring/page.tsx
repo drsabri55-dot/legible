@@ -1,15 +1,22 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { cache } from "react";
 import { Kicker, SiteShell } from "@/components/site/SiteShell";
 import { getReportByToken, requestMonitoring } from "@/lib/data";
 import { alertOwner } from "@/lib/email/send";
 import { env } from "@/lib/env";
+import { privatePage } from "@/lib/page-meta";
 import { MONITORING_PRICE } from "@/lib/pricing";
 import { siteName } from "@/lib/url";
 import { redirect } from "next/navigation";
 
-export const metadata: Metadata = { title: "Monthly monitoring", robots: { index: false, follow: false } };
+const loadReport = cache(getReportByToken);
+
+export async function generateMetadata(props: PageProps<"/monitoring">): Promise<Metadata> {
+  const { r } = await props.searchParams;
+  return privatePage((await loadReport(typeof r === "string" ? r : "")) ? "Monthly monitoring" : null);
+}
 
 async function join(form: FormData) {
   "use server";
@@ -32,7 +39,7 @@ async function join(form: FormData) {
 export default async function MonitoringPage(props: PageProps<"/monitoring">) {
   const sp = await props.searchParams;
   const token = typeof sp.r === "string" ? sp.r : "";
-  const report = await getReportByToken(token);
+  const report = await loadReport(token);
   if (!report) notFound();
 
   return (
@@ -46,7 +53,9 @@ export default async function MonitoringPage(props: PageProps<"/monitoring">) {
             agree to it.
           </p>
           <p className="mt-6 text-[14px]">
-            <Link href={`/report/${token}`}>Back to your report</Link>
+            <Link href={`/report/${token}`} className="inline-flex min-h-6 items-center">
+              Back to your report
+            </Link>
           </p>
         </>
       ) : (

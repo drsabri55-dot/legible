@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { cache } from "react";
 import { notFound } from "next/navigation";
 import { ScanForm } from "@/components/ScanForm";
 import { CheckoutButton } from "@/components/results/CheckoutButton";
@@ -10,12 +11,19 @@ import { ScoreRing } from "@/components/results/ScoreRing";
 import { SeverityBars } from "@/components/results/SeverityBars";
 import { Kicker, SiteShell } from "@/components/site/SiteShell";
 import { getReportByScanId, getScan } from "@/lib/data";
+import { privatePage } from "@/lib/page-meta";
 import { formatUsd, reportPriceCents } from "@/lib/pricing";
 import { reasonCode, reasonText } from "@/lib/report/reasons";
 import { failureMessage } from "@/lib/scans";
 import { siteName } from "@/lib/url";
 
-export const metadata: Metadata = { title: "Your free result", robots: { index: false, follow: false } };
+// One database read per request, shared by the metadata and the page.
+const loadScan = cache(getScan);
+
+export async function generateMetadata(props: PageProps<"/scan/[id]">): Promise<Metadata> {
+  const { id } = await props.params;
+  return privatePage((await loadScan(id)) ? "Your free result" : null);
+}
 
 function Locked({ count }: { count: number }) {
   // Placeholder shapes only. The real issues are never sent to the browser
@@ -43,7 +51,7 @@ function Locked({ count }: { count: number }) {
 
 export default async function ScanPage(props: PageProps<"/scan/[id]">) {
   const { id } = await props.params;
-  const scan = await getScan(id);
+  const scan = await loadScan(id);
   if (!scan) notFound();
 
   if (scan.status === "queued" || scan.status === "running") {

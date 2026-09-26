@@ -1,5 +1,9 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { privatePage } from "@/lib/page-meta";
 import { renderEmail, TEMPLATES } from "@/lib/email/render";
+
+export const metadata: Metadata = privatePage(process.env.NODE_ENV === "production" ? null : "Email templates");
 
 // Development only: every email template with sample values.
 const SAMPLE = {

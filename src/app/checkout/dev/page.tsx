@@ -1,12 +1,20 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
+import { cache } from "react";
 import { Kicker, SiteShell } from "@/components/site/SiteShell";
 import { getReportByScanId, getScan } from "@/lib/data";
 import { env } from "@/lib/env";
 import { deliverReport, fulfil } from "@/lib/fulfil";
+import { privatePage } from "@/lib/page-meta";
 import { formatUsd, reportPriceCents } from "@/lib/pricing";
 
-export const metadata: Metadata = { title: "Test checkout", robots: { index: false, follow: false } };
+const loadScan = cache(getScan);
+
+export async function generateMetadata(props: PageProps<"/checkout/dev">): Promise<Metadata> {
+  const { scan } = await props.searchParams;
+  const found = env.fakePayments() && (await loadScan(typeof scan === "string" ? scan : ""))?.status === "complete";
+  return privatePage(found ? "Test checkout" : null);
+}
 
 async function pay(form: FormData) {
   "use server";
@@ -30,7 +38,7 @@ async function pay(form: FormData) {
 export default async function DevCheckout(props: PageProps<"/checkout/dev">) {
   if (!env.fakePayments()) notFound();
   const sp = await props.searchParams;
-  const scan = await getScan(typeof sp.scan === "string" ? sp.scan : "");
+  const scan = await loadScan(typeof sp.scan === "string" ? sp.scan : "");
   if (!scan || scan.status !== "complete") notFound();
   if (await getReportByScanId(scan.id)) redirect(`/scan/${scan.id}`);
 
