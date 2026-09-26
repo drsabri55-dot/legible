@@ -93,9 +93,38 @@ describe("completeSnippet", () => {
   });
 });
 
-describe("CSS fixes name the element, not its whole ancestry", () => {
-  it("uses the last step of a long selector", () => {
-    const fix = suggestFix("link-in-text-block", { html: "<a href='/x'>x</a>", target: ["main > div.content > p:nth-child(3) > a.more"] });
-    expect(fix?.code).toBe("a.more {\n  text-decoration: underline;\n}");
+describe("CSS fixes change only the failing element", () => {
+  const contrast = { fgColor: "#41545d", bgColor: "#a9b8bf", contrastRatio: 3.88, expectedContrastRatio: "4.5:1" };
+
+  it("uses the element's full selector, not a bare tag that would restyle the whole site", () => {
+    const target = ['tr:nth-child(2) > td[bgcolor="#A9B8BF"] > font[color="#41545D"] > b'];
+    const fix = suggestFix("color-contrast", { html: "<b>Free Penguins</b>", target, data: contrast });
+    expect(fix?.code).toMatch(/^tr:nth-child\(2\) > td\[bgcolor="#A9B8BF"\] > font\[color="#41545D"\] > b \{\n  color: #[0-9a-f]{6};/);
+    const link = suggestFix("link-in-text-block", { html: "<a href='/x'>x</a>", target: ["main > div.content > p:nth-child(3) > a.more"] });
+    expect(link?.code).toBe("main > div.content > p:nth-child(3) > a.more {\n  text-decoration: underline;\n}");
+  });
+
+  it("writes the rule for the frame the element is in", () => {
+    const fix = suggestFix("link-in-text-block", { html: "<a href='/x'>x</a>", target: ["#map", "p > a.more"] });
+    expect(fix?.code).toBe("p > a.more {\n  text-decoration: underline;\n}");
+  });
+
+  it("changes an inline colour where it is set, because a stylesheet rule would not override it", () => {
+    const fix = suggestFix("color-contrast", {
+      html: '<span class="tag" style="font-weight: bold; color: #41545d">New</span>',
+      target: [".tag"],
+      data: contrast,
+    });
+    expect(fix?.code).toMatch(/^<span class="tag" style="font-weight: bold; color: #[0-9a-f]{6}">New<\/span>$/);
+    expect(fix?.code).not.toContain("#41545d");
+  });
+
+  it("leaves an inline background colour alone", () => {
+    const fix = suggestFix("color-contrast", {
+      html: '<span class="tag" style="background-color: #a9b8bf">New</span>',
+      target: [".tag"],
+      data: contrast,
+    });
+    expect(fix?.code).toMatch(/^\.tag \{\n  color: #[0-9a-f]{6}; \/\* was #41545d \*\/\n\}$/);
   });
 });

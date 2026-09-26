@@ -107,13 +107,16 @@ function withLabel(html: string): SuggestedFix | null {
   };
 }
 
-// The element's own step of its selector: "a > b > .price" gives ".price".
-function lastStep(target: string[] | undefined, fallback: string): string {
-  const last = target?.[target.length - 1];
-  if (!last) return fallback;
-  const steps = last.split(" > ");
-  return steps[steps.length - 1];
+// The element's selector inside its own document (the last frame level). axe
+// builds it as the shortest selector that matches only this element, so a
+// rule written against it changes the failing element and nothing else. Its
+// last step alone ("b") could restyle every bold word on the site.
+function ownSelector(target: string[] | undefined, fallback: string): string {
+  return target?.[target.length - 1] || fallback;
 }
+
+// A color declaration in a style attribute, not background-color.
+const INLINE_COLOR = /(^|;)(\s*)color\s*:[^;]*/i;
 
 function contrastFix(node: NodeData): SuggestedFix | null {
   const d = node.data || {};
@@ -126,11 +129,16 @@ function contrastFix(node: NodeData): SuggestedFix | null {
   if (!next) return null;
   const before = contrastRatio(fg, bg);
   const after = contrastRatio(next, bg);
-  const selector = lastStep(node.target, "selector");
-  return {
-    code: `${selector} {\n  color: ${toHex(next)}; /* was ${toHex(fg)} */\n}`,
-    note: `The text is ${toHex(fg)} on ${toHex(bg)}, a ratio of ${formatRatio(before)}. This needs at least ${formatRatio(expected)}. ${toHex(next)} gives ${formatRatio(after)} and stays close to the original colour. Changing the background works too.`,
-  };
+  const note = `The text is ${toHex(fg)} on ${toHex(bg)}, a ratio of ${formatRatio(before)}. This needs at least ${formatRatio(expected)}. ${toHex(next)} gives ${formatRatio(after)} and stays close to the original colour. Changing the background works too.`;
+  // A colour set in the element's style attribute beats any stylesheet rule,
+  // so it has to change where it is written.
+  const style = getAttr(node.html, "style");
+  if (style !== null && INLINE_COLOR.test(style)) {
+    const code = setAttr(node.html, "style", style.replace(INLINE_COLOR, `$1$2color: ${toHex(next)}`));
+    if (code) return { code, note };
+  }
+  const selector = ownSelector(node.target, "selector");
+  return { code: `${selector} {\n  color: ${toHex(next)}; /* was ${toHex(fg)} */\n}`, note };
 }
 
 function viewportFix(html: string): SuggestedFix | null {
@@ -242,7 +250,7 @@ export function suggestFix(ruleId: string, node: NodeData): SuggestedFix | null 
     case "color-contrast":
       return contrastFix(node);
     case "link-in-text-block": {
-      const selector = lastStep(node.target, "a");
+      const selector = ownSelector(node.target, "a");
       return { code: `${selector} {\n  text-decoration: underline;\n}` };
     }
     case "no-autoplay-audio": {
