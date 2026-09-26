@@ -67,6 +67,28 @@ describe("suggestFix", () => {
     expect(fix?.note).toContain("a ratio of 2.81:1");
   });
 
+  it("names the placeholder after the element's role, not its tag", () => {
+    const html = '<button type="button" role="combobox" aria-expanded="false">…</button>';
+    expect(suggestFix("button-name", { html })?.code).toBe(
+      '<button type="button" role="combobox" aria-expanded="false" aria-label="[Field name]">…</button>',
+    );
+    expect(suggestFix("button-name", { html: '<button role="switch">…</button>' })?.code).toBe(
+      '<button role="switch" aria-label="[What it switches]">…</button>',
+    );
+    expect(suggestFix("button-name", { html: "<button>…</button>" })?.code).toBe('<button aria-label="[What the button does]">…</button>');
+  });
+
+  it("replaces common made-up autocomplete values with the standard ones", () => {
+    const fix = (value: string) =>
+      suggestFix("autocomplete-valid", { html: `<input type="text" name="x" autocomplete="${value}">` })?.code;
+    expect(fix("firstName")).toBe('<input type="text" name="x" autocomplete="given-name">');
+    expect(fix("last_name")).toBe('<input type="text" name="x" autocomplete="family-name">');
+    expect(fix("phone")).toBe('<input type="text" name="x" autocomplete="tel">');
+    expect(fix("zip")).toBe('<input type="text" name="x" autocomplete="postal-code">');
+    expect(fix("nope")).toBe('<input type="text" name="x" autocomplete="off">');
+    expect(fix("shipping favourite-colour")).toBeUndefined();
+  });
+
   it("returns null when it cannot help", () => {
     expect(suggestFix("nested-interactive", { html: "<button><a href='/'>x</a></button>" })).toBeNull();
     expect(suggestFix("color-contrast", { html: "<p>x</p>", data: null })).toBeNull();
@@ -117,6 +139,18 @@ describe("CSS fixes change only the failing element", () => {
     });
     expect(fix?.code).toMatch(/^<span class="tag" style="font-weight: bold; color: #[0-9a-f]{6}">New<\/span>$/);
     expect(fix?.code).not.toContain("#41545d");
+  });
+
+  it("says so when light text has to become dark, and offers a darker background instead", () => {
+    const fix = suggestFix("color-contrast", {
+      html: '<a href="/more">Learn More</a>',
+      target: ['a[href$="more"]'],
+      data: { fgColor: "#ffffff", bgColor: "#36b3a8", contrastRatio: 2.57, expectedContrastRatio: "4.5:1" },
+    });
+    expect(fix?.note).not.toContain("stays close to the original colour");
+    expect(fix?.note).toMatch(/^The text is #ffffff on #36b3a8, a ratio of 2\.57:1\. This needs at least 4\.5:1\. No lighter text colour reaches that on this background, so this uses dark text: #[0-9a-f]{6} gives [\d.]+:1\. To keep the text #ffffff, darken the background to #[0-9a-f]{6} instead\.$/);
+    const bg = /background to (#[0-9a-f]{6})/.exec(fix!.note!)![1];
+    expect(contrastRatio([255, 255, 255], parseHex(bg)!)).toBeGreaterThanOrEqual(4.5);
   });
 
   it("leaves an inline background colour alone", () => {

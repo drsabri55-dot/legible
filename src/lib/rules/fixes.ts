@@ -3,7 +3,7 @@
 // write, such as what an image shows. When a fix cannot be worked out safely,
 // return null and the report falls back to the generic example.
 
-import { contrastRatio, formatRatio, parseHex, suggestForeground, toHex } from "./contrast";
+import { contrastRatio, formatRatio, luminance, parseHex, suggestForeground, toHex } from "./contrast";
 
 export interface NodeData {
   html: string;
@@ -129,7 +129,16 @@ function contrastFix(node: NodeData): SuggestedFix | null {
   if (!next) return null;
   const before = contrastRatio(fg, bg);
   const after = contrastRatio(next, bg);
-  const note = `The text is ${toHex(fg)} on ${toHex(bg)}, a ratio of ${formatRatio(before)}. This needs at least ${formatRatio(expected)}. ${toHex(next)} gives ${formatRatio(after)} and stays close to the original colour. Changing the background works too.`;
+  const start = `The text is ${toHex(fg)} on ${toHex(bg)}, a ratio of ${formatRatio(before)}. This needs at least ${formatRatio(expected)}.`;
+  // When only the opposite kind of colour passes (light text on a mid-tone
+  // background that needs dark text), the suggestion is no longer close to
+  // the original, so the note says so and gives the background that would
+  // keep the original text colour.
+  const flipped = luminance(fg) > luminance(bg) !== luminance(next) > luminance(bg);
+  const newBg = flipped ? suggestForeground(bg, fg, expected + 0.05) : null;
+  const note = flipped
+    ? `${start} No ${luminance(fg) > luminance(bg) ? "lighter" : "darker"} text colour reaches that on this background, so this uses ${luminance(next) > luminance(bg) ? "light" : "dark"} text: ${toHex(next)} gives ${formatRatio(after)}.${newBg ? ` To keep the text ${toHex(fg)}, ${luminance(newBg) < luminance(bg) ? "darken" : "lighten"} the background to ${toHex(newBg)} instead.` : ""}`
+    : `${start} ${toHex(next)} gives ${formatRatio(after)} and stays close to the original colour. Changing the background works too.`;
   // A colour set in the element's style attribute beats any stylesheet rule,
   // so it has to change where it is written.
   const style = getAttr(node.html, "style");
@@ -152,6 +161,67 @@ function viewportFix(html: string): SuggestedFix | null {
   return code ? { code } : null;
 }
 
+// Made-up autocomplete values seen on real sites, keyed by their letters and
+// digits only ("first_name" and "firstName" are both "firstname"), and the
+// standard token browsers understand.
+const AUTOCOMPLETE: Record<string, string> = {
+  firstname: "given-name",
+  forename: "given-name",
+  fname: "given-name",
+  givenname: "given-name",
+  middlename: "additional-name",
+  lastname: "family-name",
+  surname: "family-name",
+  lname: "family-name",
+  familyname: "family-name",
+  fullname: "name",
+  yourname: "name",
+  mail: "email",
+  emailaddress: "email",
+  phone: "tel",
+  telephone: "tel",
+  phonenumber: "tel",
+  mobile: "tel",
+  mobilenumber: "tel",
+  zip: "postal-code",
+  zipcode: "postal-code",
+  postcode: "postal-code",
+  postalcode: "postal-code",
+  address: "street-address",
+  address1: "address-line1",
+  addressline1: "address-line1",
+  address2: "address-line2",
+  addressline2: "address-line2",
+  city: "address-level2",
+  town: "address-level2",
+  state: "address-level1",
+  county: "address-level1",
+  province: "address-level1",
+  company: "organization",
+  companyname: "organization",
+  jobtitle: "organization-title",
+  birthday: "bday",
+  dob: "bday",
+  dateofbirth: "bday",
+  website: "url",
+  password: "current-password",
+  // Values invented to stop autofill; "off" is the one browsers know.
+  nope: "off",
+  none: "off",
+  false: "off",
+  disabled: "off",
+  disable: "off",
+  no: "off",
+};
+
+function autocompleteFix(html: string): SuggestedFix | null {
+  const value = getAttr(html, "autocomplete");
+  if (!value || /\s/.test(value.trim())) return null;
+  const token = AUTOCOMPLETE[value.toLowerCase().replace(/[^a-z0-9]/g, "")];
+  const code = token ? setAttr(html, "autocomplete", token) : null;
+  return code ? { code } : null;
+}
+
 const LABEL_BY_RULE: Record<string, string> = {
   "aria-command-name": "[What it does]",
   "aria-toggle-field-name": "[What it switches]",
@@ -164,6 +234,21 @@ const LABEL_BY_RULE: Record<string, string> = {
   "object-alt": "[Describe the content]",
   "link-name": "[Where the link goes]",
   "button-name": "[What the button does]",
+};
+
+// An element whose role makes it something else (a <button> acting as a
+// drop-down, say) needs a name that fits that role.
+const LABEL_BY_ROLE: Record<string, string> = {
+  combobox: "[Field name]",
+  listbox: "[Field name]",
+  textbox: "[Field name]",
+  searchbox: "[Field name]",
+  switch: "[What it switches]",
+  checkbox: "[What it switches]",
+  radio: "[Option name]",
+  tab: "[Tab name]",
+  link: "[Where the link goes]",
+  menuitem: "[What it does]",
 };
 
 export function suggestFix(ruleId: string, node: NodeData): SuggestedFix | null {
@@ -199,7 +284,8 @@ export function suggestFix(ruleId: string, node: NodeData): SuggestedFix | null 
           ? "Visible text inside the element is even better, because everyone can see it."
           : undefined;
       if (ruleId === "role-img-alt" && tag === "img") return wrap(setAttr(html, "alt", "[Describe the image]"));
-      return wrap(setAttr(html, "aria-label", LABEL_BY_RULE[ruleId]), note);
+      const role = getAttr(html, "role")?.trim().split(/\s+/)[0].toLowerCase() ?? "";
+      return wrap(setAttr(html, "aria-label", LABEL_BY_ROLE[role] ?? LABEL_BY_RULE[ruleId]), note);
     }
     case "label":
     case "select-name":
@@ -243,6 +329,8 @@ export function suggestFix(ruleId: string, node: NodeData): SuggestedFix | null 
     }
     case "meta-viewport":
       return viewportFix(html);
+    case "autocomplete-valid":
+      return autocompleteFix(html);
     case "meta-refresh":
       return {
         code: "<!-- Remove this tag. If the page has moved, redirect on the server with HTTP 301. -->",
