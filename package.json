@@ -16,7 +16,8 @@
     "format": "prettier --write .",
     "test": "vitest run",
     "test:e2e": "playwright test",
-    "qa": "tsx scripts/qa-scan.mts"
+    "qa": "tsx scripts/qa-scan.mts",
+    "report-preview": "tsx --conditions=react-server --env-file=.env.local scripts/report-preview.mts"
   },
   "dependencies": {
     "ipaddr.js": "^2.5.0",
