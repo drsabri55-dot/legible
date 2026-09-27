@@ -6,6 +6,7 @@ import { getReportByScanId, getScan } from "@/lib/data";
 import { env } from "@/lib/env";
 import { deliverReport, fulfil } from "@/lib/fulfil";
 import { privatePage } from "@/lib/page-meta";
+import { reportForSale } from "@/lib/report/model";
 import { formatUsd, reportPriceCents } from "@/lib/pricing";
 
 const loadScan = cache(getScan);
@@ -21,6 +22,7 @@ async function pay(form: FormData) {
   if (!env.fakePayments()) notFound();
   const scanId = String(form.get("scan") || "");
   const email = String(form.get("email") || "").trim().toLowerCase();
+  if (!reportForSale((await getScan(scanId))?.summary ?? null)) redirect(`/scan/${scanId}`);
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) redirect(`/checkout/dev?scan=${scanId}&bad=1`);
   const { report, created } = await fulfil({
     scanId,
@@ -40,7 +42,7 @@ export default async function DevCheckout(props: PageProps<"/checkout/dev">) {
   const sp = await props.searchParams;
   const scan = await loadScan(typeof sp.scan === "string" ? sp.scan : "");
   if (!scan || scan.status !== "complete") notFound();
-  if (await getReportByScanId(scan.id)) redirect(`/scan/${scan.id}`);
+  if (!reportForSale(scan.summary) || (await getReportByScanId(scan.id))) redirect(`/scan/${scan.id}`);
 
   return (
     <SiteShell width="narrow">

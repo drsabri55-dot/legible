@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildReport, displaySelector, freeSummary, scoreFrom, siteKey } from "@/lib/report/model";
+import { buildReport, displaySelector, freeSummary, reportForSale, scoreFrom, siteKey } from "@/lib/report/model";
 import { page, rawScan, rule, sampleScan } from "./fixture";
 
 describe("scoreFrom", () => {
@@ -72,6 +72,19 @@ describe("freeSummary", () => {
     expect(s.samples[0].examples).toHaveLength(1);
     expect(s.issueTypes).toBe(3);
     expect(s.groupCounts).toEqual({ must: 1, should: 1, nice: 1 });
+    expect(reportForSale(s)).toBe(true);
+  });
+
+  it("offers no report when nothing failed, and lists the checks that need a person", () => {
+    const clean = freeSummary(
+      buildReport(
+        rawScan([page("https://x.example/", [], ["html-has-lang"], { incomplete: [rule("video-caption", "critical", ["<video>"])] })]),
+      ),
+    );
+    expect(clean.totalIssues).toBe(0);
+    expect(clean.needsReview).toEqual([{ ruleId: "video-caption", title: "Videos have no captions", instances: 1 }]);
+    expect(reportForSale(clean)).toBe(false);
+    expect(reportForSale(null)).toBe(false);
   });
 });
 

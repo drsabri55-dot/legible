@@ -347,6 +347,14 @@ export interface FreeSummary {
   pages: PageSummary[];
   samples: Issue[];
   groupCounts: Record<IssueGroup, number>;
+  // Missing from summaries stored before it was added.
+  needsReview?: Report["needsReview"];
+}
+
+// A scan with no failures has no report to sell: it would only repeat the
+// free result.
+export function reportForSale(summary: FreeSummary | null): boolean {
+  return !!summary && summary.totalIssues > 0;
 }
 
 export function freeSummary(report: Report): FreeSummary {
@@ -368,5 +376,6 @@ export function freeSummary(report: Report): FreeSummary {
       should: report.groups[1].issues.length,
       nice: report.groups[2].issues.length,
     },
+    needsReview: report.needsReview,
   };
 }

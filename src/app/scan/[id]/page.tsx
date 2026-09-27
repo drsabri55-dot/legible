@@ -12,6 +12,7 @@ import { SeverityBars } from "@/components/results/SeverityBars";
 import { Kicker, SiteShell } from "@/components/site/SiteShell";
 import { getReportByScanId, getScan } from "@/lib/data";
 import { privatePage } from "@/lib/page-meta";
+import { reportForSale } from "@/lib/report/model";
 import { formatUsd, reportPriceCents } from "@/lib/pricing";
 import { reasonCode, reasonText } from "@/lib/report/reasons";
 import { failureMessage } from "@/lib/scans";
@@ -63,7 +64,9 @@ export default async function ScanPage(props: PageProps<"/scan/[id]">) {
     return (
       <SiteShell>
         <Kicker>Scanning</Kicker>
-        <h1 className="mt-6 mb-0 text-[clamp(30px,4vw,48px)] leading-[1.1] tracking-[-0.025em] break-words">{siteName(scan.host)}</h1>
+        <h1 className="mt-6 mb-0 text-[clamp(30px,4vw,48px)] leading-[1.1] tracking-[-0.025em] break-words">
+          {siteName(scan.host)}
+        </h1>
         <div className="mt-8">
           <ScanProgress
             scanId={scan.id}
@@ -79,7 +82,9 @@ export default async function ScanPage(props: PageProps<"/scan/[id]">) {
     return (
       <SiteShell>
         <Kicker>Scan stopped</Kicker>
-        <h1 className="mt-6 mb-0 text-[clamp(30px,4vw,48px)] leading-[1.1] tracking-[-0.025em] break-words">{siteName(scan.host)}</h1>
+        <h1 className="mt-6 mb-0 text-[clamp(30px,4vw,48px)] leading-[1.1] tracking-[-0.025em] break-words">
+          {siteName(scan.host)}
+        </h1>
         <p className="mt-6 max-w-[48ch] text-[16px] leading-[1.8] text-nc-neutral-300" role="alert">
           {failureMessage(scan.error)}
         </p>
@@ -91,6 +96,8 @@ export default async function ScanPage(props: PageProps<"/scan/[id]">) {
   }
 
   const s = scan.summary;
+  const clean = s.totalIssues === 0;
+  const review = s.needsReview ?? [];
   const price = formatUsd(reportPriceCents());
   const hidden = Math.max(0, s.issueTypes - s.samples.length);
   const report = await getReportByScanId(scan.id);
@@ -129,25 +136,59 @@ export default async function ScanPage(props: PageProps<"/scan/[id]">) {
             {s.totalIssues}
           </span>
           <span className="text-[clamp(15px,1.3vw,19px)] font-normal text-nc-neutral-300">
-            {s.totalIssues === 1 ? "failure" : "failures"}, in {s.issueTypes} {s.issueTypes === 1 ? "kind" : "kinds"} of issue
+            {clean
+              ? "failures found"
+              : `${s.totalIssues === 1 ? "failure" : "failures"}, in ${s.issueTypes} ${s.issueTypes === 1 ? "kind" : "kinds"} of issue`}
           </span>
         </h2>
-        <div className="mt-8">
-          <SeverityBars counts={s.counts} />
-        </div>
-        <p className="mt-6 text-[14px] text-nc-neutral-400">
-          Kinds of issue by group: must fix {s.groupCounts.must}, should fix {s.groupCounts.should}, nice to have{" "}
-          {s.groupCounts.nice}
-        </p>
+        {!clean && (
+          <>
+            <div className="mt-8">
+              <SeverityBars counts={s.counts} />
+            </div>
+            <p className="mt-6 text-[14px] text-nc-neutral-400">
+              Kinds of issue by group: must fix {s.groupCounts.must}, should fix {s.groupCounts.should}, nice to have{" "}
+              {s.groupCounts.nice}
+            </p>
+          </>
+        )}
       </section>
 
-      {s.totalIssues === 0 ? (
-        <section className="mt-14 max-w-[52ch]">
-          <h2 className="m-0 text-[24px] tracking-[-0.02em]">No failures found by the automated checks</h2>
+      {clean ? (
+        <section aria-labelledby="clean" className="mt-14 max-w-[56ch]">
+          <h2 id="clean" className="m-0 text-[24px] tracking-[-0.02em]">
+            No failures found by the automated checks
+          </h2>
           <p className="mt-4 text-[15px] leading-[1.8] text-nc-neutral-300">
-            That is a good sign. Automated testing cannot check everything, such as whether image descriptions are
-            accurate or whether the site works with a keyboard alone, so a manual review is still worth doing.
+            That is a good sign. There is no report to buy, because it would only repeat this page.
           </p>
+          <p className="mt-4 text-[15px] leading-[1.8] text-nc-neutral-300">
+            Automated testing cannot check everything, such as whether image descriptions are accurate or whether the
+            site works with a keyboard alone. A manual review is still worth doing.
+          </p>
+          {review.length > 0 && (
+            <>
+              <h3 className="mt-10 mb-0 text-[18px] font-normal tracking-[-0.01em]">Checks that need a person</h3>
+              <p className="mt-3 text-[14px] leading-[1.8] text-nc-neutral-400">
+                The scanner found these possible problems but could not confirm them on its own, for example text over a
+                background image. They are not counted as failures or in the score. Ask whoever reviews the site to look
+                at them.
+              </p>
+              <ul className="mt-4 mb-0 list-none space-y-[8px] p-0 text-[14.5px] leading-[1.6] text-nc-neutral-200">
+                {review.map((n) => (
+                  <li key={n.ruleId} className="flex gap-3">
+                    <span aria-hidden="true" className="mt-[11px] block h-px w-[18px] shrink-0 bg-nc-accent-500" />
+                    <span>
+                      {n.title}:{" "}
+                      <span className="text-nc-neutral-400">
+                        {n.instances} {n.instances === 1 ? "element" : "elements"} to check
+                      </span>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
         </section>
       ) : (
         <section aria-labelledby="samples" className="mt-16">
@@ -166,43 +207,51 @@ export default async function ScanPage(props: PageProps<"/scan/[id]">) {
         </section>
       )}
 
-      <section aria-labelledby="full" className="mt-10 rounded-[14px] border border-nc-accent-700 bg-nc-accent-900/40 p-[clamp(20px,3vw,32px)]">
-        {report ? (
-          <>
-            <h2 id="full" className="m-0 text-[22px] tracking-[-0.02em]">
-              The full report for this scan has been bought
-            </h2>
-            <p className="mt-3 mb-0 text-[14.5px] leading-[1.8] text-nc-neutral-300">
-              It was emailed to the buyer. If that is you, <Link href="/account">sign in to your account</Link> to open it.
-            </p>
-          </>
-        ) : (
-          <>
-            <h2 id="full" className="m-0 text-[clamp(22px,2.4vw,28px)] tracking-[-0.02em]">
-              {hidden > 0
-                ? `${hidden} more ${hidden === 1 ? "issue" : "issues"} in the full report`
-                : "Get the full report"}
-            </h2>
-            <ul className="mt-5 mb-0 grid list-none gap-3 p-0 text-[14.5px] leading-[1.7] text-nc-neutral-200 sm:grid-cols-2">
-              {[
-                "Every failure, with the element, the page and corrected code",
-                "Sorted into must fix, should fix and nice to have",
-                "A plain-English summary you can forward to your team",
-                "A PDF and a link you can share, dated for your records",
-              ].map((line) => (
-                <li key={line} className="flex gap-3">
-                  <span aria-hidden="true" className="mt-[11px] block h-px w-[18px] shrink-0 bg-nc-accent-500" />
-                  {line}
-                </li>
-              ))}
-            </ul>
-            <div className="mt-7 flex flex-wrap items-center gap-x-6 gap-y-3">
-              <CheckoutButton scanId={scan.id} label={`Get the full report · ${price}`} />
-              <p className="m-0 self-start pt-[10px] text-[13px] text-nc-neutral-400">One-time payment. No subscription.</p>
-            </div>
-          </>
-        )}
-      </section>
+      {(report || reportForSale(s)) && (
+        <section
+          aria-labelledby="full"
+          className="mt-10 rounded-[14px] border border-nc-accent-700 bg-nc-accent-900/40 p-[clamp(20px,3vw,32px)]"
+        >
+          {report ? (
+            <>
+              <h2 id="full" className="m-0 text-[22px] tracking-[-0.02em]">
+                The full report for this scan has been bought
+              </h2>
+              <p className="mt-3 mb-0 text-[14.5px] leading-[1.8] text-nc-neutral-300">
+                It was emailed to the buyer. If that is you, <Link href="/account">sign in to your account</Link> to
+                open it.
+              </p>
+            </>
+          ) : (
+            <>
+              <h2 id="full" className="m-0 text-[clamp(22px,2.4vw,28px)] tracking-[-0.02em]">
+                {hidden > 0
+                  ? `${hidden} more ${hidden === 1 ? "issue" : "issues"} in the full report`
+                  : "Get the full report"}
+              </h2>
+              <ul className="mt-5 mb-0 grid list-none gap-3 p-0 text-[14.5px] leading-[1.7] text-nc-neutral-200 sm:grid-cols-2">
+                {[
+                  "Every failure, with the element, the page and corrected code",
+                  "Sorted into must fix, should fix and nice to have",
+                  "A plain-English summary you can forward to your team",
+                  "A PDF and a link you can share, dated for your records",
+                ].map((line) => (
+                  <li key={line} className="flex gap-3">
+                    <span aria-hidden="true" className="mt-[11px] block h-px w-[18px] shrink-0 bg-nc-accent-500" />
+                    {line}
+                  </li>
+                ))}
+              </ul>
+              <div className="mt-7 flex flex-wrap items-center gap-x-6 gap-y-3">
+                <CheckoutButton scanId={scan.id} label={`Get the full report · ${price}`} />
+                <p className="m-0 self-start pt-[10px] text-[13px] text-nc-neutral-400">
+                  One-time payment. No subscription.
+                </p>
+              </div>
+            </>
+          )}
+        </section>
+      )}
 
       <section className="mt-12 grid gap-10 md:grid-cols-2">
         <div>

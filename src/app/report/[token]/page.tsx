@@ -326,16 +326,16 @@ function Review({ r }: { r: Report }) {
       <p className="rp-kicker">Needs a human check</p>
       <h2 id="review">Checks we could not finish automatically</h2>
       <p>
-        For these checks the scanner found something it could not judge on its own, for example text over a background
-        image, where the contrast depends on the image. They are not counted as failures or in the score. Ask whoever
-        reviews the site to look at them.
+        The scanner found these possible problems but could not confirm them on its own, for example text over a
+        background image, where the contrast depends on the image. They are not counted as failures or in the score.
+        Ask whoever reviews the site to look at them.
       </p>
       <table className="rp-table">
         <thead>
           <tr>
-            <th scope="col">Check</th>
+            <th scope="col">Possible problem</th>
             <th scope="col" className="rp-num">
-              Elements
+              Elements to check
             </th>
           </tr>
         </thead>

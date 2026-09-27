@@ -2,6 +2,7 @@ import { getReportByScanId, getScan } from "@/lib/data";
 import { env } from "@/lib/env";
 import { json, sameOrigin } from "@/lib/http";
 import { reportPriceCents } from "@/lib/pricing";
+import { reportForSale } from "@/lib/report/model";
 import { PRODUCT_NAME, stripe } from "@/lib/stripe";
 import { siteName } from "@/lib/url";
 
@@ -12,6 +13,9 @@ export async function POST(req: Request) {
   const scanId = typeof body?.scanId === "string" ? body.scanId : "";
   const scan = await getScan(scanId);
   if (!scan || scan.status !== "complete") return json({ error: "This scan is not ready yet." }, 404);
+  if (!reportForSale(scan.summary)) {
+    return json({ error: "No failures were found, so there is no report to buy." }, 409);
+  }
   if (await getReportByScanId(scan.id)) {
     return json({ error: "The report for this scan has already been bought. Sign in to your account to open it." }, 409);
   }
