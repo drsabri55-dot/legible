@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { ImageResponse } from "next/og";
+import { OgLogo } from "@/lib/og-logo";
 
 // The picture shown when a Legible link is shared (LinkedIn, WhatsApp, Slack,
 // X). Built once at build time from the Nocturne colours and the moon plate.
@@ -33,21 +34,8 @@ export default async function Image() {
           height={540}
           style={{ position: "absolute", right: -140, top: 45, opacity: 0.55, borderRadius: 9999 }}
         />
-        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-          <div
-            style={{
-              width: 30,
-              height: 30,
-              borderRadius: 9,
-              border: "2px solid #796cbf",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <div style={{ width: 10, height: 10, borderRadius: 5, background: "#b5abfc" }} />
-          </div>
-          <div style={{ fontSize: 30, letterSpacing: -0.5 }}>Legible</div>
+        <div style={{ display: "flex" }}>
+          <OgLogo height={52} />
         </div>
         <div style={{ display: "flex", flexDirection: "column", maxWidth: 700 }}>
           <div style={{ fontSize: 64, lineHeight: 1.08, letterSpacing: -2 }}>

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { cache } from "react";
+import { Logo } from "@/components/site/Logo";
 import { getReportByToken } from "@/lib/data";
 import { privatePage } from "@/lib/page-meta";
 import { buildReport, type Issue, type Report } from "@/lib/report/model";
@@ -40,14 +41,6 @@ function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
 }
 
-
-function Mark() {
-  return (
-    <span className="rp-mark" aria-hidden="true">
-      <span />
-    </span>
-  );
-}
 
 function Pill({ impact }: { impact: Impact }) {
   return <span className={`rp-pill rp-${impact}`}>{IMPACT_LABEL[impact]}</span>;
@@ -431,8 +424,7 @@ export default async function ReportPage(props: PageProps<"/report/[token]">) {
       {!print && (
         <div className="rp-toolbar" role="region" aria-label="Report actions">
           <Link href="/" className="rp-brand" aria-label="Legible, home">
-            <Mark />
-            <span>Legible</span>
+            <Logo />
           </Link>
           <div className="rp-actions">
             <Link href="/account">
@@ -456,8 +448,7 @@ export default async function ReportPage(props: PageProps<"/report/[token]">) {
         <section className="rp-cover" aria-labelledby="cover-title">
           <div className="rp-cover-top">
             <span className="rp-cover-brand">
-              <Mark />
-              Legible
+              <Logo />
             </span>
             <span className="rp-cover-id">Report {reportId}</span>
           </div>

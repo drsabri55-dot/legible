@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ScanForm } from "@/components/ScanForm";
 import { ScanShortcut } from "@/components/landing/ScanShortcut";
 import { StoryEngineMount } from "@/components/landing/StoryEngineMount";
+import { Logo } from "@/components/site/Logo";
 import { formatUsd, reportPriceCents } from "@/lib/pricing";
 import { AA_LINE, SCORE, SEVERITY } from "@/lib/story/engine";
 import s from "./landing.module.css";
@@ -80,10 +81,7 @@ export default function Home() {
         <div className={s.content}>
           <header data-a="hdr" className={s.header}>
             <Link href="/" className={s.brand} aria-label="Legible, home">
-              <span className={s.brandMark} aria-hidden="true">
-                <span className={s.brandDot} />
-              </span>
-              <span className={s.brandName}>Legible</span>
+              <Logo />
             </Link>
             <span className={s.headerEnd}>
               <ScanShortcut className={s.shortcut} />
