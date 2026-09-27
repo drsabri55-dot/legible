@@ -34,6 +34,39 @@ describe("suggestFix", () => {
     expect(suggestFix("label", { html: '<input type="email">' })?.code).toContain("<label>");
   });
 
+  it("uses a placeholder that names the field as the label text", () => {
+    const wrapped = suggestFix("label", { html: '<input type="email" name="email" placeholder="Email">' });
+    expect(wrapped?.code).toBe('<label>\n  Email\n  <input type="email" name="email" placeholder="Email">\n</label>');
+    expect(wrapped?.note).toContain("placeholder");
+    expect(suggestFix("label", { html: '<input id="q" placeholder="Search products…">' })?.code).toBe(
+      '<label for="q">Search products</label>\n<input id="q" placeholder="Search products…">',
+    );
+    expect(suggestFix("label", { html: '<input placeholder="Your name *">' })?.code).toContain("\n  Your name\n");
+    expect(suggestFix("label", { html: '<input placeholder="Address line 1">' })?.code).toContain("\n  Address line 1\n");
+    expect(suggestFix("label", { html: '<input placeholder="Fish &amp; chips">' })?.code).toContain("\n  Fish &amp; chips\n");
+  });
+
+  it("keeps [Field name] when the placeholder is an example value, not a name", () => {
+    for (const placeholder of ["jane@example.com", "e.g. Jane Smith", "Eg: London", "DD/MM/YYYY", "07700 900123", "0.00", "https://", "…", ""]) {
+      const fix = suggestFix("label", { html: `<input placeholder="${placeholder}">` });
+      expect(fix?.code, placeholder).toContain("[Field name]");
+      expect(fix?.note, placeholder).not.toContain("placeholder");
+    }
+    const long = "Tell us a little about what you would like us to do for you";
+    expect(suggestFix("label", { html: `<input placeholder="${long}">` })?.code).toContain("[Field name]");
+  });
+
+  it("uses the placeholder for fields named with aria-label too", () => {
+    expect(suggestFix("aria-input-field-name", { html: '<div role="searchbox" aria-placeholder="Search recipes" contenteditable="">' })?.code).toBe(
+      '<div role="searchbox" aria-placeholder="Search recipes" contenteditable="" aria-label="Search recipes">',
+    );
+    expect(suggestFix("button-name", { html: '<button role="combobox" placeholder="Choose a size">…</button>' })?.code).toBe(
+      '<button role="combobox" placeholder="Choose a size" aria-label="Choose a size">…</button>',
+    );
+    // A button's name is what it does, never a placeholder.
+    expect(suggestFix("button-name", { html: '<button placeholder="Search">…</button>' })?.code).toContain("[What the button does]");
+  });
+
   it("sets the page language", () => {
     expect(suggestFix("html-has-lang", { html: "<html>" })?.code).toBe('<html lang="en">');
   });

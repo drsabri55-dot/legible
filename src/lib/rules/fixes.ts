@@ -95,15 +95,55 @@ export function removeAttr(html: string, name: string): string | null {
   return m[1] + m[2].replace(attrPattern(name), "") + m[3] + html.slice(m[0].length);
 }
 
+function decodeEntities(value: string): string {
+  return value
+    .replace(/&quot;/g, '"')
+    .replace(/&#0*39;|&apos;/g, "'")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&");
+}
+
+function escapeText(value: string): string {
+  return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+const DATE_PART = "(?:d{1,2}|m{1,2}|y{2,4}|h{1,2}|s{2})";
+const DATE_FORMAT = new RegExp(`^${DATE_PART}(?:[/.:\\s-]+${DATE_PART})+$`, "i");
+
+// A placeholder that names the field ("Your name", "Email") is the owner's
+// own wording, so it makes a better label than "[Field name]". One that shows
+// an example value ("jane@example.com", "e.g. Jane Smith", "DD/MM/YYYY",
+// "07700 900123") does not name anything, so the owner still writes the label.
+export function placeholderName(html: string): string | null {
+  const raw = getAttr(html, "placeholder") ?? getAttr(html, "aria-placeholder");
+  if (!raw) return null;
+  const text = decodeEntities(raw)
+    .replace(/\s+/g, " ")
+    .replace(/[\s.…:*]+$/u, "")
+    .trim();
+  if (!text || text.length > 40 || !/\p{L}{2}/u.test(text)) return null;
+  if (/@|:\/\/|www\./i.test(text) || /^(?:e\.?\s?g|ex|for example|example)\b/i.test(text)) return null;
+  if (DATE_FORMAT.test(text)) return null;
+  if ((text.match(/\d/g) ?? []).length > text.length / 3) return null;
+  return text;
+}
+
+const FROM_PLACEHOLDER = "The label repeats the field's placeholder text, which disappears as soon as someone starts typing.";
+
 function withLabel(html: string): SuggestedFix | null {
+  const named = placeholderName(html);
+  const text = named ? escapeText(named) : "[Field name]";
   const id = getAttr(html, "id");
   if (id) {
-    return { code: `<label for="${escapeAttr(id)}">[Field name]</label>\n${html}` };
+    return { code: `<label for="${escapeAttr(id)}">${text}</label>\n${html}`, note: named ? FROM_PLACEHOLDER : undefined };
   }
   if (!openingTag(html)) return null;
+  const wrapping = "Wrapping the field in its label connects the two. A label with a for attribute that matches the field's id works too.";
   return {
-    code: `<label>\n  [Field name]\n  ${html}\n</label>`,
-    note: "Wrapping the field in its label connects the two. A label with a for attribute that matches the field's id works too.",
+    code: `<label>\n  ${text}\n  ${html}\n</label>`,
+    note: named ? `${FROM_PLACEHOLDER} ${wrapping}` : wrapping,
   };
 }
 
@@ -285,7 +325,10 @@ export function suggestFix(ruleId: string, node: NodeData): SuggestedFix | null 
           : undefined;
       if (ruleId === "role-img-alt" && tag === "img") return wrap(setAttr(html, "alt", "[Describe the image]"));
       const role = getAttr(html, "role")?.trim().split(/\s+/)[0].toLowerCase() ?? "";
-      return wrap(setAttr(html, "aria-label", LABEL_BY_ROLE[role] ?? LABEL_BY_RULE[ruleId]), note);
+      const label = LABEL_BY_ROLE[role] ?? LABEL_BY_RULE[ruleId];
+      // A field's placeholder can name it; a button's name says what it does.
+      const named = label === "[Field name]" ? placeholderName(html) : null;
+      return wrap(setAttr(html, "aria-label", named ?? label), note);
     }
     case "label":
     case "select-name":
