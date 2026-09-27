@@ -21,6 +21,8 @@ type Ctx = CanvasRenderingContext2D;
 
 // How long the ambient drift keeps running after the reader stops.
 const AMBIENT_MS = 10_000;
+// Widths below this (CSS pixels) get the phone layout in landing.module.css.
+const PHONE_MAX = 641;
 
 const HUES = [265, 263, 268, 260, 265]; // Aurora
 const GND = {
@@ -514,6 +516,9 @@ export class StoryEngine {
     const H = cv.height;
     const dpr = this.dpr;
     const hues = HUES;
+    // Phones draw half of the small stars and dust flecks: the sky looks as
+    // full on the smaller screen, and each frame costs less battery.
+    const thin = W / dpr < PHONE_MAX;
     if (!this.reduced) this.amb += (this.dt || 1) * 0.0167;
     const amb = this.amb;
     const t = pd * 5.5 + amb * 0.2;
@@ -556,7 +561,9 @@ export class StoryEngine {
     // Starfield: polar advance away from the heading, streaked by speed.
     const maxR = Math.hypot(W, H) * 0.82;
     ctx.lineCap = "round";
-    for (const s of this.stars) {
+    for (let i = 0; i < this.stars.length; i++) {
+      const s = this.stars[i];
+      if (thin && i % 2 && !s.big) continue;
       const adv = (((s.r0 + pd * 1.15 * s.sp + amb * 0.009 * s.sp) % 1) + 1) % 1;
       const rad = Math.pow(adv, 2.1) * maxR;
       const ca = Math.cos(s.a);
@@ -763,6 +770,7 @@ export class StoryEngine {
     // Regolith dust: flecks blowing past as you come in low.
     const land = cl((pd - 0.58) / 0.3);
     this.nodes.forEach((n, i) => {
+      if (thin && i % 2 && !n.big) return;
       let x = (n.x - pd * (0.9 + 2.4 * n.d) * n.sp - amb * 0.018 * n.sp) % 1;
       let y = (n.y + Math.sin(t * 0.5 + n.ph) * 0.01) % 1;
       if (x < 0) x += 1;
