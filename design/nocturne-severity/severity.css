@@ -1,0 +1,19 @@
+/* Severity — proposed addition to Nocturne (Legible upgrade 8, waiting to be
+   pushed to the design system with /design-sync). Nocturne has no red or
+   amber, so these soft tints mark accessibility-issue severity and nothing
+   else. Two sets: on the night ground (site, report screen) and on paper
+   (the printed report). Every value is text-safe: at least 4.5:1 against
+   its ground, measured against #161826 and #ffffff. */
+:root {
+  /* On the night ground */
+  --color-critical: #e28b84; /* 6.93:1 on --color-bg */
+  --color-serious: #e0b07a; /* 8.94:1 */
+  --color-moderate: #b5abfc; /* = --color-accent-400, 8.55:1 */
+  --color-minor: #9397ab; /* = --color-neutral-500, 6.08:1 */
+
+  /* On paper */
+  --color-critical-ink: #a8322b; /* 6.65:1 on white */
+  --color-serious-ink: #86561a; /* 6.25:1 */
+  --color-moderate-ink: #5d5294; /* = --color-accent-700, 6.77:1 */
+  --color-minor-ink: #595d6c; /* = --color-neutral-700, 6.55:1 */
+}

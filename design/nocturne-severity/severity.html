@@ -1,0 +1,37 @@
+<!-- @dsCard group="Colors" -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Severity</title>
+<link rel="stylesheet" href="../styles.css">
+<link rel="stylesheet" href="severity.css">
+<style>
+  body { margin: 0; font-family: Inter, system-ui, sans-serif; }
+  .grounds { display: grid; grid-template-columns: 1fr 1fr; }
+  .ground { padding: 24px; display: flex; flex-direction: column; gap: 12px; }
+  .night { background: var(--color-bg, #161826); color: var(--color-text, #e9e9ed); }
+  .paper { background: #fff; color: #1f2130; }
+  .row { display: flex; align-items: center; gap: 12px; font-size: 13px; }
+  .pill { display: inline-flex; align-items: center; gap: 6px; padding: 2px 10px; border: 1px solid currentColor; border-radius: 999px; font-size: 12px; }
+  .pill::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+  code { font-size: 11px; opacity: 0.7; }
+</style>
+</head>
+<body>
+<div class="grounds">
+  <div class="ground night">
+    <div class="row"><span class="pill" style="color: var(--color-critical)">Critical</span><code>--color-critical</code></div>
+    <div class="row"><span class="pill" style="color: var(--color-serious)">Serious</span><code>--color-serious</code></div>
+    <div class="row"><span class="pill" style="color: var(--color-moderate)">Moderate</span><code>--color-moderate</code></div>
+    <div class="row"><span class="pill" style="color: var(--color-minor)">Minor</span><code>--color-minor</code></div>
+  </div>
+  <div class="ground paper">
+    <div class="row"><span class="pill" style="color: var(--color-critical-ink)">Critical</span><code>--color-critical-ink</code></div>
+    <div class="row"><span class="pill" style="color: var(--color-serious-ink)">Serious</span><code>--color-serious-ink</code></div>
+    <div class="row"><span class="pill" style="color: var(--color-moderate-ink)">Moderate</span><code>--color-moderate-ink</code></div>
+    <div class="row"><span class="pill" style="color: var(--color-minor-ink)">Minor</span><code>--color-minor-ink</code></div>
+  </div>
+</div>
+</body>
+</html>
