@@ -23,6 +23,13 @@ type Ctx = CanvasRenderingContext2D;
 const AMBIENT_MS = 10_000;
 // Widths below this (CSS pixels) get the phone layout in landing.module.css.
 const PHONE_MAX = 641;
+// Brightness above the design's values, asked for by the owner (30 Sept):
+// the moon's lit face, the starfield and the sky's ground. The luminance
+// ceiling behind large type still applies, and the type scrim still deepens
+// with the lit area, so the text keeps its contrast.
+const MOON_LIGHT = 1.18;
+const STAR_LIGHT = 1.15;
+const SKY_LIGHT = 1.13;
 
 const HUES = [265, 263, 268, 260, 265]; // Aurora
 const GND = {
@@ -572,7 +579,7 @@ export class StoryEngine {
       const y = vpy + sa * rad;
       if (x < -60 || x > W + 60 || y < -60 || y > H + 60) continue;
       const near = Math.pow(adv, 1.4);
-      const a = cl(adv * 7) * (0.18 + 0.82 * near);
+      const a = Math.min(1, cl(adv * 7) * (0.18 + 0.82 * near) * STAR_LIGHT);
       const w = (0.45 + near * 1.5) * s.r * dpr;
       const len = Math.min(rad * 0.5, (1.5 + vel * 72 * s.sp) * dpr * (0.35 + near));
       if (len > 3 * dpr) {
@@ -629,9 +636,9 @@ export class StoryEngine {
     const tex = this.moonTex;
     if (tex) {
       ctx.drawImage(tex, mx - mR, my - mR, mR * 2, mR * 2);
-      const b = 1 - 0.56 * dim;
+      const b = MOON_LIGHT * (1 - 0.56 * dim);
       const sv = (k: number, bl: number) => {
-        const l = k * b * 255;
+        const l = Math.min(255, k * b * 255);
         return (
           "rgb(" +
           Math.round(l * (1 - bl * 0.07)) +
@@ -828,7 +835,7 @@ export class StoryEngine {
     for (const s of this.sky) {
       const y = s.y * hz * 0.94;
       const x = s.x * W;
-      ctx.fillStyle = "rgba(240,242,255," + (s.a * 0.62).toFixed(3) + ")";
+      ctx.fillStyle = "rgba(240,242,255," + Math.min(1, s.a * 0.62 * STAR_LIGHT).toFixed(3) + ")";
       ctx.beginPath();
       ctx.arc(x, y, s.r * dpr * 0.7, 0, 6.2832);
       ctx.fill();
@@ -1011,7 +1018,7 @@ export class StoryEngine {
       if (rec.k !== key) {
         rec.k = key;
         const st = [0, 1, 2].map((s) => {
-          const l = GND.L[a][s] + (GND.L[bx][s] - GND.L[a][s]) * tt;
+          const l = (GND.L[a][s] + (GND.L[bx][s] - GND.L[a][s]) * tt) * SKY_LIGHT;
           const c = GND.C[a][s] + (GND.C[bx][s] - GND.C[a][s]) * tt;
           const h0 = GND.H[a][s];
           let h1 = GND.H[bx][s];

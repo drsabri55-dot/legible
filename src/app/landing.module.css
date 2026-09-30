@@ -97,7 +97,8 @@
 .base {
   position: absolute;
   inset: 0;
-  background: linear-gradient(176deg, oklch(0.128 0.022 266) 0%, oklch(0.1 0.016 264) 46%, oklch(0.074 0.01 262) 100%);
+  /* The engine's first ground stop (GND in engine.ts, times SKY_LIGHT). */
+  background: linear-gradient(176deg, oklch(0.145 0.022 266) 0%, oklch(0.113 0.016 264) 46%, oklch(0.084 0.01 262) 100%);
 }
 .canvas {
   position: absolute;
@@ -220,7 +221,7 @@
   pointer-events: none;
   /* Near-opaque over the header's own 64px, then gone by 28px below it. The
      colour is the sky's own, so over empty sky the band is invisible. */
-  background: linear-gradient(180deg, rgba(9, 10, 18, 0.97) 0%, rgba(9, 10, 18, 0.94) 68%, rgba(9, 10, 18, 0) 100%);
+  background: linear-gradient(180deg, rgba(11, 12, 21, 0.97) 0%, rgba(11, 12, 21, 0.94) 68%, rgba(11, 12, 21, 0) 100%);
 }
 .brand {
   display: flex;
@@ -759,6 +760,10 @@
   /* The moon is larger by chapter 4. */
   .w4 {
     max-width: 46vw;
+  }
+  /* Chapter 5's bars would run their numbers onto the lit moon. */
+  .bars {
+    max-width: 50vw;
   }
 }
 

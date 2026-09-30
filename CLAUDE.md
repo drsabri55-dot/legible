@@ -35,7 +35,8 @@ Three processes: the Next.js site (Vercel), the scan worker (`worker/`, Railway 
 - **Report wording:** `src/lib/rules/catalogue.ts` (a test fails if any axe WCAG A/AA rule lacks an entry), auto-corrected code in
   `src/lib/rules/fixes.ts`. Emails: `emails/*.html`, first line `<!-- subject: … -->`, `{{var}}` escaped; no Resend key → `.data/outbox/`.
 - **Landing page:** `src/app/page.tsx` renders every value in its final state; `src/lib/story/engine.ts` (port of the design's DCLogic,
-  keyed on `data-a` attributes) rewinds and animates it. Keep its maths identical to `design/Legible Nocturne v2.dc.html`.
+  keyed on `data-a` attributes) rewinds and animates it. Keep its maths identical to `design/Legible Nocturne v2.dc.html`,
+  apart from the owner-approved brightness constants (`MOON_LIGHT`, `STAR_LIGHT`, `SKY_LIGHT`) and phone thinning (`PHONE_MAX`).
 - **Styles:** Nocturne tokens on `:root` in `globals.css`, exposed to Tailwind as `nc-*`; base and component classes live in `@layer`
   so utilities win. Landing uses `landing.module.css`; the report uses `report.css` (`rp-` classes, A4 print and `@page` rules).
 

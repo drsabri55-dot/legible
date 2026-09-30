@@ -83,6 +83,7 @@ test.describe("landing page text over the moon", () => {
   for (const [width, height] of [
     [320, 800],
     [768, 1024],
+    [1024, 768],
     [1440, 900],
   ]) {
     test(`keeps its contrast at ${width}px wide`, async ({ page }) => {
