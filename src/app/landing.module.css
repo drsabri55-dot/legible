@@ -98,7 +98,7 @@
   position: absolute;
   inset: 0;
   /* The engine's first ground stop (GND in engine.ts, times SKY_LIGHT). */
-  background: linear-gradient(176deg, oklch(0.145 0.022 266) 0%, oklch(0.113 0.016 264) 46%, oklch(0.084 0.01 262) 100%);
+  background: linear-gradient(176deg, oklch(0.218 0.022 266) 0%, oklch(0.17 0.016 264) 46%, oklch(0.126 0.01 262) 100%);
 }
 .canvas {
   position: absolute;
@@ -113,8 +113,8 @@
   background: radial-gradient(
     126% 98% at 62% 50%,
     rgba(6, 7, 13, 0) 22%,
-    rgba(6, 7, 13, 0.26) 66%,
-    rgba(6, 7, 13, 0.74) 100%
+    rgba(6, 7, 13, 0.14) 66%,
+    rgba(6, 7, 13, 0.4) 100%
   );
 }
 .scrim {
@@ -220,8 +220,17 @@
   right: calc(-1 * clamp(22px, 6vw, 96px));
   pointer-events: none;
   /* Near-opaque over the header's own 64px, then gone by 28px below it. The
-     colour is the sky's own, so over empty sky the band is invisible. */
-  background: linear-gradient(180deg, rgba(11, 12, 21, 0.97) 0%, rgba(11, 12, 21, 0.94) 68%, rgba(11, 12, 21, 0) 100%);
+     colour is the sky's own (--sky-top, set by the story engine as the sky
+     changes by chapter), so over empty sky the band is invisible. */
+  /* On phones the sky is under a full-width ink (--band-ink), so the band
+     mixes in the same amount. */
+  --band: color-mix(in oklab, var(--sky-top, oklch(0.218 0.022 266)), rgb(6 7 13) var(--band-ink, 0%));
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklab, var(--band) 97%, transparent) 0%,
+    color-mix(in oklab, var(--band) 94%, transparent) 68%,
+    transparent 100%
+  );
 }
 .brand {
   display: flex;

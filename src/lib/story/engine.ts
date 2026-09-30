@@ -24,12 +24,20 @@ const AMBIENT_MS = 10_000;
 // Widths below this (CSS pixels) get the phone layout in landing.module.css.
 const PHONE_MAX = 641;
 // Brightness above the design's values, asked for by the owner (30 Sept):
-// the moon's lit face, the starfield and the sky's ground. The luminance
-// ceiling behind large type still applies, and the type scrim still deepens
-// with the lit area, so the text keeps its contrast.
-const MOON_LIGHT = 1.18;
-const STAR_LIGHT = 1.15;
-const SKY_LIGHT = 1.13;
+// the moon, the starfield and the sky's ground. The luminance ceiling behind
+// large type still applies and the type scrim still deepens with the lit
+// area; the e2e test "landing page text over the moon" measures every text
+// box at 320 to 1440px, so raise these only with that test passing.
+const MOON_LIGHT = 1.5;
+const STAR_LIGHT = 1.7;
+const SKY_LIGHT = 1.7;
+// The moon photo's own brightness: drawn once more on top, additively, at
+// this strength minus one (x1.25 = +25%, clipped at white).
+const MOON_TEX_GAIN = 1.25;
+// How much the moon darkens as it fills the frame (the design used 0.56).
+const MOON_SHADE = 0.32;
+// Phones: the ink under full-width text (the design used 0.78).
+const PHONE_INK = 0.72;
 
 const HUES = [265, 263, 268, 260, 265]; // Aurora
 const GND = {
@@ -87,6 +95,7 @@ export class StoryEngine {
   private gt = 0;
   private ht = 0;
   private amb = 0;
+  private bandVals: Record<string, string> = {};
   private pp: number | null = null;
   private vel = 0;
   private mrn = 0;
@@ -180,6 +189,17 @@ export class StoryEngine {
   };
 
   // ── helpers ───────────────────────────────────────────────────────
+
+  // The header's fade band follows the sky. Set on the header only, and only
+  // when a value changes: a custom property changed on the page root every
+  // frame restyles the whole page every frame.
+  private setBand(name: string, value: string): void {
+    if (this.bandVals[name] === value) return;
+    const hdr = this.q("hdr");
+    if (!hdr) return;
+    this.bandVals[name] = value;
+    hdr.style.setProperty(name, value);
+  }
 
   private q(n: string): HTMLElement | null {
     const hit = this.cache.get(n);
@@ -636,7 +656,13 @@ export class StoryEngine {
     const tex = this.moonTex;
     if (tex) {
       ctx.drawImage(tex, mx - mR, my - mR, mR * 2, mR * 2);
-      const b = MOON_LIGHT * (1 - 0.56 * dim);
+      if (MOON_TEX_GAIN > 1) {
+        ctx.globalCompositeOperation = "lighter";
+        ctx.globalAlpha = MOON_TEX_GAIN - 1;
+        ctx.drawImage(tex, mx - mR, my - mR, mR * 2, mR * 2);
+        ctx.globalAlpha = 1;
+      }
+      const b = MOON_LIGHT * (1 - MOON_SHADE * dim);
       const sv = (k: number, bl: number) => {
         const l = Math.min(255, k * b * 255);
         return (
@@ -1028,6 +1054,8 @@ export class StoryEngine {
           return "oklch(" + l.toFixed(3) + " " + c.toFixed(3) + " " + h.toFixed(1) + ")";
         });
         base.style.background = "linear-gradient(176deg, " + st[0] + " 0%, " + st[1] + " 46%, " + st[2] + " 100%)";
+        // The header's fade band takes the sky's top colour.
+        this.setBand("--sky-top", st[0]);
       }
     }
 
@@ -1045,12 +1073,16 @@ export class StoryEngine {
       const need = cl((this.mrn - 0.04) / 0.08);
       const e = this.d(scrim, "d", 0.45 + 0.55 * need, r(0.12));
       scrim.style.opacity = e.toFixed(3);
+      // The header band sits above the ink, so it carries the ink too, less
+      // the share the glow layer (above the ink) gives back.
+      this.setBand("--band-ink", Math.round(e * PHONE_INK * 75) + "%");
       const rec = this.v(scrim);
       if (rec.gk !== -1) {
         rec.gk = -1;
-        scrim.style.background = "rgba(6,7,13,0.78)";
+        scrim.style.background = "rgba(6,7,13," + PHONE_INK + ")";
       }
     } else if (scrim) {
+      this.setBand("--band-ink", "0%");
       const need = cl((this.mrn - 0.2) / 0.62);
       const e = this.d(scrim, "d", 0.34 + 0.66 * need, r(0.12));
       scrim.style.opacity = e.toFixed(3);
