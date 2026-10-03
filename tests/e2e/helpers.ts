@@ -1,5 +1,5 @@
 import AxeBuilder from "@axe-core/playwright";
-import { expect, type Page } from "@playwright/test";
+import { expect, type Locator, type Page } from "@playwright/test";
 import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 
@@ -55,6 +55,28 @@ export async function waitForEmail(to: string, template: string): Promise<Outbox
 
 export function uniqueEmail(tag: string): string {
   return `${tag}-${Date.now()}-${Math.floor(Math.random() * 1e6)}@legible.test`;
+}
+
+// Contrast of a form field's border against the field's own fill. WCAG 1.4.11
+// asks 3:1 for the edge that shows where a control is. A see-through border is
+// mixed over the fill first, as the browser paints it.
+export async function borderContrast(field: Locator): Promise<number> {
+  return field.evaluate((el) => {
+    const parse = (s: string) => {
+      const n = (s.match(/[\d.]+/g) || []).map(Number);
+      // color(srgb …) gives channels from 0 to 1; rgb() and rgba() from 0 to 255.
+      const rgb = s.startsWith("color(") ? n.slice(0, 3).map((v) => v * 255) : n.slice(0, 3);
+      return { rgb, a: n.length > 3 ? n[3] : 1 };
+    };
+    const cs = getComputedStyle(el);
+    const fill = parse(cs.backgroundColor).rgb;
+    const edge = parse(cs.borderTopColor);
+    const painted = edge.rgb.map((c, i) => c * edge.a + fill[i] * (1 - edge.a));
+    const lin = (v: number) => ((v /= 255) <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4));
+    const lum = (c: number[]) => 0.2126 * lin(c[0]) + 0.7152 * lin(c[1]) + 0.0722 * lin(c[2]);
+    const [hi, lo] = [lum(painted), lum(fill)].sort((a, b) => b - a);
+    return (hi + 0.05) / (lo + 0.05);
+  });
 }
 
 // Contrast of every visible text box in <main> against what is really behind

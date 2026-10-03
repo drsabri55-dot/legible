@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { FIXTURE_URL, expectNoWcagViolations, outbox, uniqueEmail, waitForEmail } from "./helpers";
+import { FIXTURE_URL, borderContrast, expectNoWcagViolations, outbox, uniqueEmail, waitForEmail } from "./helpers";
 
 // The whole customer journey, in order: scan → free result → buy → report →
 // PDF → email → account.
@@ -34,6 +34,8 @@ test("a visitor scans a site from the landing page and sees the free result", as
 test("the visitor can email the free result to themselves", async ({ page }) => {
   const lead = uniqueEmail("lead");
   await page.goto(resultUrl);
+  // The field's edge must be easy to see, not the faint divider.
+  expect(await borderContrast(page.getByLabel("Email me this result"))).toBeGreaterThanOrEqual(3);
   await page.getByLabel("Email me this result").fill(lead);
   await page.getByRole("button", { name: "Send" }).click();
   await expect(page.getByText("Sent. Check your inbox for a copy of this result.")).toBeVisible();

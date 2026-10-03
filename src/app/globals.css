@@ -49,6 +49,11 @@
   --color-moderate: #b5abfc;
   --color-minor: #9397ab;
 
+  /* The edge of a form field. Not in Nocturne, whose fields use the divider
+     (1.6:1). neutral-600 is 3.5:1 on surface, above the 3:1 minimum. From the
+     Folio design system; owner-approved on 3 October 2026. */
+  --color-line-control: var(--color-neutral-600);
+
   --font-heading: var(--font-inter), system-ui, sans-serif;
   --font-body: var(--font-inter), system-ui, sans-serif;
 
@@ -190,11 +195,11 @@
     color: var(--color-text);
     caret-color: var(--color-accent);
     background: var(--color-surface);
-    border: 1px solid var(--color-divider);
+    border: 1px solid var(--color-line-control);
     border-radius: var(--radius-md);
   }
   .input:hover {
-    border-color: color-mix(in srgb, var(--color-text) 45%, transparent);
+    border-color: color-mix(in srgb, var(--color-text) 45%, var(--color-line-control));
   }
   .input:focus-visible {
     border-color: var(--color-accent);
