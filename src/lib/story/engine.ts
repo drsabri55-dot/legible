@@ -28,14 +28,14 @@ const PHONE_MAX = 641;
 // large type still applies and the type scrim still deepens with the lit
 // area; the e2e test "landing page text over the moon" measures every text
 // box at 320 to 1440px, so raise these only with that test passing.
-const MOON_LIGHT = 1.5;
+const MOON_LIGHT = 1.7;
 const STAR_LIGHT = 1.7;
 const SKY_LIGHT = 1.7;
 // The moon photo's own brightness: drawn once more on top, additively, at
-// this strength minus one (x1.25 = +25%, clipped at white).
-const MOON_TEX_GAIN = 1.25;
+// this strength minus one (x1.55 = +55%, clipped at white).
+const MOON_TEX_GAIN = 1.55;
 // How much the moon darkens as it fills the frame (the design used 0.56).
-const MOON_SHADE = 0.32;
+const MOON_SHADE = 0.22;
 // Phones: the ink under full-width text (the design used 0.78).
 const PHONE_INK = 0.72;
 
