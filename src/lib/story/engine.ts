@@ -96,6 +96,8 @@ export class StoryEngine {
   private ht = 0;
   private amb = 0;
   private bandVals: Record<string, string> = {};
+  private groundCv: HTMLCanvasElement | null = null;
+  private groundKey = "";
   private pp: number | null = null;
   private vel = 0;
   private mrn = 0;
@@ -585,220 +587,224 @@ export class StoryEngine {
     ldx /= lnorm;
     ldy /= lnorm;
 
-    // Starfield: polar advance away from the heading, streaked by speed.
-    const maxR = Math.hypot(W, H) * 0.82;
     ctx.lineCap = "round";
-    for (let i = 0; i < this.stars.length; i++) {
-      const s = this.stars[i];
-      if (thin && i % 2 && !s.big) continue;
-      const adv = (((s.r0 + pd * 1.15 * s.sp + amb * 0.009 * s.sp) % 1) + 1) % 1;
-      const rad = Math.pow(adv, 2.1) * maxR;
-      const ca = Math.cos(s.a);
-      const sa = Math.sin(s.a);
-      const x = vpx + ca * rad * 1.15;
-      const y = vpy + sa * rad;
-      if (x < -60 || x > W + 60 || y < -60 || y > H + 60) continue;
-      const near = Math.pow(adv, 1.4);
-      const a = Math.min(1, cl(adv * 7) * (0.18 + 0.82 * near) * STAR_LIGHT);
-      const w = (0.45 + near * 1.5) * s.r * dpr;
-      const len = Math.min(rad * 0.5, (1.5 + vel * 72 * s.sp) * dpr * (0.35 + near));
-      if (len > 3 * dpr) {
-        ctx.strokeStyle = "rgba(240,242,255," + (a * 0.85).toFixed(3) + ")";
-        ctx.lineWidth = w;
-        ctx.beginPath();
-        ctx.moveTo(x - ca * len * 1.15, y - sa * len);
-        ctx.lineTo(x, y);
-        ctx.stroke();
-      } else {
-        ctx.fillStyle = "rgba(240,242,255," + a.toFixed(3) + ")";
-        ctx.beginPath();
-        ctx.arc(x, y, w * 0.62, 0, 6.2832);
-        ctx.fill();
+    // Once landed (gq = 1) the ground covers the whole frame, so the
+    // starfield, sun and moon behind it are not drawn at all.
+    if (gq < 1) {
+      // Starfield: polar advance away from the heading, streaked by speed.
+      const maxR = Math.hypot(W, H) * 0.82;
+      for (let i = 0; i < this.stars.length; i++) {
+        const s = this.stars[i];
+        if (thin && i % 2 && !s.big) continue;
+        const adv = (((s.r0 + pd * 1.15 * s.sp + amb * 0.009 * s.sp) % 1) + 1) % 1;
+        const rad = Math.pow(adv, 2.1) * maxR;
+        const ca = Math.cos(s.a);
+        const sa = Math.sin(s.a);
+        const x = vpx + ca * rad * 1.15;
+        const y = vpy + sa * rad;
+        if (x < -60 || x > W + 60 || y < -60 || y > H + 60) continue;
+        const near = Math.pow(adv, 1.4);
+        const a = Math.min(1, cl(adv * 7) * (0.18 + 0.82 * near) * STAR_LIGHT);
+        const w = (0.45 + near * 1.5) * s.r * dpr;
+        const len = Math.min(rad * 0.5, (1.5 + vel * 72 * s.sp) * dpr * (0.35 + near));
+        if (len > 3 * dpr) {
+          ctx.strokeStyle = "rgba(240,242,255," + (a * 0.85).toFixed(3) + ")";
+          ctx.lineWidth = w;
+          ctx.beginPath();
+          ctx.moveTo(x - ca * len * 1.15, y - sa * len);
+          ctx.lineTo(x, y);
+          ctx.stroke();
+        } else {
+          ctx.fillStyle = "rgba(240,242,255," + a.toFixed(3) + ")";
+          ctx.beginPath();
+          ctx.arc(x, y, w * 0.62, 0, 6.2832);
+          ctx.fill();
+        }
+        if (s.big) {
+          const br = w * 6;
+          const g = ctx.createRadialGradient(x, y, 0, x, y, br);
+          g.addColorStop(0, "rgba(247,248,255," + (a * 0.5).toFixed(3) + ")");
+          g.addColorStop(0.34, "rgba(232,234,252," + (a * 0.11).toFixed(3) + ")");
+          g.addColorStop(1, "rgba(226,228,250,0)");
+          ctx.fillStyle = g;
+          ctx.beginPath();
+          ctx.arc(x, y, br, 0, 6.2832);
+          ctx.fill();
+        }
       }
-      if (s.big) {
-        const br = w * 6;
-        const g = ctx.createRadialGradient(x, y, 0, x, y, br);
-        g.addColorStop(0, "rgba(247,248,255," + (a * 0.5).toFixed(3) + ")");
-        g.addColorStop(0.34, "rgba(232,234,252," + (a * 0.11).toFixed(3) + ")");
-        g.addColorStop(1, "rgba(226,228,250,0)");
-        ctx.fillStyle = g;
-        ctx.beginPath();
-        ctx.arc(x, y, br, 0, 6.2832);
-        ctx.fill();
-      }
-    }
 
-    // The sun: a small white disc with only the optics' own bloom.
-    const SR = Math.max(1.6 * dpr, R * 0.3);
-    const bloom = ctx.createRadialGradient(hx, hy, SR * 0.7, hx, hy, SR * 8);
-    bloom.addColorStop(0, "rgba(255,255,251,0.46)");
-    bloom.addColorStop(0.2, "rgba(248,249,255,0.09)");
-    bloom.addColorStop(1, "rgba(244,246,255,0)");
-    ctx.fillStyle = bloom;
-    ctx.beginPath();
-    ctx.arc(hx, hy, SR * 8, 0, 6.2832);
-    ctx.fill();
-    ctx.fillStyle = "rgb(255,255,252)";
-    ctx.beginPath();
-    ctx.arc(hx, hy, SR, 0, 6.2832);
-    ctx.fill();
-
-    // The moon: opaque, so it occludes the stars behind it.
-    ctx.globalCompositeOperation = "source-over";
-    ctx.save();
-    ctx.beginPath();
-    ctx.arc(mx, my, mR, 0, 6.2832);
-    ctx.clip();
-    const lo = Math.min(mR * 0.6, vmin * 0.42);
-    const lgx = mx + ldx * lo;
-    const lgy = my + ldy * lo;
-    const dim = cl((mR / vmin - 0.3) / 0.55);
-    const tex = this.moonTex;
-    if (tex) {
-      ctx.drawImage(tex, mx - mR, my - mR, mR * 2, mR * 2);
-      if (MOON_TEX_GAIN > 1) {
-        ctx.globalCompositeOperation = "lighter";
-        ctx.globalAlpha = MOON_TEX_GAIN - 1;
-        ctx.drawImage(tex, mx - mR, my - mR, mR * 2, mR * 2);
-        ctx.globalAlpha = 1;
-      }
-      const b = MOON_LIGHT * (1 - MOON_SHADE * dim);
-      const sv = (k: number, bl: number) => {
-        const l = Math.min(255, k * b * 255);
-        return (
-          "rgb(" +
-          Math.round(l * (1 - bl * 0.07)) +
-          "," +
-          Math.round(l * (1 - bl * 0.02)) +
-          "," +
-          Math.round(Math.min(255, l * (1 + bl * 0.12))) +
-          ")"
-        );
-      };
-      ctx.globalCompositeOperation = "multiply";
-      const sg = ctx.createRadialGradient(lgx, lgy, mR * 0.04, lgx, lgy, mR * (1.72 - dim * 0.42));
-      sg.addColorStop(0, sv(1, 0));
-      sg.addColorStop(0.28, sv(0.93, 0.2));
-      sg.addColorStop(0.56, sv(0.7, 0.6));
-      sg.addColorStop(0.82, sv(0.4, 1));
-      sg.addColorStop(1, sv(0.22, 1));
-      ctx.fillStyle = sg;
-      ctx.fillRect(mx - mR, my - mR, mR * 2, mR * 2);
-      const lb = ctx.createRadialGradient(mx, my, mR * 0.55, mx, my, mR);
-      lb.addColorStop(0, "rgb(255,255,255)");
-      lb.addColorStop(0.88, "rgb(238,238,246)");
-      lb.addColorStop(1, "rgb(168,170,190)");
-      ctx.fillStyle = lb;
-      ctx.fillRect(mx - mR, my - mR, mR * 2, mR * 2);
-      // Luminance ceiling: a clipped highlight behind headline-scale type is
-      // a contrast failure.
-      const ceil = Math.round(252 - 54 * cl((this.mrn - 0.45) / 0.5));
-      if (ceil < 250) {
-        ctx.globalCompositeOperation = "darken";
-        ctx.fillStyle = "rgb(" + ceil + "," + ceil + "," + (ceil + 6) + ")";
-        ctx.fillRect(mx - mR, my - mR, mR * 2, mR * 2);
-      }
-      ctx.globalCompositeOperation = "source-over";
-    } else {
-      const lv = (hi: number, lo2: number) => (hi + (lo2 - hi) * dim).toFixed(3);
-      const reg = ctx.createRadialGradient(lgx, lgy, mR * 0.02, lgx, lgy, mR * (1.85 - dim * 0.5));
-      reg.addColorStop(0, "oklch(" + lv(0.955, 0.78) + " 0.008 92)");
-      reg.addColorStop(0.16, "oklch(" + lv(0.87, 0.6) + " 0.009 88)");
-      reg.addColorStop(0.4, "oklch(" + lv(0.63, 0.38) + " 0.016 252)");
-      reg.addColorStop(0.7, "oklch(" + lv(0.37, 0.25) + " 0.024 258)");
-      reg.addColorStop(1, "oklch(" + lv(0.245, 0.185) + " 0.03 262)");
-      ctx.fillStyle = reg;
-      ctx.fillRect(mx - mR, my - mR, mR * 2, mR * 2);
-      for (const c of this.cra) {
-        const q = c.u * c.u + c.v * c.v;
-        if (q > 0.985) continue;
-        const z = Math.sqrt(1 - q);
-        const cr = Math.min(c.r * mR, vmin * 0.075);
-        if (cr < 1.1 * dpr) continue;
-        const cxp = mx + c.u * mR;
-        const cyp = my + c.v * mR;
-        if (cxp < -cr || cxp > W + cr || cyp < -cr || cyp > H + cr) continue;
-        const rot = Math.atan2(c.v, c.u);
-        const sh = cl(c.u * ldx + c.v * ldy + z * 0.6);
-        ctx.fillStyle =
-          "oklch(" + (0.2 + (0.52 - 0.16 * dim) * sh).toFixed(3) + " 0.014 " + (252 - 160 * sh).toFixed(0) + " / 0.5)";
-        ctx.beginPath();
-        ctx.ellipse(cxp, cyp, Math.max(0.5, cr * z), cr, rot, 0, 6.2832);
-        ctx.fill();
-        ctx.strokeStyle = "oklch(" + (0.5 + 0.34 * sh).toFixed(3) + " 0.012 92 / " + (0.1 + 0.34 * sh).toFixed(3) + ")";
-        ctx.lineWidth = Math.max(0.6, Math.min(2.6 * dpr, cr * 0.1));
-        ctx.beginPath();
-        ctx.ellipse(
-          cxp,
-          cyp,
-          Math.max(0.5, cr * z),
-          cr,
-          rot,
-          Math.atan2(ldy, ldx) - rot - 1.5,
-          Math.atan2(ldy, ldx) - rot + 1.5,
-        );
-        ctx.stroke();
-      }
-    }
-    // Earthshine: the dark limb never goes fully black.
-    ctx.globalCompositeOperation = "lighter";
-    const esx = mx - ldx * mR * 0.75;
-    const esy = my - ldy * mR * 0.75;
-    const esg = ctx.createRadialGradient(esx, esy, 0, esx, esy, mR * 1.25);
-    esg.addColorStop(0, col(1, 0.55, 0.07, 0.2));
-    esg.addColorStop(1, col(1, 0.45, 0.06, 0));
-    ctx.fillStyle = esg;
-    ctx.fillRect(mx - mR, my - mR, mR * 2, mR * 2);
-    ctx.restore();
-
-    // The faint accent cast outside the disc, only while it is still distant.
-    ctx.globalCompositeOperation = "lighter";
-    if (this.mrn < 0.62) {
-      const cast = ctx.createRadialGradient(mx, my, mR * 0.99, mx, my, mR * 1.14);
-      cast.addColorStop(0, col(0, 0.62, 0.09, 0.055));
-      cast.addColorStop(1, col(0, 0.55, 0.08, 0));
-      ctx.fillStyle = cast;
+      // The sun: a small white disc with only the optics' own bloom.
+      const SR = Math.max(1.6 * dpr, R * 0.3);
+      const bloom = ctx.createRadialGradient(hx, hy, SR * 0.7, hx, hy, SR * 8);
+      bloom.addColorStop(0, "rgba(255,255,251,0.46)");
+      bloom.addColorStop(0.2, "rgba(248,249,255,0.09)");
+      bloom.addColorStop(1, "rgba(244,246,255,0)");
+      ctx.fillStyle = bloom;
       ctx.beginPath();
-      ctx.arc(mx, my, mR * 1.14, 0, 6.2832);
+      ctx.arc(hx, hy, SR * 8, 0, 6.2832);
       ctx.fill();
-    }
+      ctx.fillStyle = "rgb(255,255,252)";
+      ctx.beginPath();
+      ctx.arc(hx, hy, SR, 0, 6.2832);
+      ctx.fill();
 
-    // The survey chapter puts markers down: a lit point on the regolith with
-    // a hairline leader back toward the column of type.
-    const an = this.reduced ? (sel > 0.06 ? 1 : 0) : cl((sel - 0.06) / 0.46);
-    if (an > 0.01) {
-      const dirs = [
-        [-0.44, -0.32],
-        [0.04, 0.08],
-        [-0.62, 0.44],
-      ];
-      dirs.forEach((d, i) => {
-        const e = cl((an - i * 0.2) / 0.34);
-        if (e <= 0.01) return;
-        const len = vmin * (0.1 + i * 0.028) * (0.45 + 0.55 * e);
-        const x0 = mx + d[0] * mR;
-        const y0 = my + d[1] * mR;
-        const x1 = x0 - len;
-        const y1 = y0 - len * 0.42;
-        ctx.lineWidth = Math.max(0.5, 0.8 * dpr);
-        ctx.strokeStyle = col(1, 0.9, 0.1, (0.5 * e).toFixed(3));
+      // The moon: opaque, so it occludes the stars behind it.
+      ctx.globalCompositeOperation = "source-over";
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(mx, my, mR, 0, 6.2832);
+      ctx.clip();
+      const lo = Math.min(mR * 0.6, vmin * 0.42);
+      const lgx = mx + ldx * lo;
+      const lgy = my + ldy * lo;
+      const dim = cl((mR / vmin - 0.3) / 0.55);
+      const tex = this.moonTex;
+      if (tex) {
+        ctx.drawImage(tex, mx - mR, my - mR, mR * 2, mR * 2);
+        if (MOON_TEX_GAIN > 1) {
+          ctx.globalCompositeOperation = "lighter";
+          ctx.globalAlpha = MOON_TEX_GAIN - 1;
+          ctx.drawImage(tex, mx - mR, my - mR, mR * 2, mR * 2);
+          ctx.globalAlpha = 1;
+        }
+        const b = MOON_LIGHT * (1 - MOON_SHADE * dim);
+        const sv = (k: number, bl: number) => {
+          const l = Math.min(255, k * b * 255);
+          return (
+            "rgb(" +
+            Math.round(l * (1 - bl * 0.07)) +
+            "," +
+            Math.round(l * (1 - bl * 0.02)) +
+            "," +
+            Math.round(Math.min(255, l * (1 + bl * 0.12))) +
+            ")"
+          );
+        };
+        ctx.globalCompositeOperation = "multiply";
+        const sg = ctx.createRadialGradient(lgx, lgy, mR * 0.04, lgx, lgy, mR * (1.72 - dim * 0.42));
+        sg.addColorStop(0, sv(1, 0));
+        sg.addColorStop(0.28, sv(0.93, 0.2));
+        sg.addColorStop(0.56, sv(0.7, 0.6));
+        sg.addColorStop(0.82, sv(0.4, 1));
+        sg.addColorStop(1, sv(0.22, 1));
+        ctx.fillStyle = sg;
+        ctx.fillRect(mx - mR, my - mR, mR * 2, mR * 2);
+        const lb = ctx.createRadialGradient(mx, my, mR * 0.55, mx, my, mR);
+        lb.addColorStop(0, "rgb(255,255,255)");
+        lb.addColorStop(0.88, "rgb(238,238,246)");
+        lb.addColorStop(1, "rgb(168,170,190)");
+        ctx.fillStyle = lb;
+        ctx.fillRect(mx - mR, my - mR, mR * 2, mR * 2);
+        // Luminance ceiling: a clipped highlight behind headline-scale type is
+        // a contrast failure.
+        const ceil = Math.round(252 - 54 * cl((this.mrn - 0.45) / 0.5));
+        if (ceil < 250) {
+          ctx.globalCompositeOperation = "darken";
+          ctx.fillStyle = "rgb(" + ceil + "," + ceil + "," + (ceil + 6) + ")";
+          ctx.fillRect(mx - mR, my - mR, mR * 2, mR * 2);
+        }
+        ctx.globalCompositeOperation = "source-over";
+      } else {
+        const lv = (hi: number, lo2: number) => (hi + (lo2 - hi) * dim).toFixed(3);
+        const reg = ctx.createRadialGradient(lgx, lgy, mR * 0.02, lgx, lgy, mR * (1.85 - dim * 0.5));
+        reg.addColorStop(0, "oklch(" + lv(0.955, 0.78) + " 0.008 92)");
+        reg.addColorStop(0.16, "oklch(" + lv(0.87, 0.6) + " 0.009 88)");
+        reg.addColorStop(0.4, "oklch(" + lv(0.63, 0.38) + " 0.016 252)");
+        reg.addColorStop(0.7, "oklch(" + lv(0.37, 0.25) + " 0.024 258)");
+        reg.addColorStop(1, "oklch(" + lv(0.245, 0.185) + " 0.03 262)");
+        ctx.fillStyle = reg;
+        ctx.fillRect(mx - mR, my - mR, mR * 2, mR * 2);
+        for (const c of this.cra) {
+          const q = c.u * c.u + c.v * c.v;
+          if (q > 0.985) continue;
+          const z = Math.sqrt(1 - q);
+          const cr = Math.min(c.r * mR, vmin * 0.075);
+          if (cr < 1.1 * dpr) continue;
+          const cxp = mx + c.u * mR;
+          const cyp = my + c.v * mR;
+          if (cxp < -cr || cxp > W + cr || cyp < -cr || cyp > H + cr) continue;
+          const rot = Math.atan2(c.v, c.u);
+          const sh = cl(c.u * ldx + c.v * ldy + z * 0.6);
+          ctx.fillStyle =
+            "oklch(" + (0.2 + (0.52 - 0.16 * dim) * sh).toFixed(3) + " 0.014 " + (252 - 160 * sh).toFixed(0) + " / 0.5)";
+          ctx.beginPath();
+          ctx.ellipse(cxp, cyp, Math.max(0.5, cr * z), cr, rot, 0, 6.2832);
+          ctx.fill();
+          ctx.strokeStyle = "oklch(" + (0.5 + 0.34 * sh).toFixed(3) + " 0.012 92 / " + (0.1 + 0.34 * sh).toFixed(3) + ")";
+          ctx.lineWidth = Math.max(0.6, Math.min(2.6 * dpr, cr * 0.1));
+          ctx.beginPath();
+          ctx.ellipse(
+            cxp,
+            cyp,
+            Math.max(0.5, cr * z),
+            cr,
+            rot,
+            Math.atan2(ldy, ldx) - rot - 1.5,
+            Math.atan2(ldy, ldx) - rot + 1.5,
+          );
+          ctx.stroke();
+        }
+      }
+      // Earthshine: the dark limb never goes fully black.
+      ctx.globalCompositeOperation = "lighter";
+      const esx = mx - ldx * mR * 0.75;
+      const esy = my - ldy * mR * 0.75;
+      const esg = ctx.createRadialGradient(esx, esy, 0, esx, esy, mR * 1.25);
+      esg.addColorStop(0, col(1, 0.55, 0.07, 0.2));
+      esg.addColorStop(1, col(1, 0.45, 0.06, 0));
+      ctx.fillStyle = esg;
+      ctx.fillRect(mx - mR, my - mR, mR * 2, mR * 2);
+      ctx.restore();
+
+      // The faint accent cast outside the disc, only while it is still distant.
+      ctx.globalCompositeOperation = "lighter";
+      if (this.mrn < 0.62) {
+        const cast = ctx.createRadialGradient(mx, my, mR * 0.99, mx, my, mR * 1.14);
+        cast.addColorStop(0, col(0, 0.62, 0.09, 0.055));
+        cast.addColorStop(1, col(0, 0.55, 0.08, 0));
+        ctx.fillStyle = cast;
         ctx.beginPath();
-        ctx.moveTo(x0, y0);
-        ctx.lineTo(x1, y1);
-        ctx.stroke();
-        const dr = 2.4 * dpr;
-        const dg = ctx.createRadialGradient(x1, y1, 0, x1, y1, dr * 6);
-        dg.addColorStop(0, col(1, 0.97, 0.09, (0.85 * e).toFixed(3)));
-        dg.addColorStop(0.32, col(1, 0.82, 0.14, (0.24 * e).toFixed(3)));
-        dg.addColorStop(1, col(1, 0.76, 0.13, 0));
-        ctx.fillStyle = dg;
-        ctx.beginPath();
-        ctx.arc(x1, y1, dr * 6, 0, 6.2832);
+        ctx.arc(mx, my, mR * 1.14, 0, 6.2832);
         ctx.fill();
-      });
+      }
+
+      // The survey chapter puts markers down: a lit point on the regolith with
+      // a hairline leader back toward the column of type.
+      const an = this.reduced ? (sel > 0.06 ? 1 : 0) : cl((sel - 0.06) / 0.46);
+      if (an > 0.01) {
+        const dirs = [
+          [-0.44, -0.32],
+          [0.04, 0.08],
+          [-0.62, 0.44],
+        ];
+        dirs.forEach((d, i) => {
+          const e = cl((an - i * 0.2) / 0.34);
+          if (e <= 0.01) return;
+          const len = vmin * (0.1 + i * 0.028) * (0.45 + 0.55 * e);
+          const x0 = mx + d[0] * mR;
+          const y0 = my + d[1] * mR;
+          const x1 = x0 - len;
+          const y1 = y0 - len * 0.42;
+          ctx.lineWidth = Math.max(0.5, 0.8 * dpr);
+          ctx.strokeStyle = col(1, 0.9, 0.1, (0.5 * e).toFixed(3));
+          ctx.beginPath();
+          ctx.moveTo(x0, y0);
+          ctx.lineTo(x1, y1);
+          ctx.stroke();
+          const dr = 2.4 * dpr;
+          const dg = ctx.createRadialGradient(x1, y1, 0, x1, y1, dr * 6);
+          dg.addColorStop(0, col(1, 0.97, 0.09, (0.85 * e).toFixed(3)));
+          dg.addColorStop(0.32, col(1, 0.82, 0.14, (0.24 * e).toFixed(3)));
+          dg.addColorStop(1, col(1, 0.76, 0.13, 0));
+          ctx.fillStyle = dg;
+          ctx.beginPath();
+          ctx.arc(x1, y1, dr * 6, 0, 6.2832);
+          ctx.fill();
+        });
+      }
     }
 
-    if (gq > 0.002) this.drawGround(ctx, W, H, dpr, gq);
+    if (gq > 0.002) this.drawGroundCached(ctx, W, H, dpr, gq);
 
     // Regolith dust: flecks blowing past as you come in low.
     const land = cl((pd - 0.58) / 0.3);
@@ -848,12 +854,58 @@ export class StoryEngine {
 
   // The arrival: a flat razor horizon with black down to it, and Earth
   // hanging fixed in the sky.
-  private drawGround(ctx: Ctx, W: number, H: number, dpr: number, q: number): void {
+  // The ground scene depends only on the frame size and how far the landing
+  // has got (q), never on time, so it is drawn into a stored canvas and
+  // reused: redrawn 24 times across the landing and not at all once
+  // landed, instead of every frame. While it fades in over the giant moon,
+  // its sky and ground would meet in a hard straight edge (and its horizon
+  // line) with the moon showing through both, like a box drawn over the moon;
+  // so its edge is dissolved into the moon, sharpening into the horizon as
+  // the landing completes.
+  private drawGroundCached(ctx: Ctx, W: number, H: number, dpr: number, q: number): void {
+    const steps = 24;
+    const step = q > 0.998 ? steps : Math.min(steps - 1, Math.round(q * steps));
+    const qq = step / steps;
+    const key = W + "x" + H + "@" + dpr + ":" + step + (this.moonTex ? "t" : "");
+    const c = (this.groundCv ??= document.createElement("canvas"));
+    if (key !== this.groundKey) {
+      if (c.width !== W || c.height !== H) {
+        c.width = W;
+        c.height = H;
+      }
+      const g = c.getContext("2d");
+      if (!g) return this.drawGround(ctx, W, H, dpr, q, q);
+      g.clearRect(0, 0, W, H);
+      this.drawGround(g, W, H, dpr, qq, 1);
+      if (step < steps) {
+        const hz = this.hzn ?? H * 0.5;
+        const f = Math.max(1, (1 - qq) * H * 0.22);
+        const mask = g.createLinearGradient(0, hz - f, 0, hz + f);
+        mask.addColorStop(0, "rgba(0,0,0,1)");
+        mask.addColorStop(0.5, "rgba(0,0,0,0)");
+        mask.addColorStop(1, "rgba(0,0,0,1)");
+        g.globalCompositeOperation = "destination-in";
+        g.fillStyle = mask;
+        g.fillRect(0, 0, W, H);
+        g.globalCompositeOperation = "source-over";
+      }
+      this.groundKey = key;
+    } else {
+      this.hzn = H * (0.495 - 0.04 * qq);
+    }
+    ctx.save();
+    ctx.globalAlpha = q;
+    ctx.globalCompositeOperation = "source-over";
+    ctx.drawImage(c, 0, 0);
+    ctx.restore();
+  }
+
+  private drawGround(ctx: Ctx, W: number, H: number, dpr: number, q: number, alpha: number): void {
     const vmin = Math.min(W, H);
     const hz = H * (0.495 - 0.04 * q);
     this.hzn = hz;
     ctx.save();
-    ctx.globalAlpha = q;
+    ctx.globalAlpha = alpha;
     ctx.globalCompositeOperation = "source-over";
     ctx.fillStyle = "oklch(0.048 0.010 264)";
     ctx.fillRect(0, 0, W, Math.ceil(hz) + 1);
