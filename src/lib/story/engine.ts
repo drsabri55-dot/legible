@@ -34,8 +34,20 @@ const SKY_LIGHT = 1.7;
 // The moon photo's own brightness: drawn once more on top, additively, at
 // this strength minus one (x1.55 = +55%, clipped at white).
 const MOON_TEX_GAIN = 1.55;
+// Added to that as the moon grows to fill the frame, where the photo's darker
+// limb and seas are most of what is in view (x1.55 small, x2 full size). One
+// extra pass gives at most x2; a second would slow the scroll.
+const MOON_TEX_GROW = 0.45;
 // How much the moon darkens as it fills the frame (the design used 0.56).
-const MOON_SHADE = 0.22;
+// It also narrows the lit side by the same share of the design's amount.
+const MOON_SHADE = 0;
+// How far the highlight cap behind large type comes down as the moon fills
+// the frame, out of 255 (the design used 54).
+const MOON_CEIL_DROP = 24;
+// The landing ground: the photo's own brightness (drawn as the moon's is, at
+// most x2) and its shading, as a multiple of the design's (1 = the design).
+const GROUND_TEX_GAIN = 1.4;
+const GROUND_LIGHT = 1.12;
 // Phones: the ink under full-width text (the design used 0.78).
 const PHONE_INK = 0.72;
 
@@ -661,9 +673,11 @@ export class StoryEngine {
       const tex = this.moonTex;
       if (tex) {
         ctx.drawImage(tex, mx - mR, my - mR, mR * 2, mR * 2);
-        if (MOON_TEX_GAIN > 1) {
+        // The boost starts growing once the moon is past its opening size.
+        const extra = MOON_TEX_GAIN + MOON_TEX_GROW * cl((mR / vmin - 0.08) / 0.77) - 1;
+        if (extra > 0) {
           ctx.globalCompositeOperation = "lighter";
-          ctx.globalAlpha = MOON_TEX_GAIN - 1;
+          ctx.globalAlpha = Math.min(1, extra);
           ctx.drawImage(tex, mx - mR, my - mR, mR * 2, mR * 2);
           ctx.globalAlpha = 1;
         }
@@ -681,7 +695,7 @@ export class StoryEngine {
           );
         };
         ctx.globalCompositeOperation = "multiply";
-        const sg = ctx.createRadialGradient(lgx, lgy, mR * 0.04, lgx, lgy, mR * (1.72 - dim * 0.42));
+        const sg = ctx.createRadialGradient(lgx, lgy, mR * 0.04, lgx, lgy, mR * (1.72 - dim * 0.42 * (MOON_SHADE / 0.56)));
         sg.addColorStop(0, sv(1, 0));
         sg.addColorStop(0.28, sv(0.93, 0.2));
         sg.addColorStop(0.56, sv(0.7, 0.6));
@@ -697,7 +711,7 @@ export class StoryEngine {
         ctx.fillRect(mx - mR, my - mR, mR * 2, mR * 2);
         // Luminance ceiling: a clipped highlight behind headline-scale type is
         // a contrast failure.
-        const ceil = Math.round(252 - 54 * cl((this.mrn - 0.45) / 0.5));
+        const ceil = Math.round(252 - MOON_CEIL_DROP * cl((this.mrn - 0.45) / 0.5));
         if (ceil < 250) {
           ctx.globalCompositeOperation = "darken";
           ctx.fillStyle = "rgb(" + ceil + "," + ceil + "," + (ceil + 6) + ")";
@@ -962,16 +976,26 @@ export class StoryEngine {
         ctx.fillRect(0, y0, W, hgt);
       }
     }
+    // The surface copied onto itself, additively.
+    const top = Math.ceil(hz);
+    if (tex && H > top && GROUND_TEX_GAIN > 1) {
+      ctx.globalCompositeOperation = "lighter";
+      ctx.globalAlpha = alpha * Math.min(1, GROUND_TEX_GAIN - 1);
+      ctx.drawImage(ctx.canvas, 0, top, W, H - top, 0, top, W, H - top);
+      ctx.globalAlpha = alpha;
+    }
     ctx.globalCompositeOperation = "multiply";
+    const gl = (r: number, g: number, b: number) =>
+      "rgb(" + [r, g, b].map((v) => Math.min(255, Math.round(v * GROUND_LIGHT))).join(",") + ")";
     const vr = ctx.createLinearGradient(0, hz, 0, H);
-    vr.addColorStop(0, "rgb(56,58,74)");
-    vr.addColorStop(0.16, "rgb(104,106,124)");
-    vr.addColorStop(0.58, "rgb(198,199,208)");
-    vr.addColorStop(1, "rgb(216,216,224)");
+    vr.addColorStop(0, gl(56, 58, 74));
+    vr.addColorStop(0.16, gl(104, 106, 124));
+    vr.addColorStop(0.58, gl(198, 199, 208));
+    vr.addColorStop(1, gl(216, 216, 224));
     ctx.fillStyle = vr;
     ctx.fillRect(0, hz, W, H - hz);
     ctx.globalCompositeOperation = "darken";
-    ctx.fillStyle = "rgb(198,199,208)";
+    ctx.fillStyle = gl(198, 199, 208);
     ctx.fillRect(0, hz, W, H - hz);
     ctx.globalCompositeOperation = "source-over";
 
