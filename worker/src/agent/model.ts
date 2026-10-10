@@ -35,6 +35,23 @@ export function addUsage(a: AgentUsage, b: AgentUsage): AgentUsage {
   };
 }
 
+// Counts what every answered call used, so the site is charged for the whole
+// run even when a page is later dropped or the scan fails.
+export function meter(inner: AgentModel): { model: AgentModel; total(): AgentUsage } {
+  let total = emptyUsage();
+  return {
+    model: {
+      name: inner.name,
+      async turn(req) {
+        const t = await inner.turn(req);
+        total = addUsage(total, t.usage);
+        return t;
+      },
+    },
+    total: () => total,
+  };
+}
+
 type Client = { messages: { create: (body: never, options?: never) => Promise<unknown> } };
 
 export class AnthropicModel implements AgentModel {

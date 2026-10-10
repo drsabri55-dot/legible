@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { AnthropicModel, ReplayModel, addUsage, agentModelFromEnv, emptyUsage } from "../src/agent/model";
+import { AnthropicModel, ReplayModel, addUsage, agentModelFromEnv, emptyUsage, meter } from "../src/agent/model";
 
 const req = { system: "s", tools: [{ name: "look", description: "d", input_schema: { type: "object" as const, properties: {}, required: [], additionalProperties: false } }], messages: [{ role: "user" as const, content: "hi" }] };
 
@@ -73,5 +73,16 @@ describe("usage and setup", () => {
     delete process.env.ANTHROPIC_API_KEY;
     expect(agentModelFromEnv()).toBeNull();
     if (key) process.env.ANTHROPIC_API_KEY = key;
+  });
+});
+
+describe("meter", () => {
+  it("adds up the usage of every answered call, including ones whose page is later dropped", async () => {
+    const m = meter(new ReplayModel([{ text: "a" }, { error: "boom" }, { text: "b" }]));
+    expect(m.model.name).toBe("replay");
+    await m.model.turn(req);
+    await expect(m.model.turn(req)).rejects.toThrow("boom");
+    await m.model.turn(req);
+    expect(m.total()).toEqual({ inputTokens: 200, outputTokens: 20, cacheReadTokens: 0, cacheWriteTokens: 0 });
   });
 });

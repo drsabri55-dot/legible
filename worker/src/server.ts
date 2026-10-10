@@ -1,6 +1,6 @@
 import express, { type NextFunction, type Request, type Response } from "express";
 import { timingSafeEqual } from "node:crypto";
-import { agentModelFromEnv } from "./agent/model";
+import { agentModelFromEnv, meter } from "./agent/model";
 import { allowPrivateTargets } from "./net";
 import { printPdf } from "./pdf";
 import { JobQueue } from "./queue";
@@ -90,7 +90,9 @@ app.post("/jobs/scan", authorised, (req, res) => {
 
   // Only when the site asks and a key is set. The site starts asking in
   // phase 2, once its daily spending cap is in place.
-  const agent = req.body?.agent === true ? agentModelFromEnv() : null;
+  const model = req.body?.agent === true ? agentModelFromEnv() : null;
+  const metered = model ? meter(model) : null;
+  const agent = metered?.model ?? null;
 
   const accepted = queue.push(async () => {
     const started = Date.now();
@@ -113,12 +115,20 @@ app.post("/jobs/scan", authorised, (req, res) => {
         size += s.data.length;
       }
       if (batch.length) await callback(cb.toString(), { type: "shots", shots: batch });
+      // Every call the agent made, including pages the scan later dropped.
+      if (raw.agent && metered) raw.agent.usage = metered.total();
       await callback(cb.toString(), { type: "complete", raw });
       console.log(`[scan] ${target.host} done in ${Date.now() - started} ms${agent ? " with the agent" : ""}`);
     } catch (e) {
       const code = e instanceof ScanError ? e.code : "error";
       console.warn(`[scan] ${target.host} failed: ${(e as Error).message}`);
-      await callback(cb.toString(), { type: "failed", error: code, detail: String((e as Error).message).slice(0, 300) });
+      await callback(cb.toString(), {
+        type: "failed",
+        error: code,
+        detail: String((e as Error).message).slice(0, 300),
+        // What the agent spent before the scan failed, so the site can charge it.
+        ...(metered ? { agent: { model: metered.model.name, usage: metered.total() } } : {}),
+      });
     }
   });
   if (!accepted) {
