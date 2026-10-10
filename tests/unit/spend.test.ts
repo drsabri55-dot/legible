@@ -131,3 +131,56 @@ describe("starting a free scan", () => {
     }
   });
 });
+
+describe("the worker's final message", () => {
+  const SECRET = "worker-secret-for-tests-0000";
+  const ctx = (id: string) => ({ params: Promise.resolve({ id }) }) as never;
+  const post = async (id: string, body: unknown) => {
+    const route = await import("@/app/api/worker/scans/[id]/route");
+    return route.POST(
+      new Request("http://x/", { method: "POST", headers: { authorization: `Bearer ${SECRET}`, "content-type": "application/json" }, body: JSON.stringify(body) }),
+      ctx(id),
+    );
+  };
+  const spendFor = async (id: string) => {
+    const { db } = await import("@/lib/db");
+    return db()<{ kind: string; input_tokens: number; cost_usd: string | null }[]>`select kind, input_tokens, cost_usd from agent_spend where scan_id = ${id}`;
+  };
+
+  it("records the agent's spend once on completion, even when repeated", async () => {
+    process.env.WORKER_SECRET = SECRET;
+    process.env.AGENT_PRICE_INPUT_PER_MTOK = "2";
+    process.env.AGENT_PRICE_OUTPUT_PER_MTOK = "10";
+    const { sampleScan } = await import("./fixture");
+    const scan = await data.createScan({ url: "https://w1.example/", host: "w1.example", ipHash: null, agent: "on" });
+    const raw = { ...sampleScan(), agent: { model: "claude-sonnet-5-5", usage: { inputTokens: 1_000_000, outputTokens: 100_000, cacheReadTokens: 0, cacheWriteTokens: 0 } } };
+    expect((await post(scan.id, { type: "complete", raw })).status).toBe(200);
+    expect((await post(scan.id, { type: "complete", raw })).status).toBe(200);
+    const rows = await spendFor(scan.id);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ kind: "free", input_tokens: 1_000_000 });
+    expect(Number(rows[0].cost_usd)).toBeCloseTo(3, 6);
+  });
+
+  it("records the spend of a scan that failed, and of one already closed as stale", async () => {
+    const failed = await data.createScan({ url: "https://w2.example/", host: "w2.example", ipHash: null, agent: "on" });
+    const agent = { model: "claude-sonnet-5-5", usage: { inputTokens: 500_000, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0 } };
+    await post(failed.id, { type: "failed", error: "robots", agent });
+    expect(Number((await spendFor(failed.id))[0].cost_usd)).toBeCloseTo(1, 6);
+
+    const stale = await data.createScan({ url: "https://w3.example/", host: "w3.example", ipHash: null, agent: "on" });
+    await data.failScan(stale.id, "timeout");
+    const { sampleScan } = await import("./fixture");
+    await post(stale.id, { type: "complete", raw: { ...sampleScan(), agent } });
+    expect(await spendFor(stale.id)).toHaveLength(1);
+  });
+
+  it("keeps the tokens with no cost when the prices were removed mid-scan", async () => {
+    delete process.env.AGENT_PRICE_INPUT_PER_MTOK;
+    const scan = await data.createScan({ url: "https://w4.example/", host: "w4.example", ipHash: null, agent: "on" });
+    const { sampleScan } = await import("./fixture");
+    await post(scan.id, { type: "complete", raw: { ...sampleScan(), agent: { model: "m", usage: { inputTokens: 5, outputTokens: 5, cacheReadTokens: 0, cacheWriteTokens: 0 } } } });
+    expect((await spendFor(scan.id))[0]).toMatchObject({ input_tokens: 5, cost_usd: null });
+    delete process.env.AGENT_PRICE_OUTPUT_PER_MTOK;
+  });
+});
