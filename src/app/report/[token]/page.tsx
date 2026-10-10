@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { cache } from "react";
+import { AgentReview, ElementShot, agentMethod, agentPageNote } from "@/components/report/AgentSections";
 import { Logo } from "@/components/site/Logo";
 import { getReportByToken } from "@/lib/data";
 import { privatePage } from "@/lib/page-meta";
@@ -155,6 +156,7 @@ function Pages({ r }: { r: Report }) {
                     {p.status === "skipped" ? "Skipped" : "Not scanned"}: {reasonText(p.reason)}
                   </span>
                 )}
+                {agentPageNote(p) && <span className="rp-sub">{agentPageNote(p)}</span>}
               </td>
               <td className="rp-num">{p.status === "scanned" ? p.issues : "–"}</td>
             </tr>
@@ -216,6 +218,7 @@ function IssueBlock({ issue, n }: { issue: Issue; n: string }) {
             </span>
             <code>{ex.selector}</code>
           </p>
+          <ElementShot id={ex.shot} label={ex.selector} />
           <div className={ex.fixed ? "rp-code-pair" : "rp-code-pair rp-single"}>
             <figure>
               <figcaption>{ex.embeddedFrom ? `Code from ${ex.embeddedFrom}` : "Your code"}</figcaption>
@@ -355,6 +358,7 @@ function Method({ r }: { r: Report }) {
         testing engine, with its rules for WCAG 2.0 and 2.1 at Levels A and AA. {r.rulesPassed + r.rulesFailed} of those
         rules applied to the pages scanned: {r.rulesPassed} passed and {r.rulesFailed} failed.
       </p>
+      {agentMethod(r) && <p>{agentMethod(r)}</p>}
       <h3>How the score works</h3>
       <p>
         Each rule that applied to the site counts once, weighted by how badly a failure affects people: critical 10,
@@ -480,6 +484,7 @@ export default async function ReportPage(props: PageProps<"/report/[token]">) {
         <Pages r={r} />
         <Issues r={r} />
         <Review r={r} />
+        <AgentReview r={r} />
         <Method r={r} />
         <Limitations r={r} />
       </main>

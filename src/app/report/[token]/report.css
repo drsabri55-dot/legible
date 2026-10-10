@@ -708,3 +708,19 @@
     print-color-adjust: exact;
   }
 }
+
+/* Screenshots of elements found by the testing agent. */
+.rp-shot {
+  display: block;
+  max-width: min(100%, 28rem);
+  height: auto;
+  margin: 0.75rem 0;
+  border: 1px solid var(--rp-rule);
+  border-radius: 4px;
+}
+@media print {
+  .rp-shot {
+    max-width: 60%;
+    break-inside: avoid;
+  }
+}
