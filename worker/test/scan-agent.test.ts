@@ -56,3 +56,14 @@ it("finishes the scan when screenshots cannot be stored, keeping every finding",
   expect(focus?.nodes[0].shot).toBeUndefined();
   expect(home.passes.some((p) => !p.id.startsWith("legible-"))).toBe(true); // axe passes kept
 });
+
+it("runs the agent only on pages the scan keeps, never on duplicates or redirects away", async () => {
+  const model = new ReplayModel([]);
+  const raw = await scanSite(`http://127.0.0.1:${PORT}/`, { pauseMs: 10, agent: model });
+  const scanned = raw.pages.filter((p) => p.status === "scanned");
+  expect(scanned.length).toBe(4);
+  expect(scanned.every((p) => p.agent)).toBe(true);
+  // One opening request per kept page: /index.html (same page), /home and
+  // /elsewhere (redirects) never reach the agent.
+  expect(model.requests.length).toBe(scanned.length);
+}, 120_000);

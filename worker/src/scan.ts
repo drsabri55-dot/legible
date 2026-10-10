@@ -246,7 +246,15 @@ function withTimeout<T>(promise: Promise<T>, ms: number, code: string): Promise<
   ]).finally(() => clearTimeout(timer));
 }
 
-async function scanPage(context: BrowserContext, url: string, first: boolean, opts: ScanOptions = {}) {
+// `keep` says whether the scan will keep this page (not a redirect away or a
+// page already scanned); the testing agent only runs on pages that are kept.
+async function scanPage(
+  context: BrowserContext,
+  url: string,
+  first: boolean,
+  opts: ScanOptions = {},
+  keep: (finalUrl: string, signature: string | null) => boolean = () => true,
+) {
   const page = await context.newPage();
   try {
     return await withTimeout(
@@ -290,7 +298,9 @@ async function scanPage(context: BrowserContext, url: string, first: boolean, op
         const links = first ? await collectLinks(page, new URL(finalUrl)) : [];
         const raw = toRawPage(finalUrl, heading, axe);
         await addFrameHosts(page, raw.violations);
-        if (opts.agent) {
+        // Taken before the agent, which may leave the page in another state.
+        const signature = (await page.evaluate(PAGE_SIGNATURE).catch(() => null)) as string | null;
+        if (opts.agent && keep(finalUrl, signature)) {
           // The agent must never cost the page its axe-core results.
           try {
             const outcome = await runAgentOnPage(page, { model: opts.agent, onShot: opts.onShot });
@@ -302,7 +312,6 @@ async function scanPage(context: BrowserContext, url: string, first: boolean, op
             raw.agent = { status: "failed", reason: "agent error", steps: 0, reviews: [], usage: emptyUsage() };
           }
         }
-        const signature = (await page.evaluate(PAGE_SIGNATURE).catch(() => null)) as string | null;
         return { raw, links, finalUrl, signature };
       })(),
       PAGE_TIMEOUT_MS + 5000 + (opts.agent ? AGENT_BUDGET_MS + 30_000 : 0),
@@ -407,7 +416,14 @@ export async function scanSite(startUrl: string, opts: ScanOptions = {}): Promis
       attempts++;
       await new Promise((r) => setTimeout(r, Math.max(opts.pauseMs ?? PAUSE_BETWEEN_PAGES_MS, robots.crawlDelayMs)));
       try {
-        const result = await scanPage(context, link, false, opts);
+        const result = await scanPage(context, link, false, opts, (landedUrl, signature) => {
+          const landed = new URL(landedUrl);
+          return (
+            sameSite(landed.hostname, homeUrl.hostname) &&
+            !scannedKeys.has(pageKey(landed)) &&
+            !(signature && signatures.has(signature))
+          );
+        });
         const landed = new URL(result.finalUrl);
         if (!sameSite(landed.hostname, homeUrl.hostname)) continue; // redirected to another website
         const key = pageKey(landed);
