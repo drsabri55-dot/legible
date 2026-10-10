@@ -14,6 +14,9 @@ export interface RawNode {
   // For an element inside a frame (target has more than one selector): the
   // host of the page loaded in that frame, such as www.youtube.com.
   frameHost?: string;
+  // A screenshot of the element, taken by the testing agent. The site stores
+  // the image in scan_shots under this id.
+  shot?: string;
 }
 
 export interface RawRule {
@@ -36,6 +39,8 @@ export interface RawPage {
   incomplete: RawRule[];
   passes: { id: string; nodeCount: number }[];
   inapplicable: string[];
+  // What the testing agent did on this page. Missing when it did not run.
+  agent?: AgentPageResult;
 }
 
 export interface RawScan {
@@ -46,6 +51,35 @@ export interface RawScan {
   startedAt: string;
   finishedAt: string;
   pages: RawPage[];
+  // Set when the testing agent ran: the model and the tokens it used.
+  agent?: { model: string; usage: AgentUsage };
 }
 
 export type ScanStatus = "queued" | "running" | "complete" | "failed";
+
+export interface AgentUsage {
+  inputTokens: number;
+  outputTokens: number;
+  cacheReadTokens: number;
+  cacheWriteTokens: number;
+}
+
+export type AgentReviewKind = "image-description" | "link-purpose" | "heading-fit" | "error-help" | "captions";
+
+// A judgement finding both AI passes agreed on. Never counted in the score.
+export interface AgentReview {
+  kind: AgentReviewKind;
+  selector: string;
+  html: string;
+  reason: string;
+  shot?: string;
+}
+
+export interface AgentPageResult {
+  status: "tested" | "partly" | "failed" | "off";
+  // "step limit", "time limit", "model error", "declined"
+  reason?: string;
+  steps: number;
+  reviews: AgentReview[];
+  usage: AgentUsage;
+}

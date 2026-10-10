@@ -121,7 +121,7 @@ interface AgentPageResult {
 }
 ```
 
-The `RawScan` gains `agent?: { model: string; usage: {...}; costUsd: number }`. Screenshots are not stored inside `raw`. The worker sends them separately, and the site keeps them in a `scan_shots` table, so `raw` stays under its size limit.
+The `RawScan` gains `agent?: { model: string; usage: AgentUsage }`. The site works out the cost from the tokens and its price settings (phase 2), so the worker never needs prices. Screenshots are not stored inside `raw`. The worker sends them separately, and the site keeps them in a `scan_shots` table, so `raw` stays under its size limit.
 
 ### 3.7 Free scan time
 
