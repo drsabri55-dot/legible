@@ -1,10 +1,14 @@
 import "server-only";
 import type { JSONValue } from "postgres";
-import type { RawScan, ScanStatus } from "@/types/scan";
+import type { AgentUsage, RawScan, ScanStatus } from "@/types/scan";
 import type { FreeSummary } from "./report/model";
 import { db } from "./db";
 
 // Every database query the site makes lives in this file.
+
+// Whether a free scan was sent with the testing agent (see src/lib/spend.ts).
+export type AgentMode = "on" | "capped" | "off";
+export type SpendKind = "free" | "paid" | "chat_free" | "chat_paid";
 
 export interface ScanRow {
   id: string;
@@ -18,6 +22,7 @@ export interface ScanRow {
   summary: FreeSummary | null;
   lead_email: string | null;
   paid_at: Date | null;
+  agent: AgentMode;
   created_at: Date;
   finished_at: Date | null;
 }
@@ -44,15 +49,21 @@ export interface UserRow {
 
 const SCAN_COLUMNS = [
   "id", "url", "host", "status", "error", "pages_done", "pages_total",
-  "score", "summary", "lead_email", "paid_at", "created_at", "finished_at",
+  "score", "summary", "lead_email", "paid_at", "agent", "created_at", "finished_at",
 ];
 
 // ── scans ────────────────────────────────────────────────────────────
 
-export async function createScan(input: { url: string; host: string; ipHash: string | null }): Promise<ScanRow> {
+export async function createScan(input: {
+  url: string;
+  host: string;
+  ipHash: string | null;
+  agent?: AgentMode;
+}): Promise<ScanRow> {
   const sql = db();
   const [row] = await sql<ScanRow[]>`
-    insert into scans (url, host, ip_hash) values (${input.url}, ${input.host}, ${input.ipHash})
+    insert into scans (url, host, ip_hash, agent)
+    values (${input.url}, ${input.host}, ${input.ipHash}, ${input.agent ?? "off"})
     returning ${sql(SCAN_COLUMNS)}`;
   return row;
 }
@@ -158,6 +169,35 @@ export async function isBlockedHost(host: string): Promise<boolean> {
 
 export async function setLeadEmail(scanId: string, email: string): Promise<void> {
   await db()`update scans set lead_email = ${email} where id = ${scanId}`;
+}
+
+// ── agent spend ──────────────────────────────────────────────────────
+
+// A free or paid scan run is charged once (a unique index refuses a repeat).
+export async function recordScanSpend(input: {
+  scanId: string;
+  kind: SpendKind;
+  model: string;
+  usage: AgentUsage;
+  costUsd: number | null;
+}): Promise<boolean> {
+  const u = input.usage;
+  const rows = await db()`
+    insert into agent_spend (scan_id, kind, model, input_tokens, output_tokens, cache_read_tokens, cache_write_tokens, cost_usd)
+    values (${input.scanId}, ${input.kind}, ${input.model}, ${u.inputTokens}, ${u.outputTokens},
+            ${u.cacheReadTokens}, ${u.cacheWriteTokens}, ${input.costUsd})
+    on conflict do nothing
+    returning id`;
+  return rows.length > 0;
+}
+
+// Free scans and free chat since midnight UTC.
+export async function freeSpendTodayUsd(): Promise<number> {
+  const [row] = await db()<{ total: string | null }[]>`
+    select sum(cost_usd) as total from agent_spend
+    where kind in ('free', 'chat_free')
+      and created_at >= date_trunc('day', now() at time zone 'utc') at time zone 'utc'`;
+  return Number(row?.total ?? 0);
 }
 
 // ── users ────────────────────────────────────────────────────────────
