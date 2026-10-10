@@ -16,6 +16,7 @@ approved design and landing copy: `docs/superpowers/specs/2026-09-19-legible-des
 - `npm test` (Vitest: unit + database tests against a throwaway embedded Postgres) · one file: `npx vitest run tests/unit/model.test.ts` · one test: `-t "name"`
 - `npm --prefix worker test` (real Chromium scan of `tests/fixtures/site`) · `npm run test:e2e` (Playwright, builds the site) · one: `npx playwright test tests/e2e/landing.spec.ts -g "320px"`
 - `npm run qa -- site.com other.com` scans real sites through the real scanner + report builder and prints what a customer sees.
+- `npm --prefix worker run scan -- https://site.com --agent` runs one scan with the testing agent (needs `ANTHROPIC_API_KEY` in `worker/.env`); screenshots go to the system temp folder.
 - `npm run db:migrate` applies `supabase/migrations/*.sql` to `DATABASE_URL`, tracked in `schema_migrations`.
 
 ## Architecture
@@ -23,6 +24,12 @@ Three processes: the Next.js site (Vercel), the scan worker (`worker/`, Railway 
 - **Scan:** `POST /api/scans` → `startScan` (`src/lib/scans.ts`: URL rules, block list, rate limits, DNS check) → `dispatchScan` → worker
   `/jobs/scan` (queue of 2) → `scanSite` → callbacks to `/api/worker/scans/[id]` (Bearer `WORKER_SECRET`) → `buildReport`/`freeSummary`
   → `scans.raw` + `scans.summary`. The result page polls `/api/scans/[id]` and refreshes.
+- **Testing agent** (`worker/src/agent/`): after axe-core, `runAgentOnPage` measures keyboard traps, focus visibility, reflow at 320px,
+  text spacing and unreachable clickable elements (`measure.ts`, no AI), then Claude (`AGENT_MODEL`, default `claude-sonnet-5-5`) uses
+  the page by keyboard (`actions.ts`) behind `guard.ts` (no non-GET requests, no leaving the site). Claims count only when `measure.ts`
+  confirms them; judgement findings need a second, independent model pass (`review.ts`) and go to "The agent's review", never the
+  score. Results reuse `RawRule` ids `legible-*`; screenshots go to `scan_shots`. Runs only when a job sends `agent: true` and
+  `ANTHROPIC_API_KEY` is set; the site does not send it until the phase 2 spending cap exists. Tests use `ReplayModel`.
 - **Reports are computed, never stored:** `buildReport(raw)` in `src/lib/report/model.ts` is pure; the report page and PDF rebuild from
   `scans.raw`. PDFs are rendered on demand by the worker's `/pdf`, which prints `/report/[token]?print=1` (only on `APP_URL`).
 - **Payment:** `/api/checkout` → Stripe Checkout (or `/checkout/dev` when `ALLOW_FAKE_PAYMENTS=true` and no key). The webhook and

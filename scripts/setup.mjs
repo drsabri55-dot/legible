@@ -43,6 +43,7 @@ if (!existsSync("worker/.env")) {
 WORKER_SECRET=${match ? match[1] : workerSecret}
 APP_URL=http://localhost:3000
 MAX_CONCURRENT_SCANS=2
+# ANTHROPIC_API_KEY=   (paste your own key here to run the testing agent)
 `,
   );
   console.log("created worker/.env");
