@@ -4,6 +4,8 @@ import { chromium, type Browser, type BrowserContext, type Frame, type Page } fr
 import { allowPrivateTargets, classifyHost, makeHostGuard } from "./net";
 import { BOT_NAME, loadRobots } from "./robots";
 import type { RawNode, RawPage, RawRule, RawScan } from "./types";
+import { addUsage, emptyUsage, type AgentModel } from "./agent/model";
+import { AGENT_BUDGET_MS, runAgentOnPage } from "./agent/run";
 
 export const MAX_PAGES = 6;
 // Page loads allowed after the home page, including ones that fail.
@@ -244,7 +246,7 @@ function withTimeout<T>(promise: Promise<T>, ms: number, code: string): Promise<
   ]).finally(() => clearTimeout(timer));
 }
 
-async function scanPage(context: BrowserContext, url: string, first: boolean) {
+async function scanPage(context: BrowserContext, url: string, first: boolean, opts: ScanOptions = {}) {
   const page = await context.newPage();
   try {
     return await withTimeout(
@@ -288,10 +290,17 @@ async function scanPage(context: BrowserContext, url: string, first: boolean) {
         const links = first ? await collectLinks(page, new URL(finalUrl)) : [];
         const raw = toRawPage(finalUrl, heading, axe);
         await addFrameHosts(page, raw.violations);
+        if (opts.agent) {
+          const outcome = await runAgentOnPage(page, { model: opts.agent, onShot: opts.onShot });
+          raw.violations.push(...outcome.violations);
+          raw.incomplete.push(...outcome.incomplete);
+          raw.passes.push(...outcome.passes);
+          raw.agent = outcome.result;
+        }
         const signature = (await page.evaluate(PAGE_SIGNATURE).catch(() => null)) as string | null;
         return { raw, links, finalUrl, signature };
       })(),
-      PAGE_TIMEOUT_MS + 5000,
+      PAGE_TIMEOUT_MS + 5000 + (opts.agent ? AGENT_BUDGET_MS + 30_000 : 0),
       "timeout",
     );
   } finally {
@@ -319,6 +328,9 @@ export function fitPayload(raw: RawScan): RawScan {
 export interface ScanOptions {
   onProgress?: (done: number, total: number) => void | Promise<void>;
   pauseMs?: number;
+  // The testing agent: runs on every page after axe-core when given.
+  agent?: AgentModel;
+  onShot?: (id: string, jpeg: Buffer) => void | Promise<void>;
 }
 
 export async function scanSite(startUrl: string, opts: ScanOptions = {}): Promise<RawScan> {
@@ -361,7 +373,7 @@ export async function scanSite(startUrl: string, opts: ScanOptions = {}): Promis
   let finalUrl = start.toString();
   try {
     // If the start page fails, the whole scan fails with its reason.
-    const home = await scanPage(context, start.toString(), true);
+    const home = await scanPage(context, start.toString(), true, opts);
     pages.push(home.raw);
     finalUrl = home.finalUrl;
     const homeUrl = new URL(finalUrl);
@@ -390,7 +402,7 @@ export async function scanSite(startUrl: string, opts: ScanOptions = {}): Promis
       attempts++;
       await new Promise((r) => setTimeout(r, Math.max(opts.pauseMs ?? PAUSE_BETWEEN_PAGES_MS, robots.crawlDelayMs)));
       try {
-        const result = await scanPage(context, link, false);
+        const result = await scanPage(context, link, false, opts);
         const landed = new URL(result.finalUrl);
         if (!sameSite(landed.hostname, homeUrl.hostname)) continue; // redirected to another website
         const key = pageKey(landed);
@@ -420,7 +432,7 @@ export async function scanSite(startUrl: string, opts: ScanOptions = {}): Promis
   // Scanned pages first, in scan order; skipped and failed ones after.
   pages.sort((a, b) => Number(a.status !== "scanned") - Number(b.status !== "scanned"));
 
-  return fitPayload({
+  const raw: RawScan = {
     version: 1,
     startUrl: start.toString(),
     finalUrl,
@@ -428,5 +440,12 @@ export async function scanSite(startUrl: string, opts: ScanOptions = {}): Promis
     startedAt,
     finishedAt: new Date().toISOString(),
     pages,
-  });
+  };
+  if (opts.agent) {
+    raw.agent = {
+      model: opts.agent.name,
+      usage: pages.reduce((u, p) => (p.agent ? addUsage(u, p.agent.usage) : u), emptyUsage()),
+    };
+  }
+  return fitPayload(raw);
 }
