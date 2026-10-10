@@ -203,3 +203,142 @@ export async function trapFrom(page: Page, selector: string): Promise<Measured |
   if (set.length > TRAP_SET || set.includes("(page)")) return null;
   return confirmTrap(page, set, html);
 }
+
+// 320 CSS pixels wide is 400% zoom on a 1280 pixel window (WCAG 1.4.10).
+const REFLOW = { width: 320, height: 800 };
+// Content WCAG allows to need two-dimensional scrolling.
+const REFLOW_ALLOWED = "table, pre, code, video, canvas, svg, img, iframe, map, [role=grid], [role=table]";
+
+const REFLOW_SCRIPT = `(function () {
+  ${SELECTOR_FN}
+  var vw = document.documentElement.clientWidth;
+  if (document.documentElement.scrollWidth <= vw + 4) return [];
+  var out = [], all = document.body.querySelectorAll('*');
+  for (var i = 0; i < all.length && out.length < 5; i++) {
+    var el = all[i], r = el.getBoundingClientRect();
+    if (r.width < 1 || r.height < 1 || r.right <= vw + 4) continue;
+    var s = getComputedStyle(el);
+    if (s.position === 'fixed' || s.visibility === 'hidden') continue;
+    var covered = false;
+    for (var j = 0; j < out.length; j++) if (out[j].el.contains(el)) covered = true;
+    if (covered) continue;
+    var allowed = !!(el.closest(${JSON.stringify(REFLOW_ALLOWED)}) || el.querySelector(${JSON.stringify(REFLOW_ALLOWED)}) && el.innerText.trim() === '');
+    out.push({ el: el, selector: __sel(el), html: el.outerHTML.slice(0, 300), allowed: allowed, right: Math.round(r.right) });
+  }
+  return out.map(function (o) { return { selector: o.selector, html: o.html, allowed: o.allowed, right: o.right, width: vw }; });
+})()`;
+
+export async function measureReflow(page: Page): Promise<Measured[]> {
+  const before = page.viewportSize() ?? { width: 1280, height: 900 };
+  await page.setViewportSize(REFLOW);
+  await page.waitForTimeout(300);
+  try {
+    const hits = (await page.evaluate(REFLOW_SCRIPT)) as {
+      selector: string;
+      html: string;
+      allowed: boolean;
+      right: number;
+      width: number;
+    }[];
+    return hits.map((h) => ({
+      kind: "reflow" as const,
+      verdict: h.allowed ? ("review" as const) : ("fail" as const),
+      selector: h.selector,
+      html: h.html,
+      detail: `At 400% zoom the window is ${h.width} pixels wide and this element reaches ${h.right} pixels, so people must scroll sideways.`,
+    }));
+  } finally {
+    await page.setViewportSize(before);
+  }
+}
+
+// WCAG 1.4.12's test values.
+export const TEXT_SPACING_CSS =
+  "* { line-height: 1.5 !important; letter-spacing: 0.12em !important; word-spacing: 0.16em !important; } p { margin-bottom: 2em !important; }";
+
+const SPACING_ON = `(function () {
+  var s = document.createElement('style');
+  s.id = 'legible-text-spacing';
+  s.textContent = ${JSON.stringify(TEXT_SPACING_CSS)};
+  document.head.appendChild(s);
+})()`;
+const SPACING_OFF = "(function () { var s = document.getElementById('legible-text-spacing'); if (s) s.remove(); })()";
+
+const CLIPPED_SCRIPT = `(function () {
+  ${SELECTOR_FN}
+  var out = [], all = document.body.querySelectorAll('*');
+  for (var i = 0; i < all.length && out.length < 20; i++) {
+    var el = all[i], s = getComputedStyle(el);
+    if (s.overflow === 'visible' && s.overflowX === 'visible' && s.overflowY === 'visible') continue;
+    var hasText = false;
+    for (var k = 0; k < el.childNodes.length; k++) if (el.childNodes[k].nodeType === 3 && el.childNodes[k].textContent.trim()) hasText = true;
+    if (!hasText) continue;
+    if (el.scrollHeight > el.clientHeight + 2 || el.scrollWidth > el.clientWidth + 2) {
+      out.push({ selector: __sel(el), html: el.outerHTML.slice(0, 300) });
+    }
+  }
+  return out;
+})()`;
+
+export async function measureTextSpacing(page: Page): Promise<Measured[]> {
+  // Boxes that already clip without the extra spacing are not this problem.
+  const before = new Set(((await page.evaluate(CLIPPED_SCRIPT)) as { selector: string }[]).map((c) => c.selector));
+  await page.evaluate(SPACING_ON);
+  try {
+    const after = (await page.evaluate(CLIPPED_SCRIPT)) as { selector: string; html: string }[];
+    return after
+      .filter((c) => !before.has(c.selector))
+      .map((c) => ({
+        kind: "text-spacing" as const,
+        verdict: "review" as const,
+        selector: c.selector,
+        html: c.html,
+        detail: "With wider line, letter and word spacing, this text no longer fits its box and is cut off.",
+      }));
+  } finally {
+    await page.evaluate(SPACING_OFF);
+  }
+}
+
+// Elements with their own click handler and a pointer cursor that cannot take
+// focus. getEventListeners exists only in the DevTools console, so this runs
+// through the Chrome DevTools Protocol.
+const REACH_SCRIPT = `(function () {
+  ${SELECTOR_FN}
+  var native = 'a[href], button, input, select, textarea, summary, [tabindex], [contenteditable=""], [contenteditable="true"]';
+  var out = [], all = document.body.querySelectorAll('*');
+  for (var i = 0; i < all.length && out.length < 20; i++) {
+    var el = all[i];
+    if (el.matches(native) || el.closest(native)) continue;
+    var r = el.getBoundingClientRect();
+    if (r.width < 1 || r.height < 1) continue;
+    if (getComputedStyle(el).cursor !== 'pointer') continue;
+    var l = getEventListeners(el);
+    if (!(l.click && l.click.length) && !(l.mousedown && l.mousedown.length) && !(l.pointerdown && l.pointerdown.length)) continue;
+    out.push({ selector: __sel(el), html: el.outerHTML.slice(0, 300) });
+  }
+  return out;
+})()`;
+
+export async function measureKeyboardReach(page: Page, reached: string[]): Promise<Measured[]> {
+  const cdp = await page.context().newCDPSession(page);
+  try {
+    const res = (await cdp.send("Runtime.evaluate", {
+      expression: REACH_SCRIPT,
+      includeCommandLineAPI: true,
+      returnByValue: true,
+    })) as { result?: { value?: { selector: string; html: string }[] } };
+    const hits = res.result?.value ?? [];
+    return hits
+      .filter((h) => !reached.includes(h.selector))
+      .map((h) => ({
+        kind: "keyboard-reach" as const,
+        verdict: "review" as const,
+        selector: h.selector,
+        html: h.html,
+        detail: "This element reacts to a click and shows a pointer, but the Tab key never reaches it.",
+      }));
+  } finally {
+    await cdp.detach().catch(() => {});
+  }
+}
