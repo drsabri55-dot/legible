@@ -41,6 +41,8 @@ export const env = {
       .map((e) => e.trim().toLowerCase())
       .filter(Boolean),
   cronSecret: () => required("CRON_SECRET"),
+  // The same Anthropic key the worker has. Without it the site keeps the agent off.
+  anthropicApiKey: () => process.env.ANTHROPIC_API_KEY || "",
   // Testing agent spending. Prices have no defaults: without them the agent stays off.
   agentPriceInputPerMtok: () => process.env.AGENT_PRICE_INPUT_PER_MTOK || "",
   agentPriceOutputPerMtok: () => process.env.AGENT_PRICE_OUTPUT_PER_MTOK || "",

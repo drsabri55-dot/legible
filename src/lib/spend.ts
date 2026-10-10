@@ -48,7 +48,7 @@ export function decideFreeAgent(input: {
 }
 
 export async function freeAgentMode(): Promise<AgentMode> {
-  if (!agentPrices()) return "off";
+  if (!env.anthropicApiKey() || !agentPrices()) return "off";
   const [spent, inFlight, averageScanCost] = await Promise.all([
     freeSpendTodayUsd(),
     freeAgentScansInFlight(),

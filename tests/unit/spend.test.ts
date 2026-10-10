@@ -8,6 +8,8 @@ const usage = { inputTokens: 1000, outputTokens: 100, cacheReadTokens: 0, cacheW
 
 beforeAll(async () => {
   process.env.DATABASE_URL = inject("databaseUrl");
+  // Never sent anywhere: the site only checks that a key is set.
+  process.env.ANTHROPIC_API_KEY = "test-key-never-sent";
   data = await import("@/lib/data");
 });
 
@@ -215,5 +217,21 @@ describe("scans still running count against the cap", () => {
     const avg = await data.averageFreeScanCostUsd();
     expect(avg).not.toBeNull();
     expect(avg!).toBeGreaterThanOrEqual(0);
+  });
+});
+
+describe("the site's own key", () => {
+  it("keeps the agent off without ANTHROPIC_API_KEY, so the scanning page never promises tests that will not run", async () => {
+    const { freeAgentMode } = await import("@/lib/spend");
+    process.env.AGENT_PRICE_INPUT_PER_MTOK = "2";
+    process.env.AGENT_PRICE_OUTPUT_PER_MTOK = "10";
+    process.env.AGENT_DAILY_CAP_USD = "1000000";
+    delete process.env.ANTHROPIC_API_KEY;
+    expect(await freeAgentMode()).toBe("off");
+    process.env.ANTHROPIC_API_KEY = "test-key-never-sent";
+    expect(await freeAgentMode()).toBe("on");
+    delete process.env.AGENT_PRICE_INPUT_PER_MTOK;
+    delete process.env.AGENT_PRICE_OUTPUT_PER_MTOK;
+    delete process.env.AGENT_DAILY_CAP_USD;
   });
 });

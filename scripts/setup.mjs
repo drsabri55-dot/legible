@@ -28,7 +28,8 @@ RESEND_API_KEY=
 EMAIL_FROM="Legible <reports@example.com>"
 CRON_SECRET=${secret()}
 ALLOW_FAKE_PAYMENTS=true
-# Testing agent: paste the prices per million tokens from the Anthropic pricing page.
+# Testing agent: paste your Anthropic key and the prices per million tokens from the Anthropic pricing page.
+# ANTHROPIC_API_KEY=
 # AGENT_PRICE_INPUT_PER_MTOK=
 # AGENT_PRICE_OUTPUT_PER_MTOK=
 # AGENT_DAILY_CAP_USD=10
