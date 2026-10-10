@@ -28,6 +28,7 @@ it("keeps a finding only when the second pass agrees, using the page's real code
   const sent = JSON.stringify(agree.requests[0].messages);
   expect(sent).toContain("image123");
   expect(sent).toContain('"type":"image"');
+  expect(sent).not.toContain("Alt is image123"); // judged afresh, not told the first answer
 
   const disagree = new ReplayModel([{ calls: [{ name: "verdict", input: { problem: false, reason: "Fine." } }] }]);
   expect((await secondOpinion(disagree, page, { kind: "link-purpose", selector: "#more", reason: "Click here" })).review).toBeNull();

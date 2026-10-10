@@ -163,6 +163,7 @@ describe("runAgentOnPage time budget", () => {
     expect(Date.now() - started).toBeLessThan(10_000);
     expect(out.result).toMatchObject({ status: "partly", reason: "time limit" });
     expect(model.requests.length).toBe(0);
+    expect(out.passes).toEqual([]); // nothing finished, so nothing passed
     await page.close();
   });
 
@@ -173,6 +174,15 @@ describe("runAgentOnPage time budget", () => {
     await runAgentOnPage(page, { model, loopMs: 20_000 });
     expect(model.requests[0].deadline).toBeGreaterThan(started);
     expect(model.requests[0].deadline!).toBeLessThanOrEqual(Date.now() + 20_000);
+    await page.close();
+  });
+});
+
+describe("runAgentOnPage passes", () => {
+  it("passes only what it actually tested", async () => {
+    const page = await open("spacing"); // nothing on it takes focus
+    const out = await runAgentOnPage(page, { model: new ReplayModel([{ calls: [{ name: "done", input: { summary: "ok" } }] }]) });
+    expect(out.passes.map((p) => p.id)).toEqual(["legible-reflow"]);
     await page.close();
   });
 });

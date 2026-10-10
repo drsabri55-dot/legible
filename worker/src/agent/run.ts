@@ -30,8 +30,9 @@ const RULES: Record<MeasuredKind, { impact: string; tags: string[]; help: string
   "keyboard-reach": { impact: "serious", tags: ["wcag2a", "wcag211"], help: "Something clickable cannot be reached with the keyboard", slug: "keyboard" },
   "text-spacing": { impact: "moderate", tags: ["wcag21aa", "wcag1412"], help: "Text is cut off when spacing is increased", slug: "text-spacing" },
 };
-// Measurements that can prove a failure. A page where they ran and found
-// nothing passes them, so the score counts them like axe-core rules.
+// Measurements that can prove a failure. A page where they ran to the end
+// and found nothing passes them, so the score counts them like axe-core
+// rules. A check that could not run, or did not finish, passes nothing.
 const SCORED: MeasuredKind[] = ["keyboard-trap", "focus-visible", "reflow"];
 
 export interface AgentOptions {
@@ -73,7 +74,7 @@ function dedupe(found: Measured[]): Measured[] {
   return [...byKey.values()];
 }
 
-async function toRules(found: Measured[], onShot: AgentOptions["onShot"]) {
+async function toRules(found: Measured[], tested: Set<MeasuredKind>, onShot: AgentOptions["onShot"]) {
   const violations: RawRule[] = [];
   const incomplete: RawRule[] = [];
   for (const verdict of ["fail", "review"] as const) {
@@ -105,7 +106,8 @@ async function toRules(found: Measured[], onShot: AgentOptions["onShot"]) {
     }
   }
   const failed = new Set(violations.map((v) => v.id));
-  const passes = SCORED.map((k) => `legible-${k}`)
+  const passes = SCORED.filter((k) => tested.has(k))
+    .map((k) => `legible-${k}`)
     .filter((id) => !failed.has(id))
     .map((id) => ({ id, nodeCount: 1 }));
   return { violations, incomplete, passes };
@@ -118,6 +120,7 @@ export async function runAgentOnPage(page: Page, opts: AgentOptions): Promise<Ag
   const url = page.url();
   let usage = emptyUsage();
   const found: Measured[] = [];
+  const tested = new Set<MeasuredKind>();
   const judged: { kind: AgentReviewKind; selector: string; reason: string }[] = [];
   const reviews: AgentReview[] = [];
   let steps = 0;
@@ -129,8 +132,15 @@ export async function runAgentOnPage(page: Page, opts: AgentOptions): Promise<Ag
     // 1. Measure what can be proven on the page as it loaded.
     const walk = await keyboardWalk(page, { deadline: Math.min(budgetEnd, started + WALK_MS) });
     found.push(...walk.findings);
+    if (walk.complete && walk.reached.length) {
+      tested.add("keyboard-trap");
+      tested.add("focus-visible");
+    }
     if (Date.now() < budgetEnd) found.push(...(await measureKeyboardReach(page, walk.reached)));
-    if (Date.now() < budgetEnd) found.push(...(await measureReflow(page)));
+    if (Date.now() < budgetEnd) {
+      found.push(...(await measureReflow(page)));
+      tested.add("reflow");
+    }
     if (Date.now() < budgetEnd) found.push(...(await measureTextSpacing(page)));
     await page.evaluate("document.activeElement && document.activeElement.blur(); window.scrollTo(0, 0)");
 
@@ -241,6 +251,6 @@ export async function runAgentOnPage(page: Page, opts: AgentOptions): Promise<Ag
     if (state.zoomed) await page.setViewportSize(WIDE).catch(() => {});
     await release().catch(() => {});
   }
-  const rules = await toRules(dedupe(found), opts.onShot);
+  const rules = await toRules(dedupe(found), tested, opts.onShot);
   return { result: { status, ...(reason ? { reason } : {}), steps, reviews, usage }, ...rules };
 }

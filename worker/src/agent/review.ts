@@ -7,7 +7,7 @@ import type { AgentReview, AgentReviewKind, AgentUsage } from "../types";
 import { elementInfoScript } from "./dom";
 import { emptyUsage, type AgentModel } from "./model";
 
-export const REVIEW_PROMPT = `You are a careful accessibility reviewer. Another reviewer flagged one element on a web page. Decide on your own whether it is a real problem for a disabled person under WCAG 2.1 Level AA. Answer with the verdict tool. Say problem: false when you are not sure. Keep the reason to one or two short sentences in plain English, written for a small business owner.`;
+export const REVIEW_PROMPT = `You are a careful accessibility reviewer. Another reviewer flagged one element on a web page for the problem in the question. Decide on your own whether it is a real problem for a disabled person under WCAG 2.1 Level AA. Answer with the verdict tool. Say problem: false when you are not sure. Keep the reason to one or two short sentences in plain English, written for a small business owner.`;
 
 const VERDICT_TOOL: Anthropic.Tool = {
   name: "verdict",
@@ -45,7 +45,8 @@ export async function secondOpinion(
   if (shot) content.push({ type: "image", source: { type: "base64", media_type: "image/jpeg", data: shot.toString("base64") } });
   content.push({
     type: "text",
-    text: `${QUESTION[j.kind]}\n\nElement code:\n${info.html}\n\nIts text: "${info.text}"\nText around it: "${info.around}"${info.alt !== null ? `\nAlt text: "${info.alt}"` : ""}\n\nThe first reviewer said: ${j.reason}`,
+    // The first reviewer's reason is left out, so this pass judges afresh.
+    text: `${QUESTION[j.kind]}\n\nElement code:\n${info.html}\n\nIts text: "${info.text}"\nText around it: "${info.around}"${info.alt !== null ? `\nAlt text: "${info.alt}"` : ""}`,
   });
   const turn = await model.turn({ system: REVIEW_PROMPT, tools: [VERDICT_TOOL], messages: [{ role: "user", content }], deadline });
   const call = turn.content.find((b): b is Anthropic.ToolUseBlock => b.type === "tool_use" && b.name === "verdict");
