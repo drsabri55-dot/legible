@@ -1,0 +1,11 @@
+<!doctype html>
+<html lang="en">
+  <head><meta charset="utf-8" /><title>Reach</title></head>
+  <body>
+    <a href="#a">A real link</a>
+    <div id="fake" style="cursor: pointer; padding: 8px; border: 1px solid #333; width: 8rem">Open menu</div>
+    <script>
+      document.getElementById("fake").addEventListener("click", function () { this.textContent = "Opened"; });
+    </script>
+  </body>
+</html>

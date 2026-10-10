@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="en">
+  <head><meta charset="utf-8" /><title>Long</title></head>
+  <body>
+    <ul id="list"></ul>
+    <script>
+      var ul = document.getElementById("list");
+      for (var i = 1; i <= 200; i++) {
+        var li = document.createElement("li");
+        li.innerHTML = '<a href="#l' + i + '">Link ' + i + "</a>";
+        ul.appendChild(li);
+      }
+    </script>
+  </body>
+</html>

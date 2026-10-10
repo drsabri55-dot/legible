@@ -9,8 +9,15 @@ const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "site");
 const types = { ".html": "text/html; charset=utf-8", ".txt": "text/plain", ".png": "image/png" };
 
 export function serveFixture(port = Number(process.argv[2] || 5055)) {
+  let posts = 0;
   const server = createServer(async (req, res) => {
     const url = new URL(req.url || "/", "http://x");
+    // The testing agent must never submit anything: tests read this count.
+    if (url.pathname === "/__posts") return res.writeHead(200, { "content-type": "text/plain" }).end(String(posts));
+    if (req.method !== "GET" && req.method !== "HEAD") {
+      posts++;
+      return res.writeHead(200, { "content-type": "text/html" }).end("<!doctype html><title>Sent</title><p>Sent</p>");
+    }
     // A link that redirects back to the home page, and one that leaves the
     // site (127.0.0.1 and localhost count as different sites).
     if (url.pathname === "/home") return res.writeHead(302, { location: "/" }).end();

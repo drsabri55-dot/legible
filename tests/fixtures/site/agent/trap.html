@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+  <head><meta charset="utf-8" /><title>Trap</title></head>
+  <body>
+    <a href="#before">Before</a>
+    <div id="widget">
+      <button id="t1" type="button">One</button>
+      <button id="t2" type="button">Two</button>
+      <button id="t3" type="button">Three</button>
+    </div>
+    <a href="#after">After</a>
+    <script>
+      var b = Array.prototype.slice.call(document.querySelectorAll("#widget button"));
+      document.getElementById("widget").addEventListener("keydown", function (e) {
+        if (e.key !== "Tab") return;
+        e.preventDefault();
+        var i = b.indexOf(document.activeElement);
+        b[(i + (e.shiftKey ? b.length - 1 : 1)) % b.length].focus();
+      });
+    </script>
+  </body>
+</html>
