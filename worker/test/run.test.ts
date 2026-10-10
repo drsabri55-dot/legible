@@ -137,3 +137,20 @@ describe("runAgentOnPage when something breaks", () => {
     expect(out.violations.map((v) => v.id)).toEqual(["legible-reflow"]);
   });
 });
+
+describe("runAgentOnPage and other pages", () => {
+  it("is back on the page under test before the second opinions", async () => {
+    const page = await open("nav");
+    const wanderer = {
+      name: "wanderer",
+      turn: async () => {
+        await page.goto(`http://127.0.0.1:${PORT}/agent/clean.html`);
+        return { content: [{ type: "tool_use", id: "t1", name: "done", input: { summary: "ok" } }] as never, stopReason: "tool_use", usage: { inputTokens: 1, outputTokens: 1, cacheReadTokens: 0, cacheWriteTokens: 0 } };
+      },
+    };
+    await runAgentOnPage(page, { model: wanderer });
+    expect(new URL(page.url()).pathname).toBe("/agent/nav.html");
+    await page.close();
+  });
+});
+

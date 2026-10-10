@@ -68,6 +68,19 @@ describe("actions", () => {
     await page.close();
   });
 
+  it("waits for a slow page to open before coming back", async () => {
+    const page = await (await getBrowser()).newPage();
+    await page.goto(`${base}/agent/nav.html`);
+    const state: ActionState = { url: page.url(), zoomed: false, spaced: false };
+    await page.focus("#go-slow");
+    const r = await perform(page, "press", { key: "Enter" }, state);
+    expect(r.text).toContain("returned to the page under test");
+    expect(new URL(page.url()).pathname).toBe("/agent/nav.html");
+    await page.waitForTimeout(1500); // nothing left in flight lands later
+    expect(new URL(page.url()).pathname).toBe("/agent/nav.html");
+    await page.close();
+  });
+
   it("refuses unknown actions and bad values", async () => {
     const page = await (await getBrowser()).newPage();
     await page.goto(`${base}/agent/clean.html`);

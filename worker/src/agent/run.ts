@@ -6,7 +6,7 @@ import { randomUUID } from "node:crypto";
 import type Anthropic from "@anthropic-ai/sdk";
 import type { Page } from "playwright";
 import type { AgentPageResult, AgentReview, AgentReviewKind, RawNode, RawRule } from "../types";
-import { AGENT_TOOLS, CLAIM_KINDS, REVIEW_KINDS, pageOutlineScript, perform, type ActionState } from "./actions";
+import { AGENT_TOOLS, CLAIM_KINDS, REVIEW_KINDS, pageOutlineScript, perform, samePage, type ActionState } from "./actions";
 import { guardPage } from "./guard";
 import { keyboardWalk, measureFocusAt, measureKeyboardReach, measureReflow, measureTextSpacing, trapFrom, type Measured, type MeasuredKind } from "./measure";
 import { addUsage, emptyUsage, type AgentModel } from "./model";
@@ -206,6 +206,7 @@ export async function runAgentOnPage(page: Page, opts: AgentOptions): Promise<Ag
     }
 
     // 3. Put the page back as it loaded, then the second opinions.
+    if (!samePage(page.url(), url)) await page.goto(url, { waitUntil: "domcontentloaded", timeout: 30_000 });
     if (state.zoomed) await page.setViewportSize(WIDE).catch(() => {});
     await page.evaluate("(function () { var s = document.getElementById('legible-text-spacing'); if (s) s.remove(); })()").catch(() => {});
     if (status !== "failed") {

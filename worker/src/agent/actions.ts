@@ -46,7 +46,7 @@ export interface ActionState {
 const WIDE = { width: 1280, height: 900 };
 const NARROW = { width: 320, height: 800 };
 
-function samePage(a: string, b: string): boolean {
+export function samePage(a: string, b: string): boolean {
   const x = new URL(a);
   const y = new URL(b);
   return x.origin === y.origin && x.pathname === y.pathname && x.search === y.search;
@@ -73,8 +73,23 @@ export async function perform(
     case "press": {
       const key = args.key;
       if (!KEYS.includes(key as (typeof KEYS)[number])) return { ok: false, text: `Not a key you can press: ${String(key)}.` };
+      // Enter and Space can follow a link. Real servers take a while to
+      // answer, so watch for a page load starting, then wait for it to land.
+      const mayNavigate = key === "Enter" || key === "Space";
+      const started = mayNavigate
+        ? page.waitForRequest((r) => r.isNavigationRequest() && r.frame() === page.mainFrame(), { timeout: 700 }).catch(() => null)
+        : null;
       await page.keyboard.press(key as string);
-      await page.waitForTimeout(200);
+      const request = started ? await started : null;
+      if (request) {
+        await Promise.race([
+          page.waitForEvent("framenavigated", { predicate: (f) => f === page.mainFrame(), timeout: 15_000 }).catch(() => null),
+          page.waitForEvent("requestfailed", { predicate: (r) => r === request, timeout: 15_000 }).catch(() => null),
+        ]);
+        await page.waitForLoadState("domcontentloaded", { timeout: 10_000 }).catch(() => {});
+      } else {
+        await page.waitForTimeout(200);
+      }
       break;
     }
     case "type": {
