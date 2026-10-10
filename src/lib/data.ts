@@ -200,6 +200,25 @@ export async function freeSpendTodayUsd(): Promise<number> {
   return Number(row?.total ?? 0);
 }
 
+// Free agent scans sent to the worker but not charged yet. Older than the
+// stale-scan limit, they are treated as lost.
+export async function freeAgentScansInFlight(): Promise<number> {
+  const [row] = await db()<{ n: number }[]>`
+    select count(*)::int as n from scans s
+    where s.agent = 'on' and s.status in ('queued', 'running')
+      and s.created_at > now() - interval '90 minutes'
+      and not exists (select 1 from agent_spend a where a.scan_id = s.id and a.kind = 'free')`;
+  return row.n;
+}
+
+// What one free agent scan cost on average over the last 7 days; null before the first.
+export async function averageFreeScanCostUsd(): Promise<number | null> {
+  const [row] = await db()<{ avg: string | null }[]>`
+    select avg(cost_usd) as avg from agent_spend
+    where kind = 'free' and cost_usd is not null and created_at > now() - interval '7 days'`;
+  return row?.avg == null ? null : Number(row.avg);
+}
+
 // ── users ────────────────────────────────────────────────────────────
 
 export async function upsertUser(email: string): Promise<UserRow> {

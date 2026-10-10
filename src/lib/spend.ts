@@ -1,6 +1,6 @@
 import "server-only";
 import type { AgentUsage } from "@/types/scan";
-import { type AgentMode, freeSpendTodayUsd } from "./data";
+import { type AgentMode, averageFreeScanCostUsd, freeAgentScansInFlight, freeSpendTodayUsd } from "./data";
 import { env } from "./env";
 
 // What the testing agent costs, and whether a free scan may use it today.
@@ -31,8 +31,28 @@ export function dailyCapUsd(): number {
   return Number.isFinite(n) && n >= 0 ? n : 10;
 }
 
-// Free scans and free chat share the cap. At or over it, the agent is left out.
+// Free scans and free chat share the cap. Scans still running are charged only
+// when they finish, so they count at the recent average cost; before any cost
+// is known, at most two run at once (the worker's own limit). At or over the
+// cap, the agent is left out.
+export function decideFreeAgent(input: {
+  spent: number;
+  cap: number;
+  inFlight: number;
+  averageScanCost: number | null;
+}): AgentMode {
+  if (input.averageScanCost === null) {
+    return input.spent >= input.cap || input.inFlight >= 2 ? "capped" : "on";
+  }
+  return input.spent + input.inFlight * input.averageScanCost >= input.cap ? "capped" : "on";
+}
+
 export async function freeAgentMode(): Promise<AgentMode> {
   if (!agentPrices()) return "off";
-  return (await freeSpendTodayUsd()) >= dailyCapUsd() ? "capped" : "on";
+  const [spent, inFlight, averageScanCost] = await Promise.all([
+    freeSpendTodayUsd(),
+    freeAgentScansInFlight(),
+    averageFreeScanCostUsd(),
+  ]);
+  return decideFreeAgent({ spent, cap: dailyCapUsd(), inFlight, averageScanCost });
 }

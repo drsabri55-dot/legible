@@ -88,14 +88,15 @@ describe("prices and the daily cap", () => {
     expect(await freeAgentMode()).toBe("off");
 
     set({ AGENT_PRICE_INPUT_PER_MTOK: "2", AGENT_PRICE_OUTPUT_PER_MTOK: "10" });
-    const spent = await data.freeSpendTodayUsd();
-    set({ AGENT_DAILY_CAP_USD: String(spent + 1) });
-    expect(await freeAgentMode()).toBe("on");
     const scan = await data.createScan({ url: "https://cap.example/", host: "cap.example", ipHash: null, agent: "on" });
     await data.recordScanSpend({ scanId: scan.id, kind: "free", model: "m", usage, costUsd: 1 });
-    expect(await freeAgentMode()).toBe("capped");
-    set({ AGENT_DAILY_CAP_USD: String(spent + 1.000001) });
+    // Today's spend plus the scans still running, at the recent average cost.
+    const projected =
+      (await data.freeSpendTodayUsd()) + (await data.freeAgentScansInFlight()) * ((await data.averageFreeScanCostUsd()) ?? 0);
+    set({ AGENT_DAILY_CAP_USD: String(projected + 0.5) });
     expect(await freeAgentMode()).toBe("on");
+    set({ AGENT_DAILY_CAP_USD: String(projected) });
+    expect(await freeAgentMode()).toBe("capped");
     set({ AGENT_PRICE_INPUT_PER_MTOK: undefined, AGENT_PRICE_OUTPUT_PER_MTOK: undefined, AGENT_DAILY_CAP_USD: undefined });
   });
 });
@@ -182,5 +183,37 @@ describe("the worker's final message", () => {
     await post(scan.id, { type: "complete", raw: { ...sampleScan(), agent: { model: "m", usage: { inputTokens: 5, outputTokens: 5, cacheReadTokens: 0, cacheWriteTokens: 0 } } } });
     expect((await spendFor(scan.id))[0]).toMatchObject({ input_tokens: 5, cost_usd: null });
     delete process.env.AGENT_PRICE_OUTPUT_PER_MTOK;
+  });
+});
+
+describe("scans still running count against the cap", () => {
+  it("projects running agent scans at the recent average cost", async () => {
+    const { decideFreeAgent } = await import("@/lib/spend");
+    // Under the cap with nothing running.
+    expect(decideFreeAgent({ spent: 5, cap: 10, inFlight: 0, averageScanCost: 1 })).toBe("on");
+    // 5 spent + 4 running at $1 = 9: one more may start.
+    expect(decideFreeAgent({ spent: 5, cap: 10, inFlight: 4, averageScanCost: 1 })).toBe("on");
+    // 5 + 5 running = 10: at the cap, so no more.
+    expect(decideFreeAgent({ spent: 5, cap: 10, inFlight: 5, averageScanCost: 1 })).toBe("capped");
+    expect(decideFreeAgent({ spent: 10, cap: 10, inFlight: 0, averageScanCost: 1 })).toBe("capped");
+  });
+
+  it("allows only two agent scans at once before any cost is known", async () => {
+    const { decideFreeAgent } = await import("@/lib/spend");
+    expect(decideFreeAgent({ spent: 0, cap: 10, inFlight: 1, averageScanCost: null })).toBe("on");
+    expect(decideFreeAgent({ spent: 0, cap: 10, inFlight: 2, averageScanCost: null })).toBe("capped");
+  });
+
+  it("counts agent scans that have not been charged yet, and the recent average cost", async () => {
+    const before = await data.freeAgentScansInFlight();
+    const running = await data.createScan({ url: "https://f1.example/", host: "f1.example", ipHash: null, agent: "on" });
+    await data.createScan({ url: "https://f2.example/", host: "f2.example", ipHash: null, agent: "capped" });
+    expect(await data.freeAgentScansInFlight()).toBe(before + 1);
+    // Once charged (even while its result is still arriving) it no longer counts.
+    await data.recordScanSpend({ scanId: running.id, kind: "free", model: "m", usage, costUsd: 0 });
+    expect(await data.freeAgentScansInFlight()).toBe(before);
+    const avg = await data.averageFreeScanCostUsd();
+    expect(avg).not.toBeNull();
+    expect(avg!).toBeGreaterThanOrEqual(0);
   });
 });
