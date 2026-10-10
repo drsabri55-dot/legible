@@ -1,6 +1,6 @@
 import axe from "axe-core";
 import { describe, expect, it } from "vitest";
-import { CATALOGUE } from "@/lib/rules/catalogue";
+import { AGENT_RULE_IDS, CATALOGUE } from "@/lib/rules/catalogue";
 import { criteriaFromTags, understandingUrl, WCAG } from "@/lib/rules/wcag";
 
 const RULES = axe.getRules(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]);
@@ -31,6 +31,21 @@ describe("rule catalogue", () => {
       const text = `${info.title} ${info.summary} ${info.why} ${info.fix}`.toLowerCase();
       expect(text, id).not.toMatch(/\bcompliant\b|legally safe|guarantee/);
     }
+  });
+
+  it("explains every rule Legible's testing agent can report, with its WCAG criterion", () => {
+    expect(AGENT_RULE_IDS).toEqual([
+      "legible-keyboard-trap",
+      "legible-focus-visible",
+      "legible-reflow",
+      "legible-keyboard-reach",
+      "legible-text-spacing",
+    ]);
+    for (const id of AGENT_RULE_IDS) expect(CATALOGUE[id], id).toBeDefined();
+    expect(criteriaFromTags(["wcag2a", "wcag212"])).toEqual(["2.1.2"]);
+    expect(criteriaFromTags(["wcag2aa", "wcag247"])).toEqual(["2.4.7"]);
+    expect(criteriaFromTags(["wcag21aa", "wcag1410"])).toEqual(["1.4.10"]);
+    expect(understandingUrl("2.1.2")).toBe("https://www.w3.org/WAI/WCAG21/Understanding/no-keyboard-trap.html");
   });
 
   it("builds W3C Understanding links", () => {

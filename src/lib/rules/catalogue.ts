@@ -794,7 +794,72 @@ export const CATALOGUE: Record<string, RuleInfo> = {
     before: '<video src="/tour.mp4" controls></video>',
     after: '<video src="/tour.mp4" controls>\n  <track kind="captions" src="/tour.en.vtt" srclang="en" label="English">\n</video>',
   },
+  "legible-keyboard-trap": {
+    title: "Keyboard focus gets stuck",
+    summary: "Once the keyboard moves into this part of the page, Tab, Shift+Tab and Escape cannot move it out again.",
+    why: "People who cannot use a mouse are stuck. They cannot reach the rest of the page, and often have to reload it or give up.",
+    who: "People who use a keyboard, switch device or screen reader",
+    fix: "Let Tab and Shift+Tab move out of the widget. If it is a dialog, close it with Escape and return focus to the button that opened it.",
+    impact: "critical",
+    effort: "moderate",
+    before: "widget.addEventListener('keydown', e => { if (e.key === 'Tab') { e.preventDefault(); next().focus(); } });",
+    after: "// Only keep focus inside an open modal dialog, and close it on Escape.\ndialog.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });",
+  },
+  "legible-focus-visible": {
+    title: "You cannot see where keyboard focus is",
+    summary: "When this element receives keyboard focus, nothing on screen changes.",
+    why: "People using a keyboard cannot tell which link or button they are on, so they press the wrong one or get lost.",
+    who: "People who use a keyboard, including many with low vision or tremors",
+    fix: "Give focused elements a clear outline. Do not remove the browser's own outline unless you replace it with one at least as visible.",
+    impact: "serious",
+    effort: "quick",
+    before: "a:focus { outline: none; }",
+    after: "a:focus-visible { outline: 3px solid #1a4fd6; outline-offset: 2px; }",
+  },
+  "legible-reflow": {
+    title: "The page needs sideways scrolling at 400% zoom",
+    summary: "At 400% zoom, content is wider than the window, so people must scroll left and right to read each line.",
+    why: "People who zoom in to read lose their place on every line and can miss content off to the side.",
+    who: "People with low vision who zoom in",
+    fix: "Let content fit the window: use max-width instead of fixed widths, and let rows wrap at narrow widths.",
+    impact: "serious",
+    effort: "moderate",
+    before: '<div style="width: 900px">…</div>',
+    after: '<div style="max-width: 900px">…</div>',
+  },
+  "legible-keyboard-reach": {
+    title: "Something clickable may not be reachable by keyboard",
+    summary: "This element reacts to a mouse click, but the Tab key never reaches it.",
+    why: "If it does something people need, such as opening a menu, keyboard users cannot use it at all.",
+    who: "People who use a keyboard, switch device or screen reader",
+    fix: 'Use a real <button> or link for anything people click. If you must use another element, add tabindex="0", a role and keyboard handling for Enter and Space.',
+    impact: "serious",
+    effort: "quick",
+    before: '<div class="menu-toggle" onclick="openMenu()">Menu</div>',
+    after: '<button type="button" class="menu-toggle" onclick="openMenu()">Menu</button>',
+  },
+  "legible-text-spacing": {
+    title: "Text may be cut off when spacing is increased",
+    summary: "With wider line, letter and word spacing, this text no longer fits its box.",
+    why: "Some people with dyslexia or low vision set wider spacing to read. Fixed-height boxes then hide part of the text.",
+    who: "People who change text spacing to read more easily",
+    fix: "Let boxes grow with their text: avoid fixed heights on text, or use min-height instead.",
+    impact: "moderate",
+    effort: "quick",
+    before: '<div style="height: 22px; overflow: hidden">…</div>',
+    after: '<div style="min-height: 22px">…</div>',
+  },
 };
+
+// Rules measured by Legible's own testing agent (worker/src/agent), not by
+// axe-core. Their wording follows the same rules as the rest of the file.
+export const AGENT_RULE_IDS = [
+  "legible-keyboard-trap",
+  "legible-focus-visible",
+  "legible-reflow",
+  "legible-keyboard-reach",
+  "legible-text-spacing",
+] as const;
 
 export type IssueGroup = "must" | "should" | "nice";
 
