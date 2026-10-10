@@ -76,6 +76,9 @@ describe("targeted measurements", () => {
     expect(await measureFocusAt(page, "#bad")).toMatchObject({ kind: "focus-visible", verdict: "fail" });
     expect(await measureFocusAt(page, "#good")).toBeNull();
     expect(await measureFocusAt(page, "#missing")).toBeNull();
+    // Covered by something else, or invisible: nothing can be proven there.
+    expect(await measureFocusAt(page, "#covered")).toBeNull();
+    expect(await measureFocusAt(page, "#ghost")).toBeNull();
     await page.close();
     page = await open("trap");
     expect(await trapFrom(page, "#t2")).toMatchObject({ kind: "keyboard-trap", verdict: "fail" });

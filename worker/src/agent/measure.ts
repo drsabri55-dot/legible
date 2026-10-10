@@ -29,7 +29,8 @@ async function focused(page: Page): Promise<FocusInfo> {
   return (await page.evaluate(focusInfoScript()).catch(() => null)) as FocusInfo;
 }
 
-// The element's box plus 8 pixels, then up to three ancestors that hold no
+// Empty for an element that is invisible or covered by something else.
+// Otherwise the element's box plus 8 pixels, then up to three ancestors that hold no
 // other focusable element and cover at most a quarter of the window (a card
 // that shows the focus ring for its one link), clipped to the window. Empty
 // when the element is not visible.
@@ -37,6 +38,16 @@ function rectsScript(selector: string): string {
   return `(function () {
     var el; try { el = document.querySelector(${JSON.stringify(selector)}); } catch (e) { return []; }
     if (!el) return [];
+    // Not seen at all (invisible, or under a banner or overlay): a focus
+    // style could not show there either, so nothing can be proven.
+    for (var a = el; a && a.nodeType === 1; a = a.parentElement) {
+      var cs = getComputedStyle(a);
+      if (parseFloat(cs.opacity) === 0 || cs.visibility === 'hidden') return [];
+    }
+    var box = el.getBoundingClientRect();
+    var cx = box.left + box.width / 2, cy = box.top + box.height / 2;
+    var top = document.elementFromPoint(cx, cy);
+    if (!top || (top !== el && !el.contains(top))) return [];
     var vw = window.innerWidth, vh = window.innerHeight, out = [];
     var focusable = 'a[href], button, input:not([type=hidden]), select, textarea, [tabindex]:not([tabindex="-1"])';
     for (var depth = 0; el && el !== document.body && depth < 4; depth++, el = el.parentElement) {
