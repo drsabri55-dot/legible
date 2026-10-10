@@ -154,3 +154,26 @@ describe("runAgentOnPage and other pages", () => {
   });
 });
 
+describe("runAgentOnPage time budget", () => {
+  it("stops measuring and asking at its budget, and says so", async () => {
+    const page = await open("long");
+    const model = new ReplayModel([{ calls: [{ name: "press", input: { key: "Tab" } }] }]);
+    const started = Date.now();
+    const out = await runAgentOnPage(page, { model, budgetMs: 300 });
+    expect(Date.now() - started).toBeLessThan(10_000);
+    expect(out.result).toMatchObject({ status: "partly", reason: "time limit" });
+    expect(model.requests.length).toBe(0);
+    await page.close();
+  });
+
+  it("gives every model call a deadline inside the budget", async () => {
+    const page = await open("clean");
+    const model = new ReplayModel([{ calls: [{ name: "done", input: { summary: "ok" } }] }]);
+    const started = Date.now();
+    await runAgentOnPage(page, { model, loopMs: 20_000 });
+    expect(model.requests[0].deadline).toBeGreaterThan(started);
+    expect(model.requests[0].deadline!).toBeLessThanOrEqual(Date.now() + 20_000);
+    await page.close();
+  });
+});
+

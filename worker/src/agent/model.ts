@@ -7,6 +7,8 @@ export interface ModelRequest {
   system: string;
   tools: Anthropic.Tool[];
   messages: Anthropic.MessageParam[];
+  // Epoch milliseconds: the answer is no use after this.
+  deadline?: number;
 }
 
 export interface ModelTurn {
@@ -56,7 +58,11 @@ export class AnthropicModel implements AgentModel {
       system: req.system,
       messages: req.messages,
     };
-    const res = (await this.client.messages.create(body as never, { timeout: 60_000, maxRetries: 2 } as never)) as Anthropic.Message;
+    // One retry at most, and never past the deadline: the page's budget is
+    // what keeps a slow model from costing the whole scan.
+    const left = req.deadline ? req.deadline - Date.now() : 60_000;
+    const timeout = Math.max(1000, Math.min(60_000, left));
+    const res = (await this.client.messages.create(body as never, { timeout, maxRetries: 1 } as never)) as Anthropic.Message;
     return {
       content: res.content,
       stopReason: res.stop_reason,

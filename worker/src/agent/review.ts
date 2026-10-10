@@ -34,6 +34,7 @@ export async function secondOpinion(
   model: AgentModel,
   page: Page,
   j: { kind: AgentReviewKind; selector: string; reason: string },
+  deadline?: number,
 ): Promise<{ review: AgentReview | null; shot?: Buffer; usage: AgentUsage }> {
   const info = (await page.evaluate(elementInfoScript(j.selector)).catch(() => null)) as Info | null;
   if (!info || !QUESTION[j.kind]) return { review: null, usage: emptyUsage() };
@@ -46,7 +47,7 @@ export async function secondOpinion(
     type: "text",
     text: `${QUESTION[j.kind]}\n\nElement code:\n${info.html}\n\nIts text: "${info.text}"\nText around it: "${info.around}"${info.alt !== null ? `\nAlt text: "${info.alt}"` : ""}\n\nThe first reviewer said: ${j.reason}`,
   });
-  const turn = await model.turn({ system: REVIEW_PROMPT, tools: [VERDICT_TOOL], messages: [{ role: "user", content }] });
+  const turn = await model.turn({ system: REVIEW_PROMPT, tools: [VERDICT_TOOL], messages: [{ role: "user", content }], deadline });
   const call = turn.content.find((b): b is Anthropic.ToolUseBlock => b.type === "tool_use" && b.name === "verdict");
   const input = call?.input as { problem?: unknown; reason?: unknown } | undefined;
   if (!input || input.problem !== true || typeof input.reason !== "string" || !input.reason.trim()) {

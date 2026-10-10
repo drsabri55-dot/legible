@@ -47,6 +47,24 @@ describe("AnthropicModel", () => {
   });
 });
 
+describe("AnthropicModel time limits", () => {
+  it("never waits past the deadline it is given, and retries at most once", async () => {
+    let options: Record<string, unknown> = {};
+    const fake = {
+      messages: {
+        create: async (_body: unknown, opts?: Record<string, unknown>) => {
+          options = opts ?? {};
+          return { content: [], stop_reason: "end_turn", usage: { input_tokens: 1, output_tokens: 1 } };
+        },
+      },
+    };
+    await new AnthropicModel(fake, "claude-sonnet-5-5").turn({ ...req, deadline: Date.now() + 5000 });
+    expect(options.timeout as number).toBeLessThanOrEqual(5000);
+    expect(options.timeout as number).toBeGreaterThan(3000);
+    expect(options.maxRetries).toBe(1);
+  });
+});
+
 describe("usage and setup", () => {
   it("adds usage and needs a key", () => {
     const u = addUsage(emptyUsage(), { inputTokens: 1, outputTokens: 2, cacheReadTokens: 3, cacheWriteTokens: 4 });

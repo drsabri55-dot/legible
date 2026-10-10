@@ -57,6 +57,19 @@ describe("keyboardWalk", () => {
   });
 });
 
+describe("keyboardWalk time limit", () => {
+  it("stops at its deadline and says it did not finish", async () => {
+    const page = await open("long");
+    const started = Date.now();
+    const walk = await keyboardWalk(page, { deadline: Date.now() + 300 });
+    expect(Date.now() - started).toBeLessThan(5000);
+    expect(walk.complete).toBe(false);
+    expect(walk.reached.length).toBeLessThan(150);
+    expect(walk.findings.filter((f) => f.kind === "keyboard-trap")).toEqual([]);
+    await page.close();
+  });
+});
+
 describe("targeted measurements", () => {
   it("measures one element's focus and one trap on request", async () => {
     let page = await open("focus");

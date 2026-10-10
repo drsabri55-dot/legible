@@ -17,6 +17,8 @@ export const MAX_STEPS = 20;
 export const LOOP_MS = 90_000;
 export const AGENT_BUDGET_MS = 180_000;
 const MAX_REVIEWS = 10;
+// The keyboard walk may use at most this share of the page's budget.
+const WALK_MS = 60_000;
 const SHOTS_PER_KIND = 3;
 const WIDE = { width: 1280, height: 900 };
 
@@ -125,11 +127,11 @@ export async function runAgentOnPage(page: Page, opts: AgentOptions): Promise<Ag
   const release = await guardPage(page);
   try {
     // 1. Measure what can be proven on the page as it loaded.
-    const walk = await keyboardWalk(page);
+    const walk = await keyboardWalk(page, { deadline: Math.min(budgetEnd, started + WALK_MS) });
     found.push(...walk.findings);
-    found.push(...(await measureKeyboardReach(page, walk.reached)));
-    found.push(...(await measureReflow(page)));
-    found.push(...(await measureTextSpacing(page)));
+    if (Date.now() < budgetEnd) found.push(...(await measureKeyboardReach(page, walk.reached)));
+    if (Date.now() < budgetEnd) found.push(...(await measureReflow(page)));
+    if (Date.now() < budgetEnd) found.push(...(await measureTextSpacing(page)));
     await page.evaluate("document.activeElement && document.activeElement.blur(); window.scrollTo(0, 0)");
 
     // 2. Let the model use the page.
@@ -146,7 +148,7 @@ export async function runAgentOnPage(page: Page, opts: AgentOptions): Promise<Ag
       }
       let turn;
       try {
-        turn = await opts.model.turn({ system: SYSTEM_PROMPT, tools: AGENT_TOOLS, messages });
+        turn = await opts.model.turn({ system: SYSTEM_PROMPT, tools: AGENT_TOOLS, messages, deadline: loopEnd });
       } catch {
         status = "failed";
         reason = "model error";
@@ -216,7 +218,7 @@ export async function runAgentOnPage(page: Page, opts: AgentOptions): Promise<Ag
         if (seen.has(key) || seen.size >= MAX_REVIEWS || Date.now() >= budgetEnd) continue;
         seen.add(key);
         try {
-          const op = await secondOpinion(opts.model, page, j);
+          const op = await secondOpinion(opts.model, page, j, budgetEnd);
           usage = addUsage(usage, op.usage);
           if (op.review) {
             if (op.shot && opts.onShot) {

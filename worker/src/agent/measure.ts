@@ -123,10 +123,12 @@ async function confirmTrap(page: Page, inside: string[], html: string): Promise<
   };
 }
 
+// `complete` is false when the walk stopped at its deadline, before the end
+// of the page: a trap could not be ruled out then.
 export async function keyboardWalk(
   page: Page,
-  opts: { maxTabs?: number; maxFocusChecks?: number } = {},
-): Promise<{ reached: string[]; findings: Measured[] }> {
+  opts: { maxTabs?: number; maxFocusChecks?: number; deadline?: number } = {},
+): Promise<{ reached: string[]; findings: Measured[]; complete: boolean }> {
   const maxTabs = opts.maxTabs ?? MAX_TABS;
   const maxChecks = opts.maxFocusChecks ?? MAX_FOCUS_CHECKS;
   await page.evaluate("document.activeElement && document.activeElement.blur(); window.scrollTo(0, 0)");
@@ -135,8 +137,13 @@ export async function keyboardWalk(
   const checked = new Set<string>();
   const findings: Measured[] = [];
   let ended = false;
+  let outOfTime = false;
   let lastHtml = "";
   for (let i = 0; i < maxTabs; i++) {
+    if (opts.deadline && Date.now() >= opts.deadline) {
+      outOfTime = true;
+      break;
+    }
     await page.keyboard.press("Tab");
     const info = await focused(page);
     if (!info) {
@@ -156,7 +163,7 @@ export async function keyboardWalk(
       if (v) findings.push(v);
     }
   }
-  if (!ended && order.length >= TRAP_PRESSES) {
+  if (!ended && !outOfTime && order.length >= TRAP_PRESSES) {
     const tail = order.slice(-TRAP_PRESSES);
     const set = [...new Set(tail)];
     if (set.length <= TRAP_SET) {
@@ -173,7 +180,7 @@ export async function keyboardWalk(
       });
     }
   }
-  return { reached, findings };
+  return { reached, findings, complete: !outOfTime };
 }
 
 // Focus one element with the keyboard's last step (Tab from the element just
