@@ -111,6 +111,8 @@ export interface Report {
   // Judgement findings both AI passes agreed on. Never in the score.
   agentReviews: AgentReviewItem[];
   agentUsed: boolean;
+  // How many of rulesPassed / rulesFailed are the agent's own checks.
+  agentRules: { passed: number; failed: number };
   engine: RawScan["engine"];
 }
 
@@ -371,6 +373,10 @@ export function buildReport(raw: RawScan): Report {
     needsReview,
     agentReviews,
     agentUsed: scanned.some((p) => !!p.agent),
+    agentRules: {
+      passed: [...passedRules.keys()].filter((id) => id.startsWith("legible-")).length,
+      failed: [...failedRules.keys()].filter((id) => id.startsWith("legible-")).length,
+    },
     engine: raw.engine,
   };
 }

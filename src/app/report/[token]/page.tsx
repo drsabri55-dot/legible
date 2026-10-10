@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { cache } from "react";
-import { AgentReview, ElementShot, agentMethod, agentPageNote } from "@/components/report/AgentSections";
+import { AgentReview, ElementShot, agentMethod, agentPageNote, axeRuleCounts } from "@/components/report/AgentSections";
 import { Logo } from "@/components/site/Logo";
 import { getReportByToken } from "@/lib/data";
 import { privatePage } from "@/lib/page-meta";
@@ -349,14 +349,15 @@ function Review({ r }: { r: Report }) {
 }
 
 function Method({ r }: { r: Report }) {
+  const axe = axeRuleCounts(r);
   return (
     <section className="rp-section rp-break" aria-labelledby="method">
       <p className="rp-kicker">Method</p>
       <h2 id="method">How this report was made</h2>
       <p>
         Legible loaded each page in a Chromium browser and ran axe-core {r.engine.axe}, an open-source accessibility
-        testing engine, with its rules for WCAG 2.0 and 2.1 at Levels A and AA. {r.rulesPassed + r.rulesFailed} of those
-        rules applied to the pages scanned: {r.rulesPassed} passed and {r.rulesFailed} failed.
+        testing engine, with its rules for WCAG 2.0 and 2.1 at Levels A and AA. {axe.passed + axe.failed} of those
+        rules applied to the pages scanned: {axe.passed} passed and {axe.failed} failed.
       </p>
       {agentMethod(r) && <p>{agentMethod(r)}</p>}
       <h3>How the score works</h3>

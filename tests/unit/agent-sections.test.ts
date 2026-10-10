@@ -1,9 +1,9 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { AgentReview, ElementShot, agentMethod, agentPageNote } from "@/components/report/AgentSections";
+import { AgentReview, ElementShot, agentMethod, agentPageNote, axeRuleCounts } from "@/components/report/AgentSections";
 import { buildReport } from "@/lib/report/model";
-import { page, rawScan } from "./fixture";
+import { page, rawScan, rule } from "./fixture";
 
 const report = (agent: boolean) =>
   buildReport(
@@ -41,4 +41,19 @@ describe("report sections for the testing agent", () => {
     expect(html).toMatch(/alt="Screenshot of the element #more"/);
     expect(renderToStaticMarkup(createElement(ElementShot, { id: null, label: "x" }))).toBe("");
   });
+
+  it("names the real reason a page was only partly tested", () => {
+    const note = (reason: string) =>
+      agentPageNote({ url: "u", title: null, status: "scanned", reason: null, issues: 0, agent: { status: "partly", reason } });
+    expect(note("time limit")).toBe("The testing agent reached its time limit on this page, so it tested part of it.");
+    expect(note("step limit")).toBe("The testing agent used all its steps on this page, so it tested part of it.");
+  });
+
+  it("counts axe-core rules apart from the agent's own checks", () => {
+    const focus = rule("legible-focus-visible", "serious", ["<a>x</a>"], ["wcag2aa", "wcag247"]);
+    const alt = rule("image-alt", "critical", ["<img>"]);
+    const r = buildReport(rawScan([page("https://www.shop.example/", [focus, alt], ["label", "legible-reflow", "legible-keyboard-trap"])]));
+    expect(axeRuleCounts(r)).toEqual({ passed: 1, failed: 1 });
+  });
 });
+

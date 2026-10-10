@@ -14,8 +14,17 @@ export function ElementShot({ id, label }: { id: string | null; label: string })
 export function agentPageNote(p: PageSummary): string | null {
   if (!p.agent) return null;
   if (p.agent.status === "failed") return "The testing agent could not finish this page. Its other checks are complete.";
-  if (p.agent.status === "partly") return "The testing agent reached its time limit on this page, so it tested part of it.";
+  if (p.agent.status === "partly") {
+    if (p.agent.reason === "step limit") return "The testing agent used all its steps on this page, so it tested part of it.";
+    return "The testing agent reached its time limit on this page, so it tested part of it.";
+  }
   return null;
+}
+
+// The Method section describes axe-core's rules; the agent's own checks are
+// counted in the score but described separately.
+export function axeRuleCounts(r: Report): { passed: number; failed: number } {
+  return { passed: r.rulesPassed - r.agentRules.passed, failed: r.rulesFailed - r.agentRules.failed };
 }
 
 export function agentMethod(r: Report): string | null {
