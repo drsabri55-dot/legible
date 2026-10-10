@@ -11,6 +11,7 @@ import {
 import { alertOwner } from "./email/send";
 import { env } from "./env";
 import { checkPublicHost } from "./net";
+import { freeAgentMode } from "./spend";
 import { normaliseSite, SITE_ERROR } from "./url";
 import { WorkerBusyError, dispatchScan } from "./worker";
 
@@ -59,9 +60,11 @@ export async function startScan(input: string, ip: string): Promise<StartResult>
     }
   }
 
-  const scan = await createScan({ url: site.url, host: site.host, ipHash });
+  // The testing agent runs on free scans while today's spending is under the cap.
+  const agent = await freeAgentMode();
+  const scan = await createScan({ url: site.url, host: site.host, ipHash, agent });
   try {
-    await dispatchScan(scan);
+    await dispatchScan({ id: scan.id, url: scan.url, agent: agent === "on" });
   } catch (e) {
     const busy = e instanceof WorkerBusyError;
     await failScan(scan.id, busy ? "busy" : "worker_unavailable");

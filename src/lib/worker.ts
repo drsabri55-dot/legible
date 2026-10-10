@@ -7,7 +7,8 @@ import { env } from "./env";
 export class WorkerBusyError extends Error {}
 export class WorkerUnavailableError extends Error {}
 
-export async function dispatchScan(scan: { id: string; url: string }): Promise<void> {
+// `agent` asks the worker to run the testing agent (it also needs its own key).
+export async function dispatchScan(scan: { id: string; url: string; agent: boolean }): Promise<void> {
   let res: Response;
   try {
     res = await fetch(`${env.workerUrl()}/jobs/scan`, {
@@ -17,6 +18,7 @@ export async function dispatchScan(scan: { id: string; url: string }): Promise<v
         scanId: scan.id,
         url: scan.url,
         callbackUrl: `${env.appUrl()}/api/worker/scans/${scan.id}`,
+        agent: scan.agent,
       }),
       signal: AbortSignal.timeout(10_000),
     });

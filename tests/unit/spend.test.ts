@@ -1,6 +1,6 @@
 // Spending: every test that writes agent_spend lives here, because the test
 // database is shared and "today's spend" is a total over all of it.
-import { beforeAll, describe, expect, inject, it } from "vitest";
+import { beforeAll, describe, expect, inject, it, vi } from "vitest";
 
 type Data = typeof import("@/lib/data");
 let data: Data;
@@ -97,5 +97,37 @@ describe("prices and the daily cap", () => {
     set({ AGENT_DAILY_CAP_USD: String(spent + 1.000001) });
     expect(await freeAgentMode()).toBe("on");
     set({ AGENT_PRICE_INPUT_PER_MTOK: undefined, AGENT_PRICE_OUTPUT_PER_MTOK: undefined, AGENT_DAILY_CAP_USD: undefined });
+  });
+});
+
+describe("starting a free scan", () => {
+  it("sends the agent while under the cap, and records when the cap left it out", async () => {
+    process.env.ALLOW_PRIVATE_TARGETS = "1";
+    process.env.WORKER_URL = "http://worker.test";
+    process.env.WORKER_SECRET = "worker-secret-for-tests-0000";
+    const bodies: { agent?: boolean }[] = [];
+    vi.stubGlobal("fetch", async (_url: string, init: RequestInit) => {
+      bodies.push(JSON.parse(String(init.body)));
+      return new Response("{}", { status: 202 });
+    });
+    try {
+      const { startScan } = await import("@/lib/scans");
+      process.env.AGENT_PRICE_INPUT_PER_MTOK = "2";
+      process.env.AGENT_PRICE_OUTPUT_PER_MTOK = "10";
+      process.env.AGENT_DAILY_CAP_USD = String((await data.freeSpendTodayUsd()) + 100);
+      const a = await startScan("https://start-a.example", "10.0.0.1");
+      process.env.AGENT_DAILY_CAP_USD = "0";
+      const b = await startScan("https://start-b.example", "10.0.0.2");
+      delete process.env.AGENT_PRICE_INPUT_PER_MTOK;
+      const c = await startScan("https://start-c.example", "10.0.0.3");
+      expect(bodies.map((x) => x.agent)).toEqual([true, false, false]);
+      const modes = await Promise.all([a, b, c].map(async (r) => (r.ok ? (await data.getScan(r.id))?.agent : r.error)));
+      expect(modes).toEqual(["on", "capped", "off"]);
+    } finally {
+      vi.unstubAllGlobals();
+      delete process.env.AGENT_PRICE_OUTPUT_PER_MTOK;
+      delete process.env.AGENT_DAILY_CAP_USD;
+      delete process.env.ALLOW_PRIVATE_TARGETS;
+    }
   });
 });
