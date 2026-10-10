@@ -291,11 +291,16 @@ async function scanPage(context: BrowserContext, url: string, first: boolean, op
         const raw = toRawPage(finalUrl, heading, axe);
         await addFrameHosts(page, raw.violations);
         if (opts.agent) {
-          const outcome = await runAgentOnPage(page, { model: opts.agent, onShot: opts.onShot });
-          raw.violations.push(...outcome.violations);
-          raw.incomplete.push(...outcome.incomplete);
-          raw.passes.push(...outcome.passes);
-          raw.agent = outcome.result;
+          // The agent must never cost the page its axe-core results.
+          try {
+            const outcome = await runAgentOnPage(page, { model: opts.agent, onShot: opts.onShot });
+            raw.violations.push(...outcome.violations);
+            raw.incomplete.push(...outcome.incomplete);
+            raw.passes.push(...outcome.passes);
+            raw.agent = outcome.result;
+          } catch {
+            raw.agent = { status: "failed", reason: "agent error", steps: 0, reviews: [], usage: emptyUsage() };
+          }
         }
         const signature = (await page.evaluate(PAGE_SIGNATURE).catch(() => null)) as string | null;
         return { raw, links, finalUrl, signature };

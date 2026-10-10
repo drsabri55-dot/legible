@@ -47,6 +47,15 @@ export interface AgentOutcome {
   passes: { id: string; nodeCount: number }[];
 }
 
+async function storeShot(onShot: NonNullable<AgentOptions["onShot"]>, id: string, jpeg: Buffer): Promise<boolean> {
+  try {
+    await onShot(id, jpeg);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function summaryLine(m: Measured): string {
   return `${m.kind}: ${m.selector} (${m.verdict === "fail" ? "failure" : "check by hand"})`;
 }
@@ -74,8 +83,9 @@ async function toRules(found: Measured[], onShot: AgentOptions["onShot"]) {
       for (const [i, m] of hits.entries()) {
         const node: RawNode = { html: m.html, target: [m.selector], failureSummary: m.detail, impact: r.impact };
         if (m.shot && onShot && i < SHOTS_PER_KIND) {
-          node.shot = randomUUID();
-          await onShot(node.shot, m.shot);
+          const id = randomUUID();
+          // A screenshot that cannot be stored costs the picture, not the finding.
+          if (await storeShot(onShot, id, m.shot)) node.shot = id;
         }
         nodes.push(node);
       }
@@ -209,8 +219,8 @@ export async function runAgentOnPage(page: Page, opts: AgentOptions): Promise<Ag
           usage = addUsage(usage, op.usage);
           if (op.review) {
             if (op.shot && opts.onShot) {
-              op.review.shot = randomUUID();
-              await opts.onShot(op.review.shot, op.shot);
+              const id = randomUUID();
+              if (await storeShot(opts.onShot, id, op.shot)) op.review.shot = id;
             }
             reviews.push(op.review);
           }
@@ -219,9 +229,14 @@ export async function runAgentOnPage(page: Page, opts: AgentOptions): Promise<Ag
         }
       }
     }
+  } catch {
+    // Anything unexpected (the page navigated, closed or broke): keep what
+    // was measured so far and say the agent could not finish.
+    status = "failed";
+    reason = "agent error";
   } finally {
     if (state.zoomed) await page.setViewportSize(WIDE).catch(() => {});
-    await release();
+    await release().catch(() => {});
   }
   const rules = await toRules(dedupe(found), opts.onShot);
   return { result: { status, ...(reason ? { reason } : {}), steps, reviews, usage }, ...rules };

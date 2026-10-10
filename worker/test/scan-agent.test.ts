@@ -40,3 +40,19 @@ it("leaves scans exactly as before without an agent", async () => {
   expect(raw.pages[0].agent).toBeUndefined();
   expect(raw.agent).toBeUndefined();
 });
+
+it("finishes the scan when screenshots cannot be stored, keeping every finding", async () => {
+  const done = { calls: [{ name: "done", input: { summary: "ok" } }] };
+  const raw = await scanSite(`http://127.0.0.1:${PORT}/agent/focus.html`, {
+    pauseMs: 10,
+    agent: new ReplayModel([done]),
+    onShot: () => {
+      throw new Error("storage down");
+    },
+  });
+  const home = raw.pages[0];
+  expect(home.status).toBe("scanned");
+  const focus = home.violations.find((v) => v.id === "legible-focus-visible");
+  expect(focus?.nodes[0].shot).toBeUndefined();
+  expect(home.passes.some((p) => !p.id.startsWith("legible-"))).toBe(true); // axe passes kept
+});

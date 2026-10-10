@@ -106,3 +106,34 @@ describe("runAgentOnPage", () => {
     await page.close();
   });
 });
+
+describe("runAgentOnPage when something breaks", () => {
+  it("keeps findings without their screenshot when storing it fails", async () => {
+    const page = await open("focus");
+    const out = await runAgentOnPage(page, {
+      model: new ReplayModel([{ calls: [{ name: "done", input: { summary: "ok" } }] }]),
+      onShot: () => {
+        throw new Error("storage down");
+      },
+    });
+    expect(out.result.status).toBe("tested");
+    expect(out.violations.map((v) => v.id)).toEqual(["legible-focus-visible"]);
+    expect(out.violations[0].nodes[0].shot).toBeUndefined();
+    await page.close();
+  });
+
+  it("returns what it measured, marked failed, when the page breaks mid-run", async () => {
+    const page = await open("reflow");
+    const breaking = {
+      name: "breaking",
+      turn: async () => {
+        await page.evaluate("document.documentElement.innerHTML = ''");
+        await page.close();
+        return { content: [{ type: "tool_use", id: "t1", name: "press", input: { key: "Tab" } }] as never, stopReason: "tool_use", usage: { inputTokens: 1, outputTokens: 1, cacheReadTokens: 0, cacheWriteTokens: 0 } };
+      },
+    };
+    const out = await runAgentOnPage(page, { model: breaking });
+    expect(out.result).toMatchObject({ status: "failed", reason: "agent error" });
+    expect(out.violations.map((v) => v.id)).toEqual(["legible-reflow"]);
+  });
+});
