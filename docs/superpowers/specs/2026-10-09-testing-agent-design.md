@@ -1,6 +1,6 @@
 # Legible testing agent: design
 
-Date: 9 October 2026. Status: written for the owner's review. No code until approved.
+Date: 9 October 2026, updated 10 October. Status: sections 1 to 10 approved by the owner on 10 October; section 11 (fixes and the fix plan) added that day for review. No code until approved.
 
 ## 1. What the owner asked for
 
@@ -18,6 +18,8 @@ Decisions the owner made while we designed this (9 October):
 | Cost control | Free scans and free chat share a daily cap of $10. Paid work is outside the cap, with a hard stop of $15 per report |
 | Chat | Anyone can watch and ask 5 questions per free scan. Paying customers can ask 100 per report |
 | API key | The owner creates an Anthropic API key and pastes it into the settings. Claude never types it |
+| How to solve the problems (10 October) | A fix for every problem, and a fix order plan |
+| Who gets the fixes and the plan (10 October) | Everyone, free. The $99 report becomes: the whole site up to 50 pages with every fix and the plan, the PDF, 100 chat questions, and never limited by the daily cap |
 
 What stays the same: the existing automatic checks (axe-core), the free result, the $99 report and PDF, the legal phrasing rules, and the rule that only the site touches the database.
 
@@ -27,8 +29,9 @@ The work is four phases. Each one is designed here, built, tested and committed 
 
 1. **Agent core.** The worker's agent tests each page of a free scan. Its results reach the score, the free result and the report. No new screens yet.
 2. **Spending ledger and daily cap.** The cost of every agent run is recorded, the $10 daily cap is enforced, and the agent falls back cleanly when the cap is reached.
-3. **Whole-site paid testing.** After payment, the agent tests up to 50 pages and the report fills in as it goes.
-4. **Live view and chat.** These are the only new screens. A mockup goes into the owner's design doc for approval first.
+3. **Fixes and the fix plan.** A tested fix for every problem and a fix order plan, free on every scan (section 11). The free and paid wording changes with it.
+4. **Whole-site paid testing.** After payment, the agent tests up to 50 pages and the report fills in as it goes.
+5. **Live view and chat.** A mockup goes into the owner's design doc for approval first.
 
 Phase 1 needs no API key to build or test (see 8). The first real run needs the owner's key. The agent is not switched on for real visitors until phase 2's cap is in place.
 
@@ -132,7 +135,7 @@ The scan time goes from about 15 to 40 seconds to about 3 to 6 minutes for 6 pag
 - Two scans run at once, so the cap can be passed by at most the cost of two scans. The monthly limit the owner sets in the Anthropic console is the final backstop.
 - No API key set: the agent is off everywhere, and the site looks and works exactly as it does today.
 
-## 5. Whole-site paid testing (phase 3)
+## 5. Whole-site paid testing (phase 4)
 
 - `fulfil()` dispatches a new worker job, `/jobs/full`, with the scan id, the start address and the 6 pages already done.
 - `worker/src/crawl.ts` walks the site's links breadth first on the same host, with the existing skip rules (login, search, basket, settings, tracking links, files). It respects robots.txt, waits 1 second between pages and stops at 50 pages.
@@ -141,7 +144,7 @@ The scan time goes from about 15 to 40 seconds to about 3 to 6 minutes for 6 pag
 - `buildReport` stays pure. The report page builds one `RawScan` from `scans.raw` plus `full_pages` (de-duplicated by address) and passes it in.
 - While testing runs, the report shows the existing 6 pages straight away, with a note saying how far the full test has got. When it finishes, the customer gets one email saying the full report is ready (a new template, wording for approval). The PDF is generated from the finished report.
 
-## 6. Live view and chat (phase 4)
+## 6. Live view and chat (phase 5)
 
 ### 6.1 Live view
 
@@ -195,6 +198,8 @@ A mockup in the Nocturne style goes into the owner's design doc for approval bef
 8. **Our own accessibility:** the new screens pass the existing WCAG and keyboard tests.
 9. **Real sites, once the key is in:** about 10 sites are tested, including gov.uk (known good) and the W3C "bad" demo (known bad). Their findings are compared by hand, and the real cost per page is measured and reported to the owner before launch.
 
+10. **Fix tests:** fixture pages where the rule-based fix, an AI fix that works and an AI fix that does not work are all exercised. The working fix is shown as tested, the broken one is never shown as a fix, and a script change is labelled "not tested". The fix plan gives the same order for the same results every time.
+
 ## 9. Not in this project
 
 - Mouse and touch testing.
@@ -210,3 +215,59 @@ Worker (`worker/.env`, later Railway): `ANTHROPIC_API_KEY`, `AGENT_MODEL`.
 Site (`.env.local`, later Vercel): `ANTHROPIC_API_KEY`, `AGENT_PRICE_INPUT_PER_MTOK`, `AGENT_PRICE_OUTPUT_PER_MTOK`, `AGENT_DAILY_CAP_USD`, `AGENT_REPORT_CAP_USD`, `CHAT_FREE_LIMIT`, `CHAT_PAID_LIMIT`.
 
 The owner pastes the key and the current prices from the Anthropic pricing page. Defaults exist only for the caps and limits.
+
+## 11. Fixes and the fix plan (phase 3)
+
+Added 10 October at the owner's request: "a feature that tells you how to solve the errors and problems".
+
+### 11.1 Free and paid after this change
+
+| | Free scan | $99 report |
+|---|---|---|
+| Pages | Home page plus 5 | Whole site, up to 50 |
+| A fix for every problem | Yes | Yes |
+| Fix order plan | Yes | Yes, for the whole site |
+| PDF to share with a developer | No | Yes |
+| Chat questions | 5 | 100 |
+| Daily cap | Applies (AI fixes fall back to rule-based fixes when it is reached) | Never applies |
+
+Today's wording that would become untrue is rewritten: the landing chapter 7 sentence "The full report covers every failure with corrected code, for a one-time $99", the result page's offer box and the checkout page. The new wording goes into the owner's design doc for approval before it ships, and keeps the legal phrasing rules.
+
+### 11.2 A fix for every problem
+
+Each failure group (one rule on one page, or a set of elements with the same problem) gets one fix, chosen in this order:
+
+1. **Rule-based fix.** `src/lib/rules/fixes.ts` already writes corrected code for many rules (labels, alt text placeholders, colour contrast, zoom, ARIA attributes, autocomplete and so on). These are used first. They cost nothing and are always the same.
+2. **AI-written fix.** Where there is no rule-based fix (for example a keyboard trap in a menu script, a reflow problem, a heading structure), the worker asks the model for a fix while the page is still open. It sends the element's HTML, its CSS and the failure.
+3. **Guidance only.** If neither of these gives a working fix, the problem shows the catalogue's plain-English "what to change", with no code.
+
+**Every fix is tested before it is shown.** In the worker, on a copy of the page in its own browser:
+
+- **HTML fixes:** the element is replaced with the fixed HTML. **CSS fixes:** the rule is added to the page.
+- Then the same check that failed is run again on that element: the axe-core rule, or the measurement in section 3.4.
+- **Passes:** shown as "Tested fix".
+- **Still fails:** the model gets one more try, with the result. If that also fails, the fix is not shown, and the problem falls back to guidance only.
+- **Cannot be tested:** a change to a script, server or content management system cannot be tried on a copy of the page. Such a fix is shown as "Not tested. Check it with your developer", never as certain.
+
+**Limits:**
+
+- At most 40 AI-written fixes per free scan and 300 per paid report. Problems past the limit get rule-based fixes or guidance.
+- AI fixes count toward the daily cap on free scans.
+- Where a site is built with a known tool (WordPress, Shopify, Wix, Squarespace, Webflow, detected from the page's code), the fix note names the tool. It does not give click-by-click steps for that tool; that was not chosen.
+
+Contract: each `RawRule` node can carry `fix?: { code: string; kind: "html" | "css" | "note"; status: "tested" | "untested"; source: "rule" | "ai" }`. Older scans without it build exactly as they do today.
+
+### 11.3 The fix order plan
+
+Worked out by fixed rules, not by the AI, so the same results always give the same plan. It is shown at the top of the free result and the report.
+
+- **Order.** First the problems that stop someone finishing a task (critical), then serious, then moderate, then minor. Within each level, the quickest fixes come first.
+- **Time.** From the catalogue's effort: quick is about 10 minutes, moderate about 1 to 2 hours, involved about half a day. Each problem group counts once, and the total is shown as a range, for example "about 3 to 5 hours".
+- **Who can do it.** Each catalogue entry gains a field, `doer: "you" | "developer"`. "You" means an owner can do it in their website builder: alt text, link wording, headings, captions. "Developer" means it needs code: scripts, CSS and templates. The plan says how many each can do, for example "6 you can do yourself, 3 need a developer".
+- **Layout.** Numbered steps. Each says what to fix, how many places, the time, and who, and links to that problem's fix below.
+- The agent's review findings (3.5) are listed after the plan as "worth checking", since they are not measured failures.
+
+### 11.4 Testing for this section
+
+See section 8, item 10. Also, every catalogue entry must have a `doer`, enforced by the same test that already requires every rule to have an entry.
+
