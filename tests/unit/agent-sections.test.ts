@@ -2,6 +2,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { AgentReview, ElementShot, agentMethod, agentPageNote, axeRuleCounts } from "@/components/report/AgentSections";
+import { AgentCapNote, scanTimeText, slowAfterMs } from "@/components/results/AgentNote";
 import { buildReport } from "@/lib/report/model";
 import { page, rawScan, rule } from "./fixture";
 
@@ -57,3 +58,21 @@ describe("report sections for the testing agent", () => {
   });
 });
 
+
+describe("what visitors see about the daily cap", () => {
+  it("says so only when the cap left the agent out", () => {
+    expect(renderToStaticMarkup(createElement(AgentCapNote, { mode: "capped" }))).toContain("reached its limit for today");
+    expect(renderToStaticMarkup(createElement(AgentCapNote, { mode: "on" }))).toBe("");
+    expect(renderToStaticMarkup(createElement(AgentCapNote, { mode: "off" }))).toBe("");
+  });
+
+  it("gives the longer scan time only when the agent runs", () => {
+    expect(scanTimeText(true)).toContain("3 to 6 minutes");
+    expect(scanTimeText(false)).toContain("under two minutes");
+  });
+
+  it("only calls a scan slow once it passes its usual time", () => {
+    expect(slowAfterMs(false)).toBe(90_000);
+    expect(slowAfterMs(true)).toBe(7 * 60_000);
+  });
+});

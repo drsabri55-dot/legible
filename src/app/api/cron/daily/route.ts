@@ -13,7 +13,8 @@ export const maxDuration = 60;
 export async function GET(req: Request) {
   if (!safeEqual(bearer(req), env.cronSecret())) return json({ error: "Unauthorised" }, 401);
 
-  const stale = await failStaleScans(10);
+  // Agent scans can wait in the worker's queue and take up to 25 minutes.
+  const stale = await failStaleScans(90);
   await deleteExpiredLoginTokens();
 
   const base = env.appUrl();

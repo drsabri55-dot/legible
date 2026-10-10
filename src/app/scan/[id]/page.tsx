@@ -3,6 +3,7 @@ import Link from "next/link";
 import { cache } from "react";
 import { notFound } from "next/navigation";
 import { ScanForm } from "@/components/ScanForm";
+import { AgentCapNote } from "@/components/results/AgentNote";
 import { CheckoutButton } from "@/components/results/CheckoutButton";
 import { IssueDetail } from "@/components/results/IssueDetail";
 import { LeadForm } from "@/components/results/LeadForm";
@@ -72,6 +73,7 @@ export default async function ScanPage(props: PageProps<"/scan/[id]">) {
           <ScanProgress
             scanId={scan.id}
             host={siteName(scan.host)}
+            agent={scan.agent === "on"}
             initial={{ status: scan.status, pagesDone: scan.pages_done, pagesTotal: scan.pages_total, error: null }}
           />
         </div>
@@ -128,6 +130,7 @@ export default async function ScanPage(props: PageProps<"/scan/[id]">) {
             {s.pagesScanned === 1 ? "page" : "pages"}. The score is a guide, not a certificate: automated checks cannot
             test everything.
           </p>
+          <AgentCapNote mode={scan.agent} />
         </div>
       </div>
 

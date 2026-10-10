@@ -29,7 +29,9 @@ Three processes: the Next.js site (Vercel), the scan worker (`worker/`, Railway 
   the page by keyboard (`actions.ts`) behind `guard.ts` (no non-GET requests, no leaving the site). Claims count only when `measure.ts`
   confirms them; judgement findings need a second, independent model pass (`review.ts`) and go to "The agent's review", never the
   score. Results reuse `RawRule` ids `legible-*`; screenshots go to `scan_shots`. Runs only when a job sends `agent: true` and
-  `ANTHROPIC_API_KEY` is set; the site does not send it until the phase 2 spending cap exists. Tests use `ReplayModel`.
+  `ANTHROPIC_API_KEY` is set; `startScan` sends it while both prices are set and today's free spend is under
+  `AGENT_DAILY_CAP_USD` (`src/lib/spend.ts`, `scans.agent` records on/capped/off). The worker meters every model call and its
+  final message (complete or failed) is charged once into `agent_spend`. Tests use `ReplayModel`.
 - **Reports are computed, never stored:** `buildReport(raw)` in `src/lib/report/model.ts` is pure; the report page and PDF rebuild from
   `scans.raw`. PDFs are rendered on demand by the worker's `/pdf`, which prints `/report/[token]?print=1` (only on `APP_URL`).
 - **Payment:** `/api/checkout` → Stripe Checkout (or `/checkout/dev` when `ALLOW_FAKE_PAYMENTS=true` and no key). The webhook and

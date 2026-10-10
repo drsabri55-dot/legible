@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { scanTimeText, slowAfterMs } from "./AgentNote";
 
 interface Status {
   status: "queued" | "running" | "complete" | "failed";
@@ -11,7 +12,18 @@ interface Status {
 }
 
 // Polls the scan until it finishes, then asks the server to render the result.
-export function ScanProgress({ scanId, host, initial }: { scanId: string; host: string; initial: Status }) {
+export function ScanProgress({
+  scanId,
+  host,
+  agent,
+  initial,
+}: {
+  scanId: string;
+  host: string;
+  // Whether the testing agent runs on this scan, which makes it take longer.
+  agent: boolean;
+  initial: Status;
+}) {
   const router = useRouter();
   const [s, setS] = useState<Status>(initial);
   const [slow, setSlow] = useState(false);
@@ -35,7 +47,7 @@ export function ScanProgress({ scanId, host, initial }: { scanId: string; host: 
       } catch {
         // Network blip: try again on the next tick.
       }
-      if (Date.now() - started > 90_000) setSlow(true);
+      if (Date.now() - started > slowAfterMs(agent)) setSlow(true);
       if (!stop) timer = setTimeout(poll, 2000);
     };
     timer = setTimeout(poll, 1500);
@@ -43,7 +55,7 @@ export function ScanProgress({ scanId, host, initial }: { scanId: string; host: 
       stop = true;
       clearTimeout(timer);
     };
-  }, [scanId, router]);
+  }, [scanId, router, agent]);
 
   const total = s.pagesTotal ?? 6;
   const done = s.status === "queued" ? 0 : Math.min(s.pagesDone, total);
@@ -74,8 +86,8 @@ export function ScanProgress({ scanId, host, initial }: { scanId: string; host: 
         />
       </div>
       <p className="mt-6 max-w-[46ch] text-[14px] leading-[1.8] text-nc-neutral-400">
-        Legible loads {host} in a real browser, checks every link, label, image and colour pair on each page, then
-        moves to the next page after a short pause. Most scans take under two minutes.
+        Legible loads {host} in a real browser, checks every link, label, image and colour pair on each page,{" "}
+        {scanTimeText(agent)}
       </p>
       {slow && (
         <p className="mt-3 text-[14px] text-nc-neutral-300">
