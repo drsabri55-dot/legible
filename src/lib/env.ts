@@ -41,6 +41,10 @@ export const env = {
       .map((e) => e.trim().toLowerCase())
       .filter(Boolean),
   cronSecret: () => required("CRON_SECRET"),
+  // Testing agent spending. Prices have no defaults: without them the agent stays off.
+  agentPriceInputPerMtok: () => process.env.AGENT_PRICE_INPUT_PER_MTOK || "",
+  agentPriceOutputPerMtok: () => process.env.AGENT_PRICE_OUTPUT_PER_MTOK || "",
+  agentDailyCapUsd: () => process.env.AGENT_DAILY_CAP_USD || "",
   isVercelProduction: () => process.env.VERCEL_ENV === "production",
   // Development conveniences. Both refuse to switch on in a Vercel deployment.
   fakePayments: () =>
