@@ -1,10 +1,11 @@
 import express, { type NextFunction, type Request, type Response } from "express";
 import { timingSafeEqual } from "node:crypto";
-import { agentModelFromEnv, meter } from "./agent/model";
+import { agentModelFromEnv } from "./agent/model";
+import { runScanJob } from "./job";
 import { allowPrivateTargets } from "./net";
 import { printPdf } from "./pdf";
 import { JobQueue } from "./queue";
-import { ScanError, closeBrowser, scanSite } from "./scan";
+import { closeBrowser } from "./scan";
 
 // WORKER_PORT wins over PORT so a PORT meant for the site (set by some dev
 // tools) cannot pull the worker onto the same port. Hosts like Railway set
@@ -88,49 +89,12 @@ app.post("/jobs/scan", authorised, (req, res) => {
     return;
   }
 
-  // Only when the site asks and a key is set. The site starts asking in
-  // phase 2, once its daily spending cap is in place.
+  // Only when the site asks and a key is set. The site asks while its daily
+  // spending cap allows.
   const model = req.body?.agent === true ? agentModelFromEnv() : null;
-  const metered = model ? meter(model) : null;
-  const agent = metered?.model ?? null;
-
-  const accepted = queue.push(async () => {
-    const started = Date.now();
-    try {
-      const shots: { id: string; data: string }[] = [];
-      const raw = await scanSite(target.toString(), {
-        onProgress: (done, total) => callback(cb.toString(), { type: "progress", pagesDone: done, pagesTotal: total }),
-        ...(agent ? { agent, onShot: (id: string, jpeg: Buffer) => void shots.push({ id, data: jpeg.toString("base64") }) } : {}),
-      });
-      // Screenshots go first, in batches small enough for one request each.
-      let batch: typeof shots = [];
-      let size = 0;
-      for (const s of shots) {
-        if (batch.length && size + s.data.length > 900_000) {
-          await callback(cb.toString(), { type: "shots", shots: batch });
-          batch = [];
-          size = 0;
-        }
-        batch.push(s);
-        size += s.data.length;
-      }
-      if (batch.length) await callback(cb.toString(), { type: "shots", shots: batch });
-      // Every call the agent made, including pages the scan later dropped.
-      if (raw.agent && metered) raw.agent.usage = metered.total();
-      await callback(cb.toString(), { type: "complete", raw });
-      console.log(`[scan] ${target.host} done in ${Date.now() - started} ms${agent ? " with the agent" : ""}`);
-    } catch (e) {
-      const code = e instanceof ScanError ? e.code : "error";
-      console.warn(`[scan] ${target.host} failed: ${(e as Error).message}`);
-      await callback(cb.toString(), {
-        type: "failed",
-        error: code,
-        detail: String((e as Error).message).slice(0, 300),
-        // What the agent spent before the scan failed, so the site can charge it.
-        ...(metered ? { agent: { model: metered.model.name, usage: metered.total() } } : {}),
-      });
-    }
-  });
+  const accepted = queue.push(() =>
+    runScanJob(target.toString(), { model, send: (message) => callback(cb.toString(), message) }),
+  );
   if (!accepted) {
     res.status(503).json({ error: "queue full" });
     return;
