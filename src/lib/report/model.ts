@@ -2,7 +2,7 @@
 // counts, the free sample and the full report. Pure functions, no I/O, so the
 // same raw data always gives the same report.
 
-import type { RawNode, RawPage, RawRule, RawScan } from "@/types/scan";
+import type { AgentPageResult, AgentReviewKind, RawNode, RawPage, RawRule, RawScan } from "@/types/scan";
 import {
   CATALOGUE,
   GROUP_LABEL,
@@ -33,6 +33,8 @@ export interface IssueExample {
   // YouTube player, say): that site's name. Its code is not the owner's to
   // change, so there is no corrected version.
   embeddedFrom: string | null;
+  // A screenshot of the element, taken by the testing agent.
+  shot: string | null;
 }
 
 export interface Issue {
@@ -67,7 +69,27 @@ export interface PageSummary {
   status: RawPage["status"];
   reason: string | null;
   issues: number;
+  // The testing agent's outcome on this page; null when it did not run.
+  agent: { status: AgentPageResult["status"]; reason: string | null } | null;
 }
+
+export interface AgentReviewItem {
+  pageUrl: string;
+  kind: AgentReviewKind;
+  title: string;
+  selector: string;
+  html: string;
+  reason: string;
+  shot: string | null;
+}
+
+export const REVIEW_TITLE: Record<AgentReviewKind, string> = {
+  "image-description": "An image description may not describe the image",
+  "link-purpose": "A link or button may not say where it goes",
+  "heading-fit": "A heading may not describe its section",
+  "error-help": "A form error may not say how to fix it",
+  captions: "A video may have no captions",
+};
 
 export interface Report {
   // The address the customer entered, without www.
@@ -86,6 +108,9 @@ export interface Report {
   pages: PageSummary[];
   pagesScanned: number;
   needsReview: { ruleId: string; title: string; instances: number }[];
+  // Judgement findings both AI passes agreed on. Never in the score.
+  agentReviews: AgentReviewItem[];
+  agentUsed: boolean;
   engine: RawScan["engine"];
 }
 
@@ -247,6 +272,7 @@ export function buildReport(raw: RawScan): Report {
           fixed: fix?.code ?? null,
           note: from ? embedNote(from) : (fix?.note ?? null),
           embeddedFrom: from,
+          shot: node.shot ?? null,
         });
       } else if (moreSelectors.length < MORE_SELECTORS_PER_ISSUE) {
         moreSelectors.push({ pageUrl: on[0], selector: selectorOf(node), embeddedFrom: from });
@@ -311,7 +337,20 @@ export function buildReport(raw: RawScan): Report {
     status: p.status,
     reason: p.reason ?? null,
     issues: p.violations.reduce((sum, r) => sum + r.nodeCount, 0),
+    agent: p.agent ? { status: p.agent.status, reason: p.agent.reason ?? null } : null,
   }));
+
+  const agentReviews: AgentReviewItem[] = scanned.flatMap((p) =>
+    (p.agent?.reviews ?? []).map((v) => ({
+      pageUrl: p.url,
+      kind: v.kind,
+      title: REVIEW_TITLE[v.kind] ?? v.kind,
+      selector: v.selector,
+      html: v.html,
+      reason: v.reason,
+      shot: v.shot ?? null,
+    })),
+  );
 
   const site = hostOf(raw.startUrl);
   const landed = raw.finalUrl ? hostOf(raw.finalUrl) : site;
@@ -330,6 +369,8 @@ export function buildReport(raw: RawScan): Report {
     pages,
     pagesScanned: scanned.length,
     needsReview,
+    agentReviews,
+    agentUsed: scanned.some((p) => !!p.agent),
     engine: raw.engine,
   };
 }
@@ -349,6 +390,8 @@ export interface FreeSummary {
   groupCounts: Record<IssueGroup, number>;
   // Missing from summaries stored before it was added.
   needsReview?: Report["needsReview"];
+  // Missing from summaries stored before the testing agent.
+  agentReviewCount?: number;
 }
 
 // A scan with no failures has no report to sell: it would only repeat the
@@ -377,5 +420,6 @@ export function freeSummary(report: Report): FreeSummary {
       nice: report.groups[2].issues.length,
     },
     needsReview: report.needsReview,
+    agentReviewCount: report.agentReviews.length,
   };
 }

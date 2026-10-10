@@ -199,3 +199,60 @@ describe("content embedded from other sites", () => {
     expect(siteKey("127.0.0.1")).toBe("127.0.0.1");
   });
 });
+
+describe("the testing agent's results", () => {
+  const withAgent = () => {
+    const focus = rule("legible-focus-visible", "serious", ['<a href="#">Go</a>'], ["wcag2aa", "wcag247"]);
+    focus.nodes[0].shot = "11111111-1111-4111-8111-111111111111";
+    const reach = rule("legible-keyboard-reach", "serious", ['<div class="m">Menu</div>'], ["wcag2a", "wcag211"]);
+    const p = page("https://www.shop.example/", [focus], ["image-alt", "legible-reflow", "legible-keyboard-trap"], {
+      incomplete: [reach],
+      agent: {
+        status: "partly",
+        reason: "time limit",
+        steps: 20,
+        usage: { inputTokens: 1, outputTokens: 1, cacheReadTokens: 0, cacheWriteTokens: 0 },
+        reviews: [{ kind: "image-description", selector: "#photo", html: '<img id="photo" alt="image123">', reason: "The alt text is a file name.", shot: "22222222-2222-4222-8222-222222222222" }],
+      },
+    });
+    return rawScan([p]);
+  };
+
+  it("counts measured failures in the score with their screenshot", () => {
+    const r = buildReport(withAgent());
+    const issue = r.issues.find((i) => i.ruleId === "legible-focus-visible")!;
+    expect(issue.title).toBe("You cannot see where keyboard focus is");
+    expect(issue.criteria.map((c) => c.sc)).toEqual(["2.4.7"]);
+    expect(issue.examples[0].shot).toBe("11111111-1111-4111-8111-111111111111");
+    expect(r.rulesFailed).toBe(1);
+    expect(r.rulesPassed).toBe(3); // image-alt, reflow, keyboard trap
+  });
+
+  it("lists hand checks and the agent's review outside the score", () => {
+    const r = buildReport(withAgent());
+    expect(r.needsReview).toEqual([{ ruleId: "legible-keyboard-reach", title: "Something clickable may not be reachable by keyboard", instances: 1 }]);
+    expect(r.agentReviews).toEqual([
+      {
+        pageUrl: "https://www.shop.example/",
+        kind: "image-description",
+        title: "An image description may not describe the image",
+        selector: "#photo",
+        html: '<img id="photo" alt="image123">',
+        reason: "The alt text is a file name.",
+        shot: "22222222-2222-4222-8222-222222222222",
+      },
+    ]);
+    expect(r.totalIssues).toBe(1);
+    expect(r.agentUsed).toBe(true);
+    expect(r.pages[0].agent).toEqual({ status: "partly", reason: "time limit" });
+    expect(freeSummary(r).agentReviewCount).toBe(1);
+  });
+
+  it("builds old scans exactly as before", () => {
+    const r = buildReport(sampleScan());
+    expect(r.agentUsed).toBe(false);
+    expect(r.agentReviews).toEqual([]);
+    expect(r.pages.every((p) => p.agent === null)).toBe(true);
+    expect(r.issues.every((i) => i.examples.every((e) => e.shot === null))).toBe(true);
+  });
+});
