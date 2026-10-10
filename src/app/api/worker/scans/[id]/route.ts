@@ -1,5 +1,5 @@
 import { safeEqual } from "@/lib/crypto";
-import { completeScan, failScan, getScan, markScanProgress } from "@/lib/data";
+import { completeScan, failScan, getScan, markScanProgress, saveShots } from "@/lib/data";
 import { alertOwner } from "@/lib/email/send";
 import { env } from "@/lib/env";
 import { bearer, json } from "@/lib/http";
@@ -11,7 +11,8 @@ export const maxDuration = 30;
 type Message =
   | { type: "progress"; pagesDone: number; pagesTotal: number }
   | { type: "complete"; raw: RawScan }
-  | { type: "failed"; error: string; detail?: string };
+  | { type: "failed"; error: string; detail?: string }
+  | { type: "shots"; shots: { id: string; data: string }[] };
 
 // Called by the scan worker only (shared secret).
 export async function POST(req: Request, ctx: RouteContext<"/api/worker/scans/[id]">) {
@@ -21,6 +22,18 @@ export async function POST(req: Request, ctx: RouteContext<"/api/worker/scans/[i
   if (!scan) return json({ error: "Not found" }, 404);
   const msg = (await req.json().catch(() => null)) as Message | null;
   if (!msg) return json({ error: "Bad request" }, 400);
+
+  if (msg.type === "shots") {
+    const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const list = Array.isArray(msg.shots) ? msg.shots : [];
+    const shots = list
+      .filter((s) => s && typeof s.id === "string" && UUID.test(s.id) && typeof s.data === "string" && s.data.length < 400_000)
+      .slice(0, 200)
+      .map((s) => ({ id: s.id.toLowerCase(), jpeg: Buffer.from(s.data, "base64") }))
+      .filter((s) => s.jpeg[0] === 0xff && s.jpeg[1] === 0xd8); // JPEG only
+    await saveShots(id, shots);
+    return json({ ok: true, saved: shots.length });
+  }
 
   if (msg.type === "progress") {
     await markScanProgress(id, Number(msg.pagesDone) || 0, Number(msg.pagesTotal) || null);

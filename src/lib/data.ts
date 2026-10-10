@@ -107,6 +107,19 @@ export async function failScan(id: string, error: string): Promise<boolean> {
   return rows.length > 0;
 }
 
+export async function saveShots(scanId: string, shots: { id: string; jpeg: Buffer }[]): Promise<void> {
+  if (!shots.length) return;
+  const sql = db();
+  const rows = shots.map((s) => ({ id: s.id, scan_id: scanId, image: s.jpeg }));
+  await sql`insert into scan_shots ${sql(rows)} on conflict (id) do nothing`;
+}
+
+export async function getShot(id: string): Promise<Buffer | null> {
+  const sql = db();
+  const rows = await sql<{ image: Buffer }[]>`select image from scan_shots where id = ${id}`;
+  return rows[0]?.image ?? null;
+}
+
 export async function failStaleScans(olderThanMinutes: number): Promise<number> {
   const rows = await db()`
     update scans set status = 'failed', error = 'timeout', finished_at = now()

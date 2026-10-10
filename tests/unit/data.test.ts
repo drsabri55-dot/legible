@@ -132,3 +132,14 @@ describe("idempotency and sign-in", () => {
     expect(rows[2].paid).toBeGreaterThan(0);
   });
 });
+
+describe("screenshots", () => {
+  it("stores shots against a scan, ignores repeats, and reads them back", async () => {
+    const scan = await data.createScan({ url: "https://shots.example/", host: "shots.example", ipHash: "ip-shots" });
+    const id = "33333333-3333-4333-8333-333333333333";
+    await data.saveShots(scan.id, [{ id, jpeg: Buffer.from([0xff, 0xd8, 0xff, 0x01]) }]);
+    await data.saveShots(scan.id, [{ id, jpeg: Buffer.from([0xff, 0xd8, 0xff, 0x02]) }]);
+    expect((await data.getShot(id))?.equals(Buffer.from([0xff, 0xd8, 0xff, 0x01]))).toBe(true);
+    expect(await data.getShot("44444444-4444-4444-8444-444444444444")).toBeNull();
+  });
+});
