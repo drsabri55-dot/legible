@@ -18,4 +18,11 @@ describe("scan contract", () => {
       expect(text).toContain(name);
     }
   });
+
+  it("carries tested fixes and the site's builder", () => {
+    const text = part("src/types/scan.ts");
+    for (const name of ["export interface NodeFix", "fix?: NodeFix | null", "builtWith?: string", "fixVersion?: 1"]) {
+      expect(text).toContain(name);
+    }
+  });
 });

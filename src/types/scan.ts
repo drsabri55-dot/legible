@@ -17,6 +17,10 @@ export interface RawNode {
   // A screenshot of the element, taken by the testing agent. The site stores
   // the image in scan_shots under this id.
   shot?: string;
+  // A fix for this element. Missing: no fix was tried (older scans, or past
+  // the worker's limits). null: fixes were tried and none passed its test, so
+  // the report gives guidance only.
+  fix?: NodeFix | null;
 }
 
 export interface RawRule {
@@ -53,6 +57,10 @@ export interface RawScan {
   pages: RawPage[];
   // Set when the testing agent ran: the model and the tokens it used.
   agent?: { model: string; usage: AgentUsage };
+  // The website builder the home page was made with, when recognised.
+  builtWith?: string;
+  // Set by workers that test fixes: a node without `fix` was not tried.
+  fixVersion?: 1;
 }
 
 export type ScanStatus = "queued" | "running" | "complete" | "failed";
@@ -82,4 +90,17 @@ export interface AgentPageResult {
   steps: number;
   reviews: AgentReview[];
   usage: AgentUsage;
+}
+
+export type FixKind = "html" | "css" | "note";
+
+// A fix the worker tried in the browser. "tested": the same check passed on
+// the page with the fix applied. "untested": it could not be tried there,
+// such as a change to a script or the server.
+export interface NodeFix {
+  code: string;
+  kind: FixKind;
+  status: "tested" | "untested";
+  source: "rule" | "ai";
+  note?: string;
 }
