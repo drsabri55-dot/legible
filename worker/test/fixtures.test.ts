@@ -15,6 +15,9 @@ it("serves the agent fixture pages and counts form posts", async () => {
     const res = await fetch(`http://127.0.0.1:${PORT}/agent/${name}.html`);
     expect(res.status, name).toBe(200);
   }
+  for (const name of ["alt", "contrast", "label", "viewport"]) {
+    expect((await fetch(`http://127.0.0.1:${PORT}/fixes/${name}.html`)).status, name).toBe(200);
+  }
   expect(await (await fetch(`http://127.0.0.1:${PORT}/__posts`)).text()).toBe("0");
   await fetch(`http://127.0.0.1:${PORT}/agent/submit`, { method: "POST", body: "n=1" });
   expect(await (await fetch(`http://127.0.0.1:${PORT}/__posts`)).text()).toBe("1");
