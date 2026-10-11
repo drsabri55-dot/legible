@@ -3,6 +3,7 @@ import { afterAll, beforeAll, expect, it } from "vitest";
 // @ts-expect-error plain ESM helper without types
 import { serveFixture } from "../../tests/fixtures/serve.mjs";
 import { ReplayModel } from "../src/agent/model";
+import { FIX_PROMPT } from "../src/fixes/ai";
 import { closeBrowser, scanSite } from "../src/scan";
 
 const PORT = 5075;
@@ -65,5 +66,6 @@ it("runs the agent only on pages the scan keeps, never on duplicates or redirect
   expect(scanned.every((p) => p.agent)).toBe(true);
   // One opening request per kept page: /index.html (same page), /home and
   // /elsewhere (redirects) never reach the agent.
-  expect(model.requests.length).toBe(scanned.length);
+  // (Fix-writing calls are counted apart: they are not the agent testing a page.)
+  expect(model.requests.filter((r) => r.system !== FIX_PROMPT).length).toBe(scanned.length);
 }, 120_000);
