@@ -35,6 +35,15 @@ export interface SuggestedFix {
   note?: string;
 }
 
+// How a fix is applied: markup (changed or added elements), a stylesheet
+// rule, or a note that says what to change (an HTML comment).
+export function fixKind(code: string): "html" | "css" | "note" {
+  const t = code.trim();
+  if (t.startsWith("<!--")) return "note";
+  if (t.startsWith("<")) return "html";
+  return /\{[\s\S]*\}/.test(t) ? "css" : "note";
+}
+
 const TAG = /^(\s*<[a-zA-Z][^\s/>]*)((?:\s+[^\s=/>]+(?:\s*=\s*(?:"[^"]*"|'[^']*'|[^\s"'>]+))?)*)(\s*\/?>)/;
 
 const VOID_ELEMENTS = new Set([

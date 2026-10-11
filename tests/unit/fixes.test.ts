@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { completeSnippet, removeAttr, setAttr, suggestFix } from "@/lib/rules/fixes";
+import { completeSnippet, fixKind, removeAttr, setAttr, suggestFix } from "@/lib/rules/fixes";
 import { contrastRatio, parseHex } from "@/lib/rules/contrast";
 
 describe("attribute editing", () => {
@@ -193,5 +193,13 @@ describe("CSS fixes change only the failing element", () => {
       data: contrast,
     });
     expect(fix?.code).toMatch(/^\.tag \{\n  color: #[0-9a-f]{6}; \/\* was #41545d \*\/\n\}$/);
+  });
+});
+
+describe("fixKind", () => {
+  it("tells markup, stylesheet rules and notes apart", () => {
+    expect(fixKind('<img src="a.jpg" alt="[Describe the image]">')).toBe("html");
+    expect(fixKind("#main > p {\n  color: #595959; /* was #999999 */\n}")).toBe("css");
+    expect(fixKind("<!-- Remove this tag. -->")).toBe("note");
   });
 });

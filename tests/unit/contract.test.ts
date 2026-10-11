@@ -25,4 +25,10 @@ describe("scan contract", () => {
       expect(text).toContain(name);
     }
   });
+
+  it("gives the worker the same rule-based fixes as the site", () => {
+    for (const f of ["fixes.ts", "contrast.ts"]) {
+      expect(readFileSync(`worker/src/rules/${f}`, "utf8"), f).toBe(readFileSync(`src/lib/rules/${f}`, "utf8"));
+    }
+  });
 });
