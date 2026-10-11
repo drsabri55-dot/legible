@@ -68,3 +68,10 @@ it("keeps nothing without a usable answer", async () => {
   expect(await writeFix(new ReplayModel([answer("css", "x".repeat(7000))]), page, failure, Date.now() + 60_000)).toBeNull();
   expect(await writeFix(new ReplayModel([answer("css", OUTLINE)]), page, failure, Date.now() - 1)).toBeNull();
 });
+
+it("never lets the model rewrite an element it could only see part of", async () => {
+  await page.evaluate(`(function () { var d = document.createElement('div'); d.id = 'big'; d.innerHTML = '<p>' + 'Long text. '.repeat(600) + '</p>'; document.body.appendChild(d); })()`);
+  const model = new ReplayModel([answer("html", '<div id="big"><p>Short.</p></div>')]);
+  expect(await writeFix(model, page, { ...failure, ruleId: "color-contrast", selector: "#big" }, Date.now() + 60_000)).toBeNull();
+  expect(JSON.stringify(model.requests[0].messages)).toContain("too long to rewrite");
+});

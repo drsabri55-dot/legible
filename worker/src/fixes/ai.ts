@@ -38,7 +38,7 @@ const CONTEXT = (selector: string) => `(function (sel) {
   if (!e) return null;
   var s = getComputedStyle(e), styles = {};
   ${JSON.stringify(STYLES)}.forEach(function (p) { styles[p] = s.getPropertyValue(p); });
-  return { html: e.outerHTML.slice(0, 4000), styles: styles };
+  return { html: e.outerHTML.slice(0, 4000), whole: e.outerHTML.length <= 4000, styles: styles };
 })(${JSON.stringify(selector)})`;
 
 export interface Failure {
@@ -61,13 +61,13 @@ function readAnswer(content: Anthropic.ContentBlock[]): Answer | null {
 export async function writeFix(model: AgentModel, page: Page, failure: Failure, deadline: number): Promise<NodeFix | null> {
   if (Date.now() >= deadline) return null;
   const info = (await page.evaluate(CONTEXT(failure.selector)).catch(() => null)) as
-    | { html: string; styles: Record<string, string> }
+    | { html: string; whole: boolean; styles: Record<string, string> }
     | null;
   if (!info) return null;
   const messages: Anthropic.MessageParam[] = [
     {
       role: "user",
-      content: `Failure: ${failure.help} (${failure.ruleId}).\n${failure.summary}\n\nSelector: ${failure.selector}\n\nElement code:\n${info.html}\n\nComputed styles:\n${Object.entries(info.styles).map(([k, v]) => `${k}: ${v}`).join("\n")}`,
+      content: `Failure: ${failure.help} (${failure.ruleId}).\n${failure.summary}\n\nSelector: ${failure.selector}\n\nElement code:\n${info.html}\n\nComputed styles:\n${Object.entries(info.styles).map(([k, v]) => `${k}: ${v}`).join("\n")}${info.whole ? "" : "\n\nThis element's code is too long to rewrite, and only its start is shown: answer with kind css or note."}`,
     },
   ];
   for (let attempt = 0; attempt < 2; attempt++) {
@@ -79,7 +79,8 @@ export async function writeFix(model: AgentModel, page: Page, failure: Failure, 
       return null;
     }
     const a = readAnswer(turn.content);
-    if (!a) return null;
+    // A rewrite of an element the model saw only part of would drop the rest.
+    if (!a || (a.kind === "html" && !info.whole)) return null;
     const fix = { code: a.code, kind: a.kind, source: "ai" as const, ...(a.note ? { note: a.note } : {}) };
     if (a.kind === "note") return { ...fix, status: "untested" };
     const verdict = await tryFix(page, { ruleId: failure.ruleId, selector: failure.selector, html: info.html, fix: a, replace: true });
