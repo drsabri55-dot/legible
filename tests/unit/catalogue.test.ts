@@ -54,3 +54,11 @@ describe("rule catalogue", () => {
     expect(criteriaFromTags(["wcag2a", "wcag412", "wcag213", "cat.aria"])).toEqual(["4.1.2"]);
   });
 });
+
+describe("who can do each fix", () => {
+  it("names a doer for every entry, and the owner for content fixes", () => {
+    for (const [id, info] of Object.entries(CATALOGUE)) expect(["you", "developer"], id).toContain(info.doer);
+    const you = Object.entries(CATALOGUE).filter(([, i]) => i.doer === "you").map(([id]) => id).sort();
+    expect(you).toEqual(["audio-caption", "document-title", "image-alt", "link-name", "p-as-heading", "table-fake-caption", "video-caption"]);
+  });
+});
