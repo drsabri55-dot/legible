@@ -7,11 +7,16 @@ import type { RawNode, RawPage, RawRule, RawScan } from "./types";
 import { addUsage, emptyUsage, type AgentModel } from "./agent/model";
 import { AGENT_BUDGET_MS, runAgentOnPage } from "./agent/run";
 import { BUILDER_PROBE } from "./builder";
+import { AI_FIXES_PER_SCAN, writeFix } from "./fixes/ai";
+import { testRuleFixes } from "./fixes/rules";
 
 export const MAX_PAGES = 6;
 // Page loads allowed after the home page, including ones that fail.
 export const MAX_ATTEMPTS = 8;
 export const PAGE_TIMEOUT_MS = 30_000;
+// Time on each page for trying rule-based fixes, and for AI-written ones.
+export const RULE_FIX_MS = 20_000;
+export const AI_FIX_MS = 90_000;
 export const PAUSE_BETWEEN_PAGES_MS = 1000;
 export const WCAG_TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"];
 
@@ -247,6 +252,31 @@ function withTimeout<T>(promise: Promise<T>, ms: number, code: string): Promise<
   ]).finally(() => clearTimeout(timer));
 }
 
+// Rule-based fixes on every kept page, then (with the agent) one AI-written
+// fix for each failure group that has none, while the scan's allowance lasts.
+// A failure whose fixes all failed their test gets `fix: null`: guidance only.
+async function testFixes(page: Page, violations: RawRule[], opts: ScanOptions) {
+  const failed = await testRuleFixes(page, violations, Date.now() + RULE_FIX_MS);
+  if (opts.agent && opts.fixBudget) {
+    const deadline = Date.now() + AI_FIX_MS;
+    for (const rule of violations) {
+      if (opts.fixBudget.left <= 0 || Date.now() >= deadline) break;
+      const own = rule.nodes.filter((n) => n.target.length === 1);
+      if (!own.length || own.some((n) => n.fix)) continue;
+      const node = own.find((n) => failed.includes(n)) ?? own.find((n) => n.fix === undefined);
+      if (!node) continue;
+      opts.fixBudget.left--;
+      node.fix = await writeFix(
+        opts.agent,
+        page,
+        { ruleId: rule.id, help: rule.help, summary: node.failureSummary || rule.description, selector: node.target[0] },
+        deadline,
+      );
+    }
+  }
+  for (const n of failed) if (n.fix === undefined) n.fix = null;
+}
+
 // `keep` says whether the scan will keep this page (not a redirect away or a
 // page already scanned); the testing agent only runs on pages that are kept.
 async function scanPage(
@@ -302,7 +332,8 @@ async function scanPage(
         await addFrameHosts(page, raw.violations);
         // Taken before the agent, which may leave the page in another state.
         const signature = (await page.evaluate(PAGE_SIGNATURE).catch(() => null)) as string | null;
-        if (opts.agent && keep(finalUrl, signature)) {
+        const kept = keep(finalUrl, signature);
+        if (opts.agent && kept) {
           // The agent must never cost the page its axe-core results.
           try {
             const outcome = await runAgentOnPage(page, { model: opts.agent, onShot: opts.onShot });
@@ -314,9 +345,17 @@ async function scanPage(
             raw.agent = { status: "failed", reason: "agent error", steps: 0, reviews: [], usage: emptyUsage() };
           }
         }
+        // Then the fixes, tried on this page before it closes.
+        if (kept) {
+          try {
+            await testFixes(page, raw.violations, opts);
+          } catch {
+            // A fix that cannot be tried never costs the page its results.
+          }
+        }
         return { raw, links, finalUrl, signature, builtWith };
       })(),
-      PAGE_TIMEOUT_MS + 5000 + (opts.agent ? AGENT_BUDGET_MS + 30_000 : 0),
+      PAGE_TIMEOUT_MS + 5000 + RULE_FIX_MS + 15_000 + (opts.agent ? AGENT_BUDGET_MS + AI_FIX_MS + 45_000 : 0),
       "timeout",
     );
   } finally {
@@ -347,9 +386,12 @@ export interface ScanOptions {
   // The testing agent: runs on every page after axe-core when given.
   agent?: AgentModel;
   onShot?: (id: string, jpeg: Buffer) => void | Promise<void>;
+  // AI-written fixes left for this scan; set from AI_FIXES_PER_SCAN when missing.
+  fixBudget?: { left: number };
 }
 
 export async function scanSite(startUrl: string, opts: ScanOptions = {}): Promise<RawScan> {
+  if (opts.agent && !opts.fixBudget) opts = { ...opts, fixBudget: { left: AI_FIXES_PER_SCAN } };
   const startedAt = new Date().toISOString();
   const ua = userAgent();
   const start = new URL(startUrl);
@@ -467,6 +509,7 @@ export async function scanSite(startUrl: string, opts: ScanOptions = {}): Promis
     pages,
   };
   if (typeof builtWith === "string") raw.builtWith = builtWith;
+  raw.fixVersion = 1;
   if (opts.agent) {
     raw.agent = {
       model: opts.agent.name,
