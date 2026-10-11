@@ -9,7 +9,7 @@ export function countOf(n: number, word: string): string {
 export function freeResultNextStep(failures: number, price: string): string {
   return failures === 0
     ? "No failures were found, so there is no report to buy. Automated testing cannot check everything, so a manual review is still worth doing."
-    : `The full report lists every failure, who it affects and the corrected code, sorted into must fix, should fix and nice to have. It costs ${price}, once.`;
+    : `Your free result has a fix for every problem we found. The full report tests your whole site, up to 50 pages, and comes as a PDF you can share. It costs ${price}, once.`;
 }
 
 // The report email's pointer to where to begin. `must` counts kinds of issue

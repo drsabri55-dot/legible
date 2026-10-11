@@ -13,7 +13,7 @@ const SAMPLE = {
   score: 68,
   failures: "143 failures",
   pages: "6 pages",
-  next_step: "The full report lists every failure, who it affects and the corrected code, sorted into must fix, should fix and nice to have. It costs $99, once.",
+  next_step: "Your free result has a fix for every problem we found. The full report tests your whole site, up to 50 pages, and comes as a PDF you can share. It costs $99, once.",
   start_with: "Must-fix issues: 4. Start with those.",
   result_link: "http://localhost:3000/scan/example",
   report_link: "http://localhost:3000/report/example",

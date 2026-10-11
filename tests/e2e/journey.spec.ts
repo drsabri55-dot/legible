@@ -23,10 +23,15 @@ test("a visitor scans a site from the landing page and sees the free result", as
   await expect(page).toHaveTitle("Your free result · Legible");
   await expect(page.getByRole("heading", { level: 1, name: "127.0.0.1" })).toBeVisible();
   await expect(page.getByText(/Scored \d+ out of 100, measured against WCAG 2\.1 Level AA across 4 pages/)).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Two of your issues, in full" })).toBeVisible();
-  await expect(page.locator("article")).toHaveCount(2);
-  await expect(page.getByRole("heading", { name: /more issues? in the full report/ })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Get the full report · $99" })).toBeVisible();
+  // Every problem is free now, with its fix and a plan for the order to do them in.
+  await expect(page.getByRole("heading", { name: "Your fix plan" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Every problem, with its fix" })).toBeVisible();
+  expect(await page.locator("article").count()).toBeGreaterThan(2);
+  await expect(page.getByText("Tested fix").first()).toBeVisible();
+  const firstStep = page.locator("#plan ~ ol a").first();
+  await expect(page.locator(String(await firstStep.getAttribute("href")))).toHaveCount(1);
+  await expect(page.getByRole("heading", { name: "Test your whole site" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Test the whole site · $99" })).toBeVisible();
   await expect(page.getByText("Legible identifies issues measured against WCAG 2.1 Level AA.").first()).toBeVisible();
   await expectNoWcagViolations(page);
 });
@@ -46,7 +51,7 @@ test("the visitor can email the free result to themselves", async ({ page }) => 
 
 test("buying the report creates it, shows it and emails it with the PDF", async ({ page }) => {
   await page.goto(resultUrl);
-  await page.getByRole("button", { name: "Get the full report · $99" }).click();
+  await page.getByRole("button", { name: "Test the whole site · $99" }).click();
   await page.waitForURL(/\/checkout\/dev\?scan=/);
   await page.getByLabel("Buyer email").fill(buyer);
   await page.getByRole("button", { name: "Pay $99 (test)" }).click();

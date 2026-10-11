@@ -32,6 +32,11 @@ Three processes: the Next.js site (Vercel), the scan worker (`worker/`, Railway 
   `ANTHROPIC_API_KEY` is set; `startScan` sends it while the site has the key and both prices, and today's free spend plus scans still running is under
   `AGENT_DAILY_CAP_USD` (`src/lib/spend.ts`, `scans.agent` records on/capped/off). The worker meters every model call and its
   final message (complete or failed) is charged once into `agent_spend`. Tests use `ReplayModel`.
+- **Fixes** (`worker/src/fixes/`): after the agent, each kept page tries the rule-based fix for up to 5 elements per rule
+  (`worker/src/rules/` is a byte-identical copy of `src/lib/rules/fixes.ts` + `contrast.ts`, enforced by the contract test),
+  then, with the agent, one AI-written fix per failure group (40 per scan). `apply.ts` applies a fix to the live page, re-runs the
+  same axe rule or measurement on that element and undoes it. Results ride on `RawNode.fix` (`null` = guidance only).
+  `src/lib/report/plan.ts` orders the fix plan by fixed rules; the free result shows the plan and every problem.
 - **Reports are computed, never stored:** `buildReport(raw)` in `src/lib/report/model.ts` is pure; the report page and PDF rebuild from
   `scans.raw`. PDFs are rendered on demand by the worker's `/pdf`, which prints `/report/[token]?print=1` (only on `APP_URL`).
 - **Payment:** `/api/checkout` → Stripe Checkout (or `/checkout/dev` when `ALLOW_FAKE_PAYMENTS=true` and no key). The webhook and

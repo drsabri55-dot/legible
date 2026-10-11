@@ -22,7 +22,8 @@ test.describe("landing page, reduced motion", () => {
       "failures, not warnings",
       "Twelve of them stop someone from finishing the form today. Everything else queues behind those.",
       "32 points to go. Twelve fixes close most of the gap.",
-      "The full report covers every failure with corrected code, for a one-time $99.",
+      "You landed. The free scan tests your home page and five more, with a tested fix for every problem, in the order to do them.",
+      "The full report tests your whole site, up to 50 pages, with a PDF to share, for a one-time $99.",
     ]) {
       expect(text).toContain(line);
     }

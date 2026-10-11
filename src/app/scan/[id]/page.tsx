@@ -235,14 +235,14 @@ export default async function ScanPage(props: PageProps<"/scan/[id]">) {
             <div className="flex flex-col gap-8 md:flex-row md:items-center md:gap-10">
               <div className="min-w-0 flex-1">
                 <h2 id="full" className="m-0 text-[clamp(22px,2.4vw,28px)] tracking-[-0.02em]">
-                  Get the full report
+                  Test your whole site
                 </h2>
                 <ul className="mt-5 mb-0 grid list-none gap-3 p-0 text-[14.5px] leading-[1.7] text-nc-neutral-200 sm:grid-cols-2 md:grid-cols-1 lg:grid-cols-2">
                   {[
-                    "Every failure, with the element, the page and corrected code",
-                    "Sorted into must fix, should fix and nice to have",
-                    "A plain-English summary you can forward to your team",
+                    "Every page of your site, up to 50, tested the same way",
+                    "A fix for every problem, and one plan for the whole site",
                     "A PDF and a link you can share, dated for your records",
+                    "Sorted into must fix, should fix and nice to have",
                   ].map((line) => (
                     <li key={line} className="flex gap-3">
                       <span aria-hidden="true" className="mt-[11px] block h-px w-[18px] shrink-0 bg-nc-accent-500" />
@@ -251,7 +251,7 @@ export default async function ScanPage(props: PageProps<"/scan/[id]">) {
                   ))}
                 </ul>
                 <div className="mt-7 flex flex-wrap items-center gap-x-6 gap-y-3">
-                  <CheckoutButton scanId={scan.id} label={`Get the full report · ${price}`} />
+                  <CheckoutButton scanId={scan.id} label={`Test the whole site · ${price}`} />
                   <p className="m-0 self-start pt-[10px] text-[13px] text-nc-neutral-400">
                     One-time payment. No subscription.
                   </p>

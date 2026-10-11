@@ -301,10 +301,11 @@ export default function Home() {
                     <Split text="Enter your site and we will test it." />
                   </h2>
                   <p data-reveal="" data-reveal-delay="1" className={s.body7a}>
-                    You landed. The free scan shows your score, your issue counts and two sample fixes.
+                    You landed. The free scan tests your home page and five more, with a tested fix for every problem, in the
+                    order to do them.
                   </p>
                   <p data-reveal="" data-reveal-delay="2" className={s.body7b}>
-                    The full report covers every failure with corrected code, for a one-time {price}.
+                    The full report tests your whole site, up to 50 pages, with a PDF to share, for a one-time {price}.
                   </p>
                   <div data-reveal="" data-reveal-delay="3" style={{ margin: "38px 0 0", maxWidth: "30rem" }}>
                     <ScanForm />
