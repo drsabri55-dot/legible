@@ -16,6 +16,7 @@ import {
 } from "../rules/catalogue";
 import { completeSnippet, fixKind, suggestFix } from "../rules/fixes";
 import { WCAG, criteriaFromTags } from "../rules/wcag";
+import { buildFixPlan, type FixPlan } from "./plan";
 import { siteName } from "../url";
 
 export const EXAMPLES_PER_ISSUE = 5;
@@ -125,6 +126,8 @@ export interface Report {
   agentRules: { passed: number; failed: number };
   // The website builder the site was made with, when recognised.
   builtWith: string | null;
+  // What to fix first, how long it takes and who can do it.
+  plan: FixPlan;
   engine: RawScan["engine"];
 }
 
@@ -425,6 +428,7 @@ export function buildReport(raw: RawScan): Report {
       failed: [...failedRules.keys()].filter((id) => id.startsWith("legible-")).length,
     },
     builtWith: raw.builtWith ?? null,
+    plan: buildFixPlan(issues),
     engine: raw.engine,
   };
 }
