@@ -256,3 +256,48 @@ describe("the testing agent's results", () => {
     expect(r.issues.every((i) => i.examples.every((e) => e.shot === null))).toBe(true);
   });
 });
+
+describe("tested fixes", () => {
+  const withFix = (fix: unknown, fixVersion?: 1) => {
+    const raw = rawScan([page("https://www.shop.example/", [rule("image-alt", "critical", ['<img src="a.jpg">'])], [])]);
+    (raw.pages[0].violations[0].nodes[0] as { fix?: unknown }).fix = fix;
+    if (fixVersion) raw.fixVersion = fixVersion;
+    return buildReport(raw).issues[0];
+  };
+
+  it("builds older scans as before, with no fix status", () => {
+    const ex = withFix(undefined).examples[0];
+    expect(ex.fixed).toBe('<img src="a.jpg" alt="[Describe the image]">');
+    expect(ex).toMatchObject({ fixStatus: null, fixSource: null, guidanceOnly: false });
+  });
+
+  it("shows a tested fix from the worker with its status, source and kind", () => {
+    const ex = withFix({ code: "img { outline: 0 }", kind: "css", status: "tested", source: "ai", note: "Explains it." }, 1).examples[0];
+    expect(ex).toMatchObject({ fixed: "img { outline: 0 }", fixStatus: "tested", fixSource: "ai", fixKind: "css", note: "Explains it.", guidanceOnly: false });
+  });
+
+  it("keeps the rule's own note for a tested rule-based fix", () => {
+    const ex = withFix({ code: '<img src="a.jpg" alt="[Describe the image]">', kind: "html", status: "tested", source: "rule" }, 1).examples[0];
+    expect(ex.note).toContain("decoration");
+    expect(ex.fixStatus).toBe("tested");
+  });
+
+  it("gives guidance only when every fix failed its test", () => {
+    const ex = withFix(null, 1).examples[0];
+    expect(ex).toMatchObject({ fixed: null, guidanceOnly: true, fixStatus: null });
+  });
+
+  it("marks a fix the worker did not try as not tested on newer scans", () => {
+    const ex = withFix(undefined, 1).examples[0];
+    expect(ex).toMatchObject({ fixStatus: "untested", fixSource: "rule", fixKind: "html" });
+  });
+
+  it("says who can do it, and names the site's builder", () => {
+    const raw = rawScan([page("https://www.shop.example/", [rule("image-alt", "critical", ['<img src="a.jpg">'])], [])]);
+    raw.builtWith = "Shopify";
+    const r = buildReport(raw);
+    expect(r.issues[0].doer).toBe("you");
+    expect(r.builtWith).toBe("Shopify");
+    expect(buildReport(sampleScan()).builtWith).toBeNull();
+  });
+});

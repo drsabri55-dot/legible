@@ -2,18 +2,19 @@
 // counts, the free sample and the full report. Pure functions, no I/O, so the
 // same raw data always gives the same report.
 
-import type { AgentPageResult, AgentReviewKind, RawNode, RawPage, RawRule, RawScan } from "@/types/scan";
+import type { AgentPageResult, AgentReviewKind, FixKind, RawNode, RawPage, RawRule, RawScan } from "@/types/scan";
 import {
   CATALOGUE,
   GROUP_LABEL,
   IMPACT_ORDER,
   IMPACT_WEIGHT,
   groupForImpact,
+  type Doer,
   type Effort,
   type Impact,
   type IssueGroup,
 } from "../rules/catalogue";
-import { completeSnippet, suggestFix } from "../rules/fixes";
+import { completeSnippet, fixKind, suggestFix } from "../rules/fixes";
 import { WCAG, criteriaFromTags } from "../rules/wcag";
 import { siteName } from "../url";
 
@@ -35,6 +36,13 @@ export interface IssueExample {
   embeddedFrom: string | null;
   // A screenshot of the element, taken by the testing agent.
   shot: string | null;
+  // Whether `fixed` was tried in the browser: "tested" passed the same check,
+  // "untested" could not be tried. null on scans from before fix testing.
+  fixStatus: "tested" | "untested" | null;
+  fixSource: "rule" | "ai" | null;
+  fixKind: FixKind | null;
+  // Every fix tried for this element failed its test: no code is shown.
+  guidanceOnly: boolean;
 }
 
 export interface Issue {
@@ -45,6 +53,8 @@ export interface Issue {
   who: string;
   fix: string;
   effort: Effort;
+  // Who can make the change: the owner in their website builder, or a developer.
+  doer: Doer;
   impact: Impact;
   group: IssueGroup;
   criteria: { sc: string; name: string; level: string }[];
@@ -113,6 +123,8 @@ export interface Report {
   agentUsed: boolean;
   // How many of rulesPassed / rulesFailed are the agent's own checks.
   agentRules: { passed: number; failed: number };
+  // The website builder the site was made with, when recognised.
+  builtWith: string | null;
   engine: RawScan["engine"];
 }
 
@@ -199,6 +211,42 @@ export function scoreFrom(passed: Map<string, Impact>, failed: Map<string, Impac
   return Math.round((100 * pass) / (pass + fail));
 }
 
+// The fix shown for one element. The worker's tested fix wins; `fix: null`
+// means every fix it tried failed, so only guidance is given. Elements it did
+// not try get the rule-based fix, marked not tested on scans that test fixes.
+function exampleFix(
+  ruleId: string,
+  node: RawNode,
+  html: string,
+  from: string | null,
+  testsFixes: boolean,
+): Pick<IssueExample, "fixed" | "note" | "fixStatus" | "fixSource" | "fixKind" | "guidanceOnly"> {
+  const none = { fixStatus: null, fixSource: null, fixKind: null, guidanceOnly: false };
+  if (from) return { fixed: null, note: embedNote(from), ...none };
+  if (node.fix === null) return { fixed: null, note: null, ...none, guidanceOnly: true };
+  if (node.fix) {
+    const ruleNote = node.fix.source === "rule" ? (suggestFix(ruleId, { ...node, html })?.note ?? null) : null;
+    return {
+      fixed: node.fix.code,
+      note: node.fix.note ?? ruleNote,
+      fixStatus: node.fix.status,
+      fixSource: node.fix.source,
+      fixKind: node.fix.kind,
+      guidanceOnly: false,
+    };
+  }
+  const fix = suggestFix(ruleId, { ...node, html });
+  if (!fix) return { fixed: null, note: null, ...none };
+  return {
+    fixed: fix.code,
+    note: fix.note ?? null,
+    fixStatus: testsFixes ? "untested" : null,
+    fixSource: testsFixes ? "rule" : null,
+    fixKind: testsFixes ? fixKind(fix.code) : null,
+    guidanceOnly: false,
+  };
+}
+
 export function buildReport(raw: RawScan): Report {
   const scanned = raw.pages.filter((p) => p.status === "scanned");
   const failedRules = new Map<string, Impact>();
@@ -265,14 +313,12 @@ export function buildReport(raw: RawScan): Report {
       else ownElements++;
       if (examples.length < EXAMPLES_PER_ISSUE) {
         const html = completeSnippet(node.html);
-        const fix = from ? null : suggestFix(ruleId, { ...node, html });
         examples.push({
           pageUrl: on[0],
           alsoOn: on.length - 1,
           selector: selectorOf(node),
           html,
-          fixed: fix?.code ?? null,
-          note: from ? embedNote(from) : (fix?.note ?? null),
+          ...exampleFix(ruleId, node, html, from, raw.fixVersion === 1),
           embeddedFrom: from,
           shot: node.shot ?? null,
         });
@@ -292,6 +338,7 @@ export function buildReport(raw: RawScan): Report {
       who: info?.who ?? "People who use assistive technology",
       fix: info?.fix ?? `See the guidance at ${rule.helpUrl}`,
       effort: info?.effort ?? "moderate",
+      doer: info?.doer ?? "developer",
       impact,
       group: groupForImpact(impact),
       criteria: criteriaFromTags(rule.tags).map((sc) => ({ sc, name: WCAG[sc].name, level: WCAG[sc].level })),
@@ -377,6 +424,7 @@ export function buildReport(raw: RawScan): Report {
       passed: [...passedRules.keys()].filter((id) => id.startsWith("legible-")).length,
       failed: [...failedRules.keys()].filter((id) => id.startsWith("legible-")).length,
     },
+    builtWith: raw.builtWith ?? null,
     engine: raw.engine,
   };
 }
