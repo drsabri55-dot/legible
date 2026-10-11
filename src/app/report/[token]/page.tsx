@@ -3,10 +3,12 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { cache } from "react";
 import { AgentReview, ElementShot, agentMethod, agentPageNote, axeRuleCounts } from "@/components/report/AgentSections";
+import { GUIDANCE_ONLY, builderNote, codeLabel, fixLabel } from "@/components/report/FixLabels";
 import { Logo } from "@/components/site/Logo";
 import { getReportByToken } from "@/lib/data";
 import { privatePage } from "@/lib/page-meta";
 import { buildReport, type Issue, type Report } from "@/lib/report/model";
+import { planIntro, stepLine } from "@/lib/report/plan";
 import type { Effort, Impact } from "@/lib/rules/catalogue";
 import { understandingUrl } from "@/lib/rules/wcag";
 import { reasonText } from "@/lib/report/reasons";
@@ -50,8 +52,6 @@ function Pill({ impact }: { impact: Impact }) {
 function Summary({ r }: { r: Report }) {
   const must = r.groups[0].issues.length;
   const pagesWord = r.pagesScanned === 1 ? "page" : "pages";
-  // Issues in content embedded from other sites are not the owner's to fix.
-  const start = r.issues.filter((i) => !i.embeddedFrom).slice(0, 5);
   return (
     <section className="rp-section rp-break" aria-labelledby="summary">
       <p className="rp-kicker">Summary</p>
@@ -84,24 +84,6 @@ function Summary({ r }: { r: Report }) {
         ))}
       </dl>
 
-      {start.length > 0 && (
-        <>
-          <h3>Start here</h3>
-          <p>The issues below affect the most people. Fixing them closes most of the gap.</p>
-          <ol className="rp-start">
-            {start.map((i) => (
-              <li key={i.ruleId}>
-                <a href={`#issue-${i.ruleId}`}>{i.title}</a>
-                <span>
-                  {IMPACT_LABEL[i.impact]} · {i.instances} {i.instances === 1 ? "element" : "elements"} ·{" "}
-                  {EFFORT_LABEL[i.effort]}
-                </span>
-              </li>
-            ))}
-          </ol>
-        </>
-      )}
-
       <h3>How to read this report</h3>
       <ul className="rp-plain">
         <li>
@@ -114,8 +96,9 @@ function Summary({ r }: { r: Report }) {
           <strong>Nice to have</strong>: {GROUP_INTRO.nice}
         </li>
         <li>
-          Each issue shows code from your site and a corrected version. Text in [square brackets] is for you to write,
-          such as a description of an image. Give these pages to whoever builds your site.
+          Each issue shows code from your site and a fix. A tested fix passed the same check in a browser. Text in
+          [square brackets] is for you to write, such as a description of an image. Give these pages to whoever builds
+          your site.
         </li>
         {r.issues.some((i) => i.examples.some((ex) => ex.embeddedFrom)) && (
           <li>
@@ -163,6 +146,41 @@ function Pages({ r }: { r: Report }) {
           ))}
         </tbody>
       </table>
+    </section>
+  );
+}
+
+// What to fix first, how long it takes and who can do it.
+function Plan({ r }: { r: Report }) {
+  if (!r.plan.steps.length) return null;
+  return (
+    <section className="rp-section rp-break" aria-labelledby="plan">
+      <p className="rp-kicker">Fix plan</p>
+      <h2 id="plan">Your fix plan</h2>
+      <p className="rp-lede">{planIntro(r.plan)}</p>
+      {r.builtWith && <p>{builderNote(r.builtWith)}</p>}
+      <ol className="rp-start">
+        {r.plan.steps.map((s) => (
+          <li key={s.ruleId}>
+            <a href={`#issue-${s.ruleId}`}>{s.title}</a>
+            <span>
+              {IMPACT_LABEL[s.impact]} · {stepLine(s)}
+            </span>
+          </li>
+        ))}
+      </ol>
+      {r.plan.embedded > 0 && (
+        <p>
+          {r.plan.embedded} more {r.plan.embedded === 1 ? "problem is" : "problems are"} in content embedded from other
+          sites, so {r.plan.embedded === 1 ? "it is" : "they are"} left out of the plan.
+        </p>
+      )}
+      {r.agentReviews.length > 0 && (
+        <p>
+          Also worth checking: {r.agentReviews.length} {r.agentReviews.length === 1 ? "thing" : "things"} the testing
+          agent flagged. See <a href="#agent-review">The agent&apos;s review</a>.
+        </p>
+      )}
     </section>
   );
 }
@@ -219,6 +237,7 @@ function IssueBlock({ issue, n }: { issue: Issue; n: string }) {
             <code>{ex.selector}</code>
           </p>
           <ElementShot id={ex.shot} label={ex.selector} />
+          {ex.fixed && fixLabel(ex) && <p className="rp-fixstate">{fixLabel(ex)}</p>}
           <div className={ex.fixed ? "rp-code-pair" : "rp-code-pair rp-single"}>
             <figure>
               <figcaption>{ex.embeddedFrom ? `Code from ${ex.embeddedFrom}` : "Your code"}</figcaption>
@@ -228,20 +247,21 @@ function IssueBlock({ issue, n }: { issue: Issue; n: string }) {
             </figure>
             {ex.fixed && (
               <figure>
-                <figcaption>Corrected</figcaption>
+                <figcaption>{codeLabel(ex.fixKind)}</figcaption>
                 <pre className="rp-good">
                   <code>{ex.fixed}</code>
                 </pre>
               </figure>
             )}
           </div>
+          {ex.guidanceOnly && <p className="rp-note">{GUIDANCE_ONLY}</p>}
           {ex.note && issue.examples.findIndex((other) => other.note === ex.note) === i && (
             <p className="rp-note">{ex.note}</p>
           )}
         </div>
       ))}
 
-      {issue.examples.some((ex) => !ex.fixed && !ex.embeddedFrom) && issue.genericBefore && (
+      {issue.examples.some((ex) => !ex.fixed && !ex.embeddedFrom && !ex.guidanceOnly) && issue.genericBefore && (
         <div className="rp-example">
           <p className="rp-where">
             <span>How the fix looks in general</span>
@@ -482,6 +502,7 @@ export default async function ReportPage(props: PageProps<"/report/[token]">) {
         </section>
 
         <Summary r={r} />
+        <Plan r={r} />
         <Pages r={r} />
         <Issues r={r} />
         <Review r={r} />

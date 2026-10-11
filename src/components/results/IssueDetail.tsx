@@ -1,4 +1,5 @@
 import type { Issue } from "@/lib/report/model";
+import { GUIDANCE_ONLY, codeLabel, fixLabel } from "@/components/report/FixLabels";
 import { understandingUrl } from "@/lib/rules/wcag";
 import { ImpactTag } from "./ImpactTag";
 
@@ -21,12 +22,17 @@ function Code({ label, code, tone }: { label: string; code: string; tone: "bad" 
   );
 }
 
-// One issue in full, on the dark site theme (the free sample on the result page).
+// One issue in full, on the dark site theme (the free result page). The id is
+// what the fix plan links to.
 export function IssueDetail({ issue, headingLevel = 3 }: { issue: Issue; headingLevel?: 2 | 3 }) {
   const H = headingLevel === 2 ? "h2" : "h3";
   const example = issue.examples[0];
+  const state = example ? fixLabel(example) : null;
   return (
-    <article className="rounded-[14px] border border-white/[0.09] bg-white/[0.025] p-[clamp(18px,3vw,28px)]">
+    <article
+      id={`issue-${issue.ruleId}`}
+      className="scroll-mt-6 rounded-[14px] border border-white/[0.09] bg-white/[0.025] p-[clamp(18px,3vw,28px)]"
+    >
       <div className="flex flex-wrap items-center gap-[10px]">
         <ImpactTag impact={issue.impact} />
         <span className="text-[12px] text-nc-neutral-400">
@@ -61,12 +67,28 @@ export function IssueDetail({ issue, headingLevel = 3 }: { issue: Issue; heading
         </dd>
       </dl>
       {example && example.fixed && (
-        <div className="mt-[22px] grid gap-[14px] md:grid-cols-2">
-          <Code label="Your code" code={example.html} tone="bad" />
-          <Code label="Corrected" code={example.fixed} tone="good" />
-        </div>
+        <>
+          {state && (
+            <p className="mt-[22px] mb-0 text-[13px] text-nc-neutral-300">
+              <span aria-hidden="true" className="mr-2 inline-block h-[7px] w-[7px] rounded-full bg-nc-accent-400 align-middle" />
+              {state}
+            </p>
+          )}
+          <div className={`${state ? "mt-[10px]" : "mt-[22px]"} grid gap-[14px] md:grid-cols-2`}>
+            <Code label="Your code" code={example.html} tone="bad" />
+            <Code label={codeLabel(example.fixKind)} code={example.fixed} tone="good" />
+          </div>
+        </>
       )}
-      {example && !example.fixed && (
+      {example && !example.fixed && example.guidanceOnly && (
+        <>
+          <div className="mt-[22px]">
+            <Code label="Your code" code={example.html} tone="bad" />
+          </div>
+          <p className="mt-[12px] mb-0 text-[13px] leading-[1.7] text-nc-neutral-300">{GUIDANCE_ONLY}</p>
+        </>
+      )}
+      {example && !example.fixed && !example.guidanceOnly && (
         <>
           <div className="mt-[22px]">
             <Code
