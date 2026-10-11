@@ -255,10 +255,15 @@ function withTimeout<T>(promise: Promise<T>, ms: number, code: string): Promise<
 // Rule-based fixes on every kept page, then (with the agent) one AI-written
 // fix for each failure group that has none, while the scan's allowance lasts.
 // A failure whose fixes all failed their test gets `fix: null`: guidance only.
+function fixTimes(opts: ScanOptions) {
+  return opts.fixTimes ?? { ruleMs: RULE_FIX_MS, aiMs: AI_FIX_MS };
+}
+
 async function testFixes(page: Page, violations: RawRule[], opts: ScanOptions) {
-  const failed = await testRuleFixes(page, violations, Date.now() + RULE_FIX_MS);
+  const times = fixTimes(opts);
+  const failed = await testRuleFixes(page, violations, Date.now() + times.ruleMs);
   if (opts.agent && opts.fixBudget) {
-    const deadline = Date.now() + AI_FIX_MS;
+    const deadline = Date.now() + times.aiMs;
     for (const rule of violations) {
       if (opts.fixBudget.left <= 0 || Date.now() >= deadline) break;
       const own = rule.nodes.filter((n) => n.target.length === 1);
@@ -347,11 +352,18 @@ async function scanPage(
         }
         // Then the fixes, tried on this page before it closes.
         if (kept) {
-          try {
-            await testFixes(page, raw.violations, opts);
-          } catch {
-            // A fix that cannot be tried never costs the page its results.
-          }
+          // A hard end for the whole fix step, so a stuck call never costs the
+          // page its results: what was decided by then is kept.
+          const times = fixTimes(opts);
+          let timer: NodeJS.Timeout | undefined;
+          await Promise.race([
+            testFixes(page, raw.violations, opts).catch(() => {
+              // A fix that cannot be tried never costs the page its results.
+            }),
+            new Promise<void>((resolve) => {
+              timer = setTimeout(resolve, times.ruleMs + (opts.agent ? times.aiMs : 0) + 10_000);
+            }),
+          ]).finally(() => clearTimeout(timer));
         }
         return { raw, links, finalUrl, signature, builtWith };
       })(),
@@ -388,6 +400,8 @@ export interface ScanOptions {
   onShot?: (id: string, jpeg: Buffer) => void | Promise<void>;
   // AI-written fixes left for this scan; set from AI_FIXES_PER_SCAN when missing.
   fixBudget?: { left: number };
+  // Time for the fix step on each page (tests use shorter times).
+  fixTimes?: { ruleMs: number; aiMs: number };
 }
 
 export async function scanSite(startUrl: string, opts: ScanOptions = {}): Promise<RawScan> {

@@ -58,9 +58,18 @@ describe("AnthropicModel time limits", () => {
         },
       },
     };
-    await new AnthropicModel(fake, "claude-sonnet-5-5").turn({ ...req, deadline: Date.now() + 5000 });
+    const model = new AnthropicModel(fake, "claude-sonnet-5-5");
+    // Under a minute left: one try, using the time there is.
+    await model.turn({ ...req, deadline: Date.now() + 5000 });
     expect(options.timeout as number).toBeLessThanOrEqual(5000);
     expect(options.timeout as number).toBeGreaterThan(3000);
+    expect(options.maxRetries).toBe(0);
+    // More time: a retry only when both tries fit before the deadline.
+    await model.turn({ ...req, deadline: Date.now() + 100_000 });
+    expect(options.timeout as number).toBeLessThanOrEqual(50_000);
+    expect(options.maxRetries).toBe(1);
+    await model.turn({ ...req, deadline: Date.now() + 200_000 });
+    expect(options.timeout).toBe(60_000);
     expect(options.maxRetries).toBe(1);
   });
 });

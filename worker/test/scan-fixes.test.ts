@@ -45,3 +45,19 @@ it("writes no AI fixes once the scan's allowance is used up", async () => {
   const focus = raw.pages[0].violations.find((v) => v.id === "legible-focus-visible")!;
   expect(focus.nodes.every((n) => n.fix === undefined)).toBe(true);
 });
+
+it("keeps the page's results when a fix call hangs past its time", async () => {
+  const done = { calls: [{ name: "done", input: { summary: "ok" } }] };
+  const replay = new ReplayModel([done]);
+  let calls = 0;
+  // Answers the agent, then never answers again (a stuck request).
+  const stuck = {
+    name: "stuck",
+    turn: (req: Parameters<ReplayModel["turn"]>[0]) => (calls++ === 0 ? replay.turn(req) : new Promise<never>(() => {})),
+  };
+  const started = Date.now();
+  const raw = await scanSite(`${base}/agent/focus.html`, { pauseMs: 10, agent: stuck, fixTimes: { ruleMs: 2000, aiMs: 2000 } });
+  expect(Date.now() - started).toBeLessThan(60_000);
+  expect(raw.pages[0].status).toBe("scanned");
+  expect(raw.pages[0].violations.some((v) => v.id === "legible-focus-visible")).toBe(true);
+}, 90_000);

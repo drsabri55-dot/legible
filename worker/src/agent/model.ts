@@ -75,11 +75,12 @@ export class AnthropicModel implements AgentModel {
       system: req.system,
       messages: req.messages,
     };
-    // One retry at most, and never past the deadline: the page's budget is
-    // what keeps a slow model from costing the whole scan.
-    const left = req.deadline ? req.deadline - Date.now() : 60_000;
-    const timeout = Math.max(1000, Math.min(60_000, left));
-    const res = (await this.client.messages.create(body as never, { timeout, maxRetries: 1 } as never)) as Anthropic.Message;
+    // Never past the deadline: the page's budget is what keeps a slow model
+    // from costing the whole scan. A retry only when both tries fit in it.
+    const left = req.deadline ? req.deadline - Date.now() : 120_000;
+    const retry = left > 60_000;
+    const timeout = Math.max(1000, Math.min(60_000, retry ? Math.floor(left / 2) : left));
+    const res = (await this.client.messages.create(body as never, { timeout, maxRetries: retry ? 1 : 0 } as never)) as Anthropic.Message;
     return {
       content: res.content,
       stopReason: res.stop_reason,
