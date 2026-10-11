@@ -6,7 +6,8 @@ import AxeBuilder from "@axe-core/playwright";
 import type { Page } from "playwright";
 import { SELECTOR_FN } from "../agent/dom";
 import {
-  measureFocusAt,
+  FOCUS_REVIEW,
+  focusShareAt,
   measureKeyboardReach,
   measureReflow,
   measureTextSpacing,
@@ -36,11 +37,14 @@ export interface FixTry {
   replace?: boolean;
 }
 
-const APPLY = (t: FixTry) => `(function (inp) {
+// With `dry`, only checks that the fix can be applied and changes nothing.
+const APPLY = (t: FixTry, dry = false) => `(function (inp) {
   var MARK = ${JSON.stringify(MARK)};
   var list;
   try { list = document.querySelectorAll(inp.selector); } catch (e) { return 'untestable'; }
   if (list.length !== 1) return 'untestable';
+  // Never over another fix that is still on the page.
+  if ((window.__legibleUndo || []).length || document.querySelector('[' + MARK + ']')) return 'untestable';
   var el = list[0];
   var undo = [];
   // Parsed elements. <html>, <head> and <body> only survive a full document parse.
@@ -53,19 +57,22 @@ const APPLY = (t: FixTry) => `(function (inp) {
     }
     var t = document.createElement('template');
     t.innerHTML = String(code || '').trim();
-    return Array.prototype.slice.call(t.content.children);
+    // Words around the markup are not code: such a fix cannot be shown as tested.
+    var prose = Array.prototype.some.call(t.content.childNodes, function (n) { return n.nodeType === 3 && n.textContent.trim(); });
+    return prose ? null : Array.prototype.slice.call(t.content.children);
   }
-  // Markup from a fix never runs code in the page: no scripts, no handlers.
-  function clean(node) {
-    node.querySelectorAll('script, iframe, object, embed').forEach(function (e) { e.remove(); });
-    [node].concat(Array.prototype.slice.call(node.querySelectorAll('*'))).forEach(function (e) {
-      Array.prototype.slice.call(e.attributes).forEach(function (a) {
-        if (/^on/i.test(a.name) || /^\s*javascript:/i.test(a.value)) e.removeAttribute(a.name);
-      });
+  // Markup from a fix must never run code in the page. Markup that would,
+  // is refused rather than cleaned, so what is shown is exactly what was tested.
+  var UNSAFE_TAGS = 'script, style, iframe, object, embed, meta, base, link';
+  function unsafeAttr(name, value) { return /^on/i.test(name) || /^\\s*javascript:/i.test(value || ''); }
+  function safe(node) {
+    if (node.matches(UNSAFE_TAGS) || node.querySelector(UNSAFE_TAGS)) return false;
+    return [node].concat(Array.prototype.slice.call(node.querySelectorAll('*'))).every(function (e) {
+      return Array.prototype.every.call(e.attributes, function (a) { return !unsafeAttr(a.name, a.value); });
     });
-    return node;
   }
   if (inp.fix.kind === 'css') {
+    if (inp.dry) return 'ok';
     var st = document.createElement('style');
     st.setAttribute('data-legible-fix', '');
     st.textContent = inp.fix.code;
@@ -74,20 +81,24 @@ const APPLY = (t: FixTry) => `(function (inp) {
     el.setAttribute(MARK, '');
   } else if (inp.fix.kind === 'html' && inp.replace) {
     var kids = parse(inp.fix.code);
-    if (inp.fix.code.length > ${MAX_FIX_CHARS} || kids.length !== 1 || ['html', 'head', 'body'].indexOf(kids[0].tagName.toLowerCase()) >= 0) return 'untestable';
-    if (kids[0].tagName.toLowerCase() === 'script') return 'untestable';
-    var neu = clean(document.importNode(kids[0], true));
+    // One element, of the same kind as the one it replaces.
+    if (inp.fix.code.length > ${MAX_FIX_CHARS} || !kids || kids.length !== 1) return 'untestable';
+    if (kids[0].tagName !== el.tagName || ['HTML', 'HEAD', 'BODY'].indexOf(el.tagName) >= 0 || !safe(kids[0])) return 'untestable';
+    if (inp.dry) return 'ok';
+    var neu = document.importNode(kids[0], true);
     el.replaceWith(neu);
     neu.setAttribute(MARK, '');
     undo.push(function () { neu.replaceWith(el); });
   } else if (inp.fix.kind === 'html') {
     var fixed = parse(inp.fix.code), orig = parse(inp.html);
-    if (orig.length !== 1) return 'untestable';
+    if (!fixed || !orig || orig.length !== 1) return 'untestable';
     var tag = el.tagName.toLowerCase();
     if (orig[0].tagName.toLowerCase() !== tag) return 'untestable';
     if (fixed.length === 2 && fixed[0].tagName.toLowerCase() === 'label' && fixed[1].tagName.toLowerCase() === tag) {
       // A label added before the field.
-      var label = clean(document.importNode(fixed[0], true));
+      if (!safe(fixed[0])) return 'untestable';
+      if (inp.dry) return 'ok';
+      var label = document.importNode(fixed[0], true);
       el.parentNode.insertBefore(label, el);
       undo.push(function () { label.remove(); });
     } else if (fixed.length === 1 && fixed[0].tagName.toLowerCase() === tag) {
@@ -97,9 +108,12 @@ const APPLY = (t: FixTry) => `(function (inp) {
       var names = {};
       Array.prototype.forEach.call(f.attributes, function (a) { names[a.name] = 1; });
       Array.prototype.forEach.call(o.attributes, function (a) { names[a.name] = 1; });
-      Object.keys(names).forEach(function (n) {
-        var want = f.getAttribute(n), had = o.getAttribute(n);
-        if (want === had || /^on/i.test(n) || /^\s*javascript:/i.test(want || '')) return;
+      var changed = Object.keys(names).filter(function (n) { return f.getAttribute(n) !== o.getAttribute(n); });
+      // A fix that changes nothing on the element proves nothing.
+      if (!changed.length || changed.some(function (n) { return unsafeAttr(n, f.getAttribute(n)); })) return 'untestable';
+      if (inp.dry) return 'ok';
+      changed.forEach(function (n) {
+        var want = f.getAttribute(n);
         var live = el.getAttribute(n);
         if (want === null) el.removeAttribute(n); else el.setAttribute(n, want);
         undo.push(function () { if (live === null) el.removeAttribute(n); else el.setAttribute(n, live); });
@@ -113,7 +127,7 @@ const APPLY = (t: FixTry) => `(function (inp) {
   }
   window.__legibleUndo = undo;
   return 'applied';
-})(${JSON.stringify(t)})`;
+})(${JSON.stringify({ ...t, dry })})`;
 
 const UNDO = `(function () {
   var undo = window.__legibleUndo || [];
@@ -153,29 +167,23 @@ async function touchesMarked(page: Page, found: Measured[]): Promise<boolean> {
   return (await page.evaluate(TOUCHES_MARKED(found.map((m) => m.selector)))) as boolean;
 }
 
-// The check before the fix, for the measured rules: a fix can only be shown
-// to work where the failure can be seen first.
-async function baseline(page: Page, t: FixTry): Promise<boolean> {
-  if (t.ruleId === "legible-focus-visible") return !!(await measureFocusAt(page, t.selector));
-  if (t.ruleId === "legible-keyboard-trap") return !!(await trapFrom(page, t.selector));
-  const found = await pageFindings(page, t.ruleId);
-  return found.some((m) => m.selector === t.selector);
-}
+// Rules about what the page's own scripts do. A replaced element is a fresh
+// copy without those scripts, so replacing it would always look like a fix.
+const BEHAVIOUR = new Set(["legible-keyboard-trap", "legible-keyboard-reach"]);
 
-async function recheck(page: Page, ruleId: string): Promise<Verdict> {
-  if (ruleId === "legible-focus-visible" || ruleId === "legible-keyboard-trap") {
-    const sel = (await page.evaluate(MARKED_SELECTOR)) as string | null;
-    if (!sel) return "unknown";
-    const focusable = await page.evaluate(
-      `(function () { var e = document.querySelector('[${MARK}]'); if (!e) return false; e.focus(); return document.activeElement === e; })()`,
-    );
-    if (!focusable) return "unknown";
-    const still = ruleId === "legible-focus-visible" ? await measureFocusAt(page, sel) : await trapFrom(page, sel);
-    return still ? "fail" : "pass";
-  }
-  if (MEASURED.has(ruleId)) {
-    return (await touchesMarked(page, await pageFindings(page, ruleId))) ? "fail" : "pass";
-  }
+// Marks the failing element on its own (no change), for the axe check before the fix.
+const MARK_ONLY = (selector: string) => `(function (sel) {
+  var list;
+  try { list = document.querySelectorAll(sel); } catch (e) { return false; }
+  if (list.length !== 1 || document.querySelector('[${MARK}]')) return false;
+  list[0].setAttribute('${MARK}', '');
+  return true;
+})(${JSON.stringify(selector)})`;
+const UNMARK = `document.querySelectorAll('[${MARK}]').forEach(function (e) { e.removeAttribute('${MARK}'); })`;
+
+// One axe rule on the marked element only. "fail": the rule fails there;
+// "pass": it applies there and passes; anything else is "unknown".
+async function axeOnMarked(page: Page, ruleId: string): Promise<Verdict> {
   const res = await new AxeBuilder({ page })
     .include(`[${MARK}]`)
     .options({ runOnly: { type: "rule", values: [ruleId] }, resultTypes: ["violations", "incomplete"] })
@@ -185,22 +193,78 @@ async function recheck(page: Page, ruleId: string): Promise<Verdict> {
   return res.passes.some((v) => v.id === ruleId) ? "pass" : "unknown";
 }
 
+// The check before the fix: a fix can only be shown to work where the
+// failure can be seen first, on this element, now.
+async function baseline(page: Page, t: FixTry): Promise<boolean> {
+  if (t.ruleId === "legible-focus-visible") {
+    const share = await focusShareAt(page, t.selector);
+    return share !== null && share < FOCUS_REVIEW;
+  }
+  if (t.ruleId === "legible-keyboard-trap") return !!(await trapFrom(page, t.selector));
+  if (MEASURED.has(t.ruleId)) {
+    const found = await pageFindings(page, t.ruleId);
+    return found.some((m) => m.selector === t.selector);
+  }
+  if (!(await page.evaluate(MARK_ONLY(t.selector)))) return false;
+  try {
+    return (await axeOnMarked(page, t.ruleId)) === "fail";
+  } finally {
+    await page.evaluate(UNMARK);
+  }
+}
+
+async function recheck(page: Page, ruleId: string): Promise<Verdict> {
+  if (ruleId === "legible-focus-visible" || ruleId === "legible-keyboard-trap") {
+    const sel = (await page.evaluate(MARKED_SELECTOR)) as string | null;
+    if (!sel) return "unknown";
+    if (ruleId === "legible-focus-visible") {
+      // A pass needs a measured, visible change; "could not measure" is not one.
+      const share = await focusShareAt(page, sel);
+      if (share === null) return "unknown";
+      return share >= FOCUS_REVIEW ? "pass" : "fail";
+    }
+    const focusable = await page.evaluate(
+      `(function () { var e = document.querySelector('[${MARK}]'); if (!e) return false; e.focus(); return document.activeElement === e; })()`,
+    );
+    if (!focusable) return "unknown";
+    return (await trapFrom(page, sel)) ? "fail" : "pass";
+  }
+  if (MEASURED.has(ruleId)) {
+    return (await touchesMarked(page, await pageFindings(page, ruleId))) ? "fail" : "pass";
+  }
+  return axeOnMarked(page, ruleId);
+}
+
+function bounded<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T> {
+  let timer: NodeJS.Timeout | undefined;
+  return Promise.race([
+    promise.catch(() => fallback),
+    new Promise<T>((resolve) => {
+      timer = setTimeout(() => resolve(fallback), ms);
+    }),
+  ]).finally(() => clearTimeout(timer));
+}
+
 export async function tryFix(page: Page, t: FixTry): Promise<Verdict> {
   if (t.fix.kind === "note" || t.fix.code.length > MAX_FIX_CHARS || !t.selector) return "untestable";
-  let timer: NodeJS.Timeout | undefined;
+  if (t.replace && BEHAVIOUR.has(t.ruleId)) return "untestable";
+  // Set when the time runs out, so late work never changes the page after the undo.
+  let stopped = false;
+  const work = (async (): Promise<Verdict> => {
+    // A fix that cannot be applied is refused before anything else.
+    if ((await page.evaluate(APPLY(t, true))) !== "ok") return "untestable";
+    if (!(await baseline(page, t))) return "unknown";
+    if (stopped) return "unknown";
+    const applied = (await page.evaluate(APPLY(t))) as string;
+    if (applied !== "applied") return "untestable";
+    return recheck(page, t.ruleId);
+  })();
   try {
-    const work = (async (): Promise<Verdict> => {
-      if (MEASURED.has(t.ruleId) && !(await baseline(page, t))) return "unknown";
-      const applied = (await page.evaluate(APPLY(t))) as string;
-      if (applied !== "applied") return "untestable";
-      return recheck(page, t.ruleId);
-    })();
-    const out = new Promise<Verdict>((resolve) => {
-      timer = setTimeout(() => resolve("unknown"), TRY_MS);
-    });
-    return await Promise.race([work, out]).catch(() => "unknown" as const);
+    return await bounded(work, TRY_MS, "unknown" as Verdict);
   } finally {
-    clearTimeout(timer);
-    await page.evaluate(UNDO).catch(() => {});
+    stopped = true;
+    // Let a check that is still running finish before undoing, within limits.
+    await bounded(work, 5000, "unknown" as Verdict);
+    await bounded(page.evaluate(UNDO), 5000, undefined);
   }
 }

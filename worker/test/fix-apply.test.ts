@@ -1,6 +1,6 @@
 // Trying a fix on one element: apply it, run the same check again, undo it.
 import type { Server } from "node:http";
-import { afterAll, beforeAll, beforeEach, afterEach, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { chromium, type Browser, type BrowserContext, type Page } from "playwright";
 // @ts-expect-error plain ESM helper without types
 import { serveFixture } from "../../tests/fixtures/serve.mjs";
@@ -135,4 +135,50 @@ it("never applies what it cannot try", async () => {
   expect(await tryFix(page, { ...base2, fix: { code: "Change the menu script.", kind: "note" } })).toBe("untestable");
   expect(await tryFix(page, { ...base2, html: '<a id="bad" href="#x">', fix: { code: "<span>x</span>", kind: "html" } })).toBe("untestable");
   expect(await leftovers()).toBe(0);
+});
+
+describe("never calls a non-fix tested", () => {
+  it("refuses to replace an element for a keyboard trap, since a fresh copy loses the page's own scripts", async () => {
+    await page.goto(`${base}/agent/trap.html`);
+    const html = (await page.evaluate(`document.querySelector('#t1').outerHTML`)) as string;
+    expect(await tryFix(page, { ruleId: "legible-keyboard-trap", selector: "#t1", html, fix: { code: html, kind: "html" }, replace: true })).toBe("untestable");
+  });
+
+  it("passes focus only when the outline was measured and is visible", async () => {
+    await page.goto(`${base}/agent/focus.html`);
+    expect(
+      await tryFix(page, { ruleId: "legible-focus-visible", selector: "#bad", html: "", fix: { code: '<a id="bad" href="#x" tabindex="-1">No visible focus</a>', kind: "html" }, replace: true }),
+    ).not.toBe("pass");
+    expect(await tryFix(page, { ruleId: "legible-focus-visible", selector: "#bad", html: "", fix: { code: "#bad { opacity: 0 }", kind: "css" } })).not.toBe("pass");
+  });
+
+  it("checks that an axe failure is there before calling a fix tested", async () => {
+    await page.goto(`${base}/fixes/alt.html`);
+    await page.evaluate(`document.querySelector('#pic').setAttribute('alt', 'A smile')`);
+    expect(await tryFix(page, { ruleId: "image-alt", selector: "#pic", html: '<img id="pic">', fix: { code: "#pic { }", kind: "css" } })).toBe("unknown");
+  });
+
+  it("does not test an attribute fix that changes nothing", async () => {
+    await page.goto(`${base}/fixes/alt.html`);
+    const html = '<img id="pic" src="/smile.png" width="40" height="40">';
+    expect(await tryFix(page, { ruleId: "image-alt", selector: "#pic", html, fix: { code: html, kind: "html" } })).toBe("untestable");
+  });
+
+  it("refuses markup it would have to change before testing, or that is not just one element of the same kind", async () => {
+    await page.goto(`${base}/fixes/alt.html`);
+    const t = (code: string) => tryFix(page, { ruleId: "image-alt", selector: "#pic", html: "", fix: { code, kind: "html" }, replace: true });
+    expect(await t('<img id="pic" src="/smile.png" alt="Smile" onerror="alert(1)">')).toBe("untestable");
+    expect(await t('<img id="pic" src=" javascript:alert(1)" alt="Smile">')).toBe("untestable");
+    expect(await t('Here is the fix: <img id="pic" src="/smile.png" alt="Smile"> done')).toBe("untestable");
+    expect(await t('<div><img id="pic" src="/smile.png" alt="Smile"></div>')).toBe("untestable");
+    expect(await t('<span id="pic">Smile</span>')).toBe("untestable");
+    expect(await leftovers()).toBe(0);
+  });
+
+  it("never applies a fix over one still on the page", async () => {
+    await page.goto(`${base}/fixes/alt.html`);
+    await page.evaluate(`window.__legibleUndo = [function () {}]`);
+    const fix = { code: '<img id="pic" src="/smile.png" width="40" height="40" alt="[Describe the image]">', kind: "html" as const };
+    expect(await tryFix(page, { ruleId: "image-alt", selector: "#pic", html: '<img id="pic" src="/smile.png" width="40" height="40">', fix })).toBe("untestable");
+  });
 });

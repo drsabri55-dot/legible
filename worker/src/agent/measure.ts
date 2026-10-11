@@ -21,7 +21,7 @@ const TRAP_PRESSES = 30;
 // Focus indicators: under 0.5% of the area changed is no indicator at all;
 // up to 3% is too faint to call either way.
 const FOCUS_FAIL = 0.005;
-const FOCUS_REVIEW = 0.03;
+export const FOCUS_REVIEW = 0.03;
 
 type Rect = { x: number; y: number; width: number; height: number };
 
@@ -208,6 +208,26 @@ export async function measureFocusAt(page: Page, selector: string): Promise<Meas
   const info = await focused(page);
   if (!info || info.selector !== selector) return null;
   return focusVerdict(page, info);
+}
+
+// How much of the area around an element changes when it takes keyboard
+// focus, or null when that cannot be measured (focus lands elsewhere, or
+// nothing of the element is visible). Used to test a fix for invisible focus.
+export async function focusShareAt(page: Page, selector: string): Promise<number | null> {
+  const ok = await page
+    .evaluate(`(function () { var e; try { e = document.querySelector(${JSON.stringify(selector)}); } catch (x) { return false; } if (!e) return false; e.focus(); return document.activeElement === e; })()`)
+    .catch(() => false);
+  if (!ok) return null;
+  await page.keyboard.press("Shift+Tab");
+  await page.keyboard.press("Tab");
+  const info = await focused(page);
+  if (!info || info.selector !== selector) return null;
+  const rects = (await page.evaluate(rectsScript(info.selector))) as Rect[];
+  if (!rects.length) return null;
+  const on = await shots(page, rects);
+  await page.evaluate("document.activeElement && document.activeElement.blur()");
+  const off = await shots(page, rects);
+  return Math.max(...on.map((b, i) => changedShare(b, off[i])));
 }
 
 export async function trapFrom(page: Page, selector: string): Promise<Measured | null> {
