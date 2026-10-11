@@ -6,6 +6,7 @@ import { BOT_NAME, loadRobots } from "./robots";
 import type { RawNode, RawPage, RawRule, RawScan } from "./types";
 import { addUsage, emptyUsage, type AgentModel } from "./agent/model";
 import { AGENT_BUDGET_MS, runAgentOnPage } from "./agent/run";
+import { BUILDER_PROBE } from "./builder";
 
 export const MAX_PAGES = 6;
 // Page loads allowed after the home page, including ones that fail.
@@ -296,6 +297,7 @@ async function scanPage(
           .analyze();
         const finalUrl = page.url();
         const links = first ? await collectLinks(page, new URL(finalUrl)) : [];
+        const builtWith = first ? ((await page.evaluate(BUILDER_PROBE).catch(() => null)) as string | null) : null;
         const raw = toRawPage(finalUrl, heading, axe);
         await addFrameHosts(page, raw.violations);
         // Taken before the agent, which may leave the page in another state.
@@ -312,7 +314,7 @@ async function scanPage(
             raw.agent = { status: "failed", reason: "agent error", steps: 0, reviews: [], usage: emptyUsage() };
           }
         }
-        return { raw, links, finalUrl, signature };
+        return { raw, links, finalUrl, signature, builtWith };
       })(),
       PAGE_TIMEOUT_MS + 5000 + (opts.agent ? AGENT_BUDGET_MS + 30_000 : 0),
       "timeout",
@@ -385,11 +387,13 @@ export async function scanSite(startUrl: string, opts: ScanOptions = {}): Promis
 
   const pages: RawPage[] = [];
   let finalUrl = start.toString();
+  let builtWith: string | null = null;
   try {
     // If the start page fails, the whole scan fails with its reason.
     const home = await scanPage(context, start.toString(), true, opts);
     pages.push(home.raw);
     finalUrl = home.finalUrl;
+    builtWith = home.builtWith;
     const homeUrl = new URL(finalUrl);
     const scannedKeys = new Set<string>([pageKey(homeUrl)]);
     const signatures = new Set<string>(home.signature ? [home.signature] : []);
@@ -462,6 +466,7 @@ export async function scanSite(startUrl: string, opts: ScanOptions = {}): Promis
     finishedAt: new Date().toISOString(),
     pages,
   };
+  if (typeof builtWith === "string") raw.builtWith = builtWith;
   if (opts.agent) {
     raw.agent = {
       model: opts.agent.name,
