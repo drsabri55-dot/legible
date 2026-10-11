@@ -301,7 +301,7 @@ export default function Home() {
                     <Split text="Enter your site and we will test it." />
                   </h2>
                   <p data-reveal="" data-reveal-delay="1" className={s.body7a}>
-                    You landed. The free scan tests your home page and five more, with a tested fix for every problem, in the
+                    You landed. The free scan tests your home page and five more, and shows how to fix each problem, in the
                     order to do them.
                   </p>
                   <p data-reveal="" data-reveal-delay="2" className={s.body7b}>
