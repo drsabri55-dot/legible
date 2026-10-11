@@ -97,7 +97,7 @@ function trimRule(rule: AxeRuleResult, keep: number): RawRule {
   };
 }
 
-function toRawPage(url: string, title: string, axe: AxeResult): RawPage {
+export function toRawPage(url: string, title: string, axe: AxeResult): RawPage {
   return {
     url,
     status: "scanned",
