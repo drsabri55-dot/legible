@@ -26,3 +26,11 @@ export function fullReportEnding(status: "done" | "limit" | "stopped"): string {
   if (status === "stopped") return "Testing stopped there because of a problem on our side. The pages we tested are all in the report.";
   return "That is every page we could reach, up to 50.";
 }
+
+// The purchase email's PDF line. While the whole site is being tested, the
+// PDF waits for the email at the end.
+export function purchasePdfNote(testingWholeSite: boolean): string {
+  return testingWholeSite
+    ? "We are now testing the rest of your site, up to 50 pages. We will email you again when it is finished, with the PDF. The report link already shows the pages tested so far."
+    : "The PDF is attached. You can also download it from the report page, or share the report link with whoever looks after your site.";
+}

@@ -10,11 +10,12 @@ Each file is one email. Edit the words freely.
 |---|---|---|
 | `sign-in.html` | Someone asks for a sign-in link on /account | link, email |
 | `free-result.html` | A visitor asks us to email their free score | site, score, failures ("47 failures"), pages ("6 pages"), result_link, next_step, app_url |
-| `report-ready.html` | Straight after payment, with the PDF attached | site, score, failures ("47 failures"), start_with, report_link, account_link, amount |
+| `report-ready.html` | Straight after payment. The PDF is attached only when the whole-site test could not start | site, score, failures ("47 failures"), start_with, report_link, account_link, amount, pdf_note |
+| `full-report-ready.html` | Once, when the paid whole-site test ends, with the PDF attached | site, pages ("23 pages"), ending, report_link, account_link |
 | `monitoring-offer.html` | Three days after the report, once, unless unsubscribed | site, price_monthly, monitor_link, unsubscribe_link, company_address |
 | `monitoring-result.html` | Monthly monitoring (not switched on yet) | site, score, previous_score, fixed, new, report_link, unsubscribe_link, company_address |
 | `owner-alert.html` | To OWNER_EMAIL when a scan fails or someone asks for monitoring | subject, message, link |
 
-`next_step` and `start_with` are whole sentences that depend on the numbers (no report is offered when a scan finds no failures). Their wording is in `src/lib/email/wording.ts`.
+`next_step`, `start_with`, `pdf_note` and `ending` are whole sentences that depend on the numbers (no report is offered when a scan finds no failures). Their wording is in `src/lib/email/wording.ts`.
 
 Preview any template at `/dev/emails` while running `npm run dev`.

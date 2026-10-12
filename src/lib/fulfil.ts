@@ -1,9 +1,19 @@
 import "server-only";
 import { randomToken } from "./crypto";
-import { createReportOnce, getReportByToken, getScan, listFullPages, markReportDelivered, upsertUser, type ReportRow } from "./data";
+import {
+  createReportOnce,
+  getReportByScanId,
+  getReportByToken,
+  getScan,
+  listFullPages,
+  markReportDelivered,
+  upsertUser,
+  type ReportRow,
+} from "./data";
 import { alertOwner, sendEmail } from "./email/send";
-import { countOf, fullReportEnding, reportStartWith } from "./email/wording";
+import { countOf, fullReportEnding, purchasePdfNote, reportStartWith } from "./email/wording";
 import { env } from "./env";
+import { startFullTest } from "./full";
 import { formatUsd } from "./pricing";
 import { mergeFullPages } from "./report/full";
 import { buildReport } from "./report/model";
@@ -39,18 +49,25 @@ export function pdfFilename(host: string, date: Date): string {
   return `legible-report-${siteName(host).replace(/[^a-z0-9.-]/gi, "")}-${date.toISOString().slice(0, 10)}.pdf`;
 }
 
-// Emails the report with the PDF attached. If the PDF cannot be made, the
-// email still goes out with the link, and the owner is told.
+// Starts the whole-site test and emails the report link. The PDF waits for
+// the email at the end of that test (deliverFullReport); it is attached here
+// only when the test could not be set up at all. If the PDF cannot be made,
+// the email still goes out with the link, and the owner is told.
 export async function deliverReport(report: ReportRow, email: string): Promise<void> {
   const scan = await getScan(report.scan_id);
   if (!scan?.summary) throw new Error(`Report ${report.id} has no scan summary`);
   const base = env.appUrl();
+  // A test that could not be sent yet is still running: it is resumed later.
+  await startFullTest(report);
+  const testing = (await getReportByScanId(report.scan_id))?.full_status === "running";
   let attachments: { filename: string; content: Buffer }[] = [];
-  try {
-    const pdf = await renderPdf(`/report/${report.token}?print=1`);
-    attachments = [{ filename: pdfFilename(scan.host, scan.finished_at ?? new Date()), content: pdf }];
-  } catch (e) {
-    await alertOwner("A report PDF could not be made", `${scan.host}: ${(e as Error).message}`, `${base}/report/${report.token}`);
+  if (!testing) {
+    try {
+      const pdf = await renderPdf(`/report/${report.token}?print=1`);
+      attachments = [{ filename: pdfFilename(scan.host, scan.finished_at ?? new Date()), content: pdf }];
+    } catch (e) {
+      await alertOwner("A report PDF could not be made", `${scan.host}: ${(e as Error).message}`, `${base}/report/${report.token}`);
+    }
   }
   await sendEmail({
     to: email,
@@ -63,6 +80,7 @@ export async function deliverReport(report: ReportRow, email: string): Promise<v
       report_link: `${base}/report/${report.token}`,
       account_link: `${base}/account`,
       amount: formatUsd(report.amount_cents),
+      pdf_note: purchasePdfNote(testing),
     },
     attachments,
   });

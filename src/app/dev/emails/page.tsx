@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { privatePage } from "@/lib/page-meta";
 import { renderEmail, TEMPLATES } from "@/lib/email/render";
+import { fullReportEnding, purchasePdfNote } from "@/lib/email/wording";
 
 export const metadata: Metadata = privatePage(process.env.NODE_ENV === "production" ? null : "Email templates");
 
@@ -15,6 +16,8 @@ const SAMPLE = {
   pages: "6 pages",
   next_step: "Your free result has a fix for every problem we found. The full report tests your whole site, up to 50 pages, and comes as a PDF you can share. It costs $99, once.",
   start_with: "Must-fix issues: 4. Start with those.",
+  pdf_note: purchasePdfNote(true),
+  ending: fullReportEnding("done"),
   result_link: "http://localhost:3000/scan/example",
   report_link: "http://localhost:3000/report/example",
   account_link: "http://localhost:3000/account",

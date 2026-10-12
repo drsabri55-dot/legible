@@ -12,6 +12,7 @@ const VARS = {
   next_step: "The full report lists every failure. It costs $99, once.",
   start_with: "Must-fix issues: 4. Start with those.",
   ending: "That is every page we could reach, up to 50.",
+  pdf_note: "The PDF is attached.",
   result_link: "https://legible.example/scan/1",
   report_link: "https://legible.example/report/abc",
   account_link: "https://legible.example/account",
@@ -77,5 +78,17 @@ describe("email wording", () => {
   it("never says to start with zero must-fix issues", () => {
     expect(reportStartWith(0)).toBe("None are in the must-fix group, so start with the should-fix issues.");
     expect(reportStartWith(4)).toBe("Must-fix issues: 4. Start with those.");
+  });
+});
+
+describe("the purchase email's PDF line", () => {
+  it("says the PDF comes later while the whole site is tested", async () => {
+    const { purchasePdfNote } = await import("@/lib/email/wording");
+    expect(purchasePdfNote(true)).toBe(
+      "We are now testing the rest of your site, up to 50 pages. We will email you again when it is finished, with the PDF. The report link already shows the pages tested so far.",
+    );
+    expect(purchasePdfNote(false)).toBe(
+      "The PDF is attached. You can also download it from the report page, or share the report link with whoever looks after your site.",
+    );
   });
 });

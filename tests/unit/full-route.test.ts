@@ -186,3 +186,16 @@ describe("a run that went quiet", () => {
     expect((await reportOf(scan.id)).full_status).toBeNull();
   });
 });
+
+describe("the email at purchase", () => {
+  it("starts the whole-site test and says so, with the PDF kept for the last email", async () => {
+    const { deliverReport } = await import("@/lib/fulfil");
+    const { scan, report } = await paidReport("fr10.example");
+    await deliverReport(report, "buyer@fr10.example");
+    expect(jobs).toHaveLength(1);
+    expect((await reportOf(scan.id)).full_status).toBe("running");
+    const email = sent.find((e) => e.template === "report-ready")!;
+    expect(email.attachments ?? []).toHaveLength(0);
+    expect(String(email.vars.pdf_note)).toContain("testing the rest of your site");
+  });
+});
