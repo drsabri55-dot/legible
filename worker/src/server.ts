@@ -1,7 +1,7 @@
 import express, { type NextFunction, type Request, type Response } from "express";
 import { timingSafeEqual } from "node:crypto";
 import { agentModelFromEnv } from "./agent/model";
-import { runScanJob } from "./job";
+import { runFullJob, runScanJob } from "./job";
 import { allowPrivateTargets } from "./net";
 import { printPdf } from "./pdf";
 import { JobQueue } from "./queue";
@@ -26,6 +26,9 @@ if (!APP_URL) {
 if (allowPrivateTargets()) console.warn("ALLOW_PRIVATE_TARGETS is on. Never use this in production.");
 
 const queue = new JobQueue(CONCURRENCY, 20);
+// Paid whole-site tests run one at a time in their own queue, so a long run
+// never holds up free scans.
+const fullQueue = new JobQueue(1, 10);
 const app = express();
 app.disable("x-powered-by");
 app.use(express.json({ limit: "64kb" }));
@@ -41,7 +44,18 @@ function authorised(req: Request, res: Response, next: NextFunction) {
   next();
 }
 
-async function callback(url: string, body: unknown): Promise<void> {
+function httpUrl(value: unknown): URL | null {
+  if (typeof value !== "string") return null;
+  try {
+    const u = new URL(value);
+    return u.protocol === "http:" || u.protocol === "https:" ? u : null;
+  } catch {
+    return null;
+  }
+}
+
+// Sends one message to the site and returns its answer (null when there is none).
+async function callback(url: string, body: unknown): Promise<unknown> {
   const payload = JSON.stringify(body);
   for (let attempt = 1; attempt <= 4; attempt++) {
     try {
@@ -51,7 +65,8 @@ async function callback(url: string, body: unknown): Promise<void> {
         body: payload,
         signal: AbortSignal.timeout(30_000),
       });
-      if (res.ok || (res.status >= 400 && res.status < 500 && res.status !== 429)) return;
+      if (res.ok) return await res.json().catch(() => null);
+      if (res.status >= 400 && res.status < 500 && res.status !== 429) return null;
       console.warn(`[callback] ${url} answered ${res.status}`);
     } catch (e) {
       console.warn(`[callback] ${url} failed: ${(e as Error).message}`);
@@ -59,10 +74,11 @@ async function callback(url: string, body: unknown): Promise<void> {
     await new Promise((r) => setTimeout(r, attempt * 2000));
   }
   console.error(`[callback] gave up on ${url}`);
+  return null;
 }
 
 app.get("/health", (_req, res) => {
-  res.json({ ok: true, ...queue.stats });
+  res.json({ ok: true, ...queue.stats, full: fullQueue.stats });
 });
 
 app.post("/jobs/scan", authorised, (req, res) => {
@@ -100,6 +116,36 @@ app.post("/jobs/scan", authorised, (req, res) => {
     return;
   }
   res.status(202).json({ queued: true, ...queue.stats });
+});
+
+app.post("/jobs/full", authorised, (req, res) => {
+  const { scanId, url, callbackUrl, done, maxPages, fixesLeft } = req.body || {};
+  const target = httpUrl(url);
+  const cb = httpUrl(callbackUrl);
+  const list = Array.isArray(done) ? done.filter((d: unknown): d is string => typeof d === "string").slice(0, 100) : null;
+  if (typeof scanId !== "string" || !target || !cb || !list || !Number.isInteger(maxPages) || !Number.isInteger(fixesLeft)) {
+    res.status(400).json({ error: "scanId, url, callbackUrl, done, maxPages and fixesLeft are required" });
+    return;
+  }
+  if (cb.origin !== new URL(APP_URL).origin) {
+    res.status(400).json({ error: "callbackUrl must be on APP_URL" });
+    return;
+  }
+  const model = req.body?.agent === true ? agentModelFromEnv() : null;
+  const accepted = fullQueue.push(() =>
+    runFullJob(target.toString(), {
+      model,
+      done: list,
+      maxPages: Math.min(50, Math.max(1, maxPages)),
+      fixesLeft: Math.min(300, Math.max(0, fixesLeft)),
+      send: (message) => callback(cb.toString(), message),
+    }),
+  );
+  if (!accepted) {
+    res.status(503).json({ error: "queue full" });
+    return;
+  }
+  res.status(202).json({ queued: true, ...fullQueue.stats });
 });
 
 app.post("/pdf", authorised, async (req, res) => {

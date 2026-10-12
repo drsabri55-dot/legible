@@ -1,7 +1,7 @@
 // The job the worker runs for each scan: what it sends back to the site,
 // above all the agent's spend, which the site charges against its daily cap.
 import { describe, expect, it } from "vitest";
-import { runScanJob } from "../src/job";
+import { runFullJob, runScanJob } from "../src/job";
 import { ReplayModel } from "../src/agent/model";
 import { ScanError, type ScanOptions } from "../src/scan";
 import type { RawScan } from "../src/types";
@@ -64,5 +64,60 @@ describe("runScanJob", () => {
       },
     });
     expect(sent[0]).not.toHaveProperty("agent");
+  });
+});
+
+describe("runFullJob", () => {
+  const page = (url: string) => ({ url, status: "scanned" as const, violations: [], incomplete: [], passes: [], inapplicable: [] });
+
+  it("sends each page with the AI usage since the page before, and passes the site's stop back", async () => {
+    const sent: Record<string, unknown>[] = [];
+    let stops = 0;
+    await runFullJob("https://a.example/", {
+      model: new ReplayModel([{ text: "a" }, { text: "b" }, { text: "c" }]),
+      done: ["https://a.example/"],
+      maxPages: 50,
+      fixesLeft: 300,
+      send: async (m) => {
+        sent.push(m as Record<string, unknown>);
+        return (m as { type: string }).type === "page" && sent.filter((x) => x.type === "page").length === 2 ? { stop: true } : { ok: true };
+      },
+      crawl: async (_url, opts) => {
+        expect(opts.done).toEqual(["https://a.example/"]);
+        expect(opts.fixBudget).toEqual({ left: 300 });
+        await opts.agent!.turn({ system: "", tools: [], messages: [] });
+        if ((await opts.onPage(page("https://a.example/1"))).stop) stops++;
+        await opts.agent!.turn({ system: "", tools: [], messages: [] });
+        await opts.agent!.turn({ system: "", tools: [], messages: [] });
+        if ((await opts.onPage(page("https://a.example/2"))).stop) stops++;
+        return { tested: 2, reason: "stopped" };
+      },
+    });
+    const pages = sent.filter((m) => m.type === "page") as { page: { url: string }; agent: { usage: unknown } }[];
+    expect(pages.map((p) => p.page.url)).toEqual(["https://a.example/1", "https://a.example/2"]);
+    expect(pages.map((p) => p.agent.usage)).toEqual([
+      { inputTokens: 100, outputTokens: 10, cacheReadTokens: 0, cacheWriteTokens: 0 },
+      { inputTokens: 200, outputTokens: 20, cacheReadTokens: 0, cacheWriteTokens: 0 },
+    ]);
+    expect(stops).toBe(1);
+    expect(sent[sent.length - 1]).toMatchObject({ type: "done", reason: "stopped", tested: 2 });
+  });
+
+  it("still says it is done when the crawl fails, with what it used after the last page", async () => {
+    const sent: Record<string, unknown>[] = [];
+    await runFullJob("https://a.example/", {
+      model: new ReplayModel([{ text: "a" }]),
+      done: [],
+      maxPages: 50,
+      fixesLeft: 10,
+      send: async (m) => void sent.push(m as Record<string, unknown>),
+      crawl: async (_url, opts) => {
+        await opts.agent!.turn({ system: "", tools: [], messages: [] });
+        throw new Error("browser crashed");
+      },
+    });
+    expect(sent).toEqual([
+      { type: "done", reason: "error", tested: 0, agent: { model: "replay", usage: { inputTokens: 100, outputTokens: 10, cacheReadTokens: 0, cacheWriteTokens: 0 } } },
+    ]);
   });
 });
