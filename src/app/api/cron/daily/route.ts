@@ -1,6 +1,6 @@
 import { signFor, safeEqual } from "@/lib/crypto";
 import { claimOffer, deleteExpiredLoginTokens, failStaleScans, releaseOffer, reportsDueForOffer, staleFullJobs } from "@/lib/data";
-import { QUIET_MINUTES, resumeStaleFullTest } from "@/lib/full";
+import { QUIET_MINUTES, resumeStaleFullTest, retryUnsentFullEmails } from "@/lib/full";
 import { sendEmail } from "@/lib/email/send";
 import { env } from "@/lib/env";
 import { bearer, json } from "@/lib/http";
@@ -24,6 +24,8 @@ export async function GET(req: Request) {
     await resumeStaleFullTest(report).catch((e) => console.error("[cron] resume failed", report.id, e));
     resumed++;
   }
+  // A whole-site email whose send failed is tried again.
+  await retryUnsentFullEmails(10).catch((e) => console.error("[cron] full report emails", e));
 
   const base = env.appUrl();
   let sent = 0;

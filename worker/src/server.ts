@@ -29,6 +29,7 @@ const queue = new JobQueue(CONCURRENCY, 20);
 // Paid whole-site tests run one at a time in their own queue, so a long run
 // never holds up free scans.
 const fullQueue = new JobQueue(1, 10);
+const ALIVE_MS = 5 * 60_000;
 const app = express();
 app.disable("x-powered-by");
 app.use(express.json({ limit: "64kb" }));
@@ -132,16 +133,32 @@ app.post("/jobs/full", authorised, (req, res) => {
     return;
   }
   const model = req.body?.agent === true ? agentModelFromEnv() : null;
-  const accepted = fullQueue.push(() =>
-    runFullJob(target.toString(), {
-      model,
-      done: list,
-      maxPages: Math.min(50, Math.max(1, maxPages)),
-      fixesLeft: Math.min(300, Math.max(0, fixesLeft)),
-      send: (message) => callback(cb.toString(), message),
-    }),
-  );
+  const attempt = Number.isInteger(req.body?.attempt) ? (req.body.attempt as number) : undefined;
+  // Says the run is alive every few minutes, while it waits in the queue and
+  // while it works, so the site never mistakes a long wait for a lost run. The
+  // site's answer can end it (it was replaced, or the test is over).
+  const run = { stopped: false };
+  const beat = setInterval(async () => {
+    const answer = (await callback(cb.toString(), { type: "alive", attempt })) as { stop?: unknown } | null;
+    if (answer?.stop === true) run.stopped = true;
+  }, ALIVE_MS);
+  const accepted = fullQueue.push(async () => {
+    try {
+      await runFullJob(target.toString(), {
+        model,
+        done: list,
+        maxPages: Math.min(50, Math.max(1, maxPages)),
+        fixesLeft: Math.min(300, Math.max(0, fixesLeft)),
+        attempt,
+        shouldStop: () => run.stopped,
+        send: (message) => callback(cb.toString(), message),
+      });
+    } finally {
+      clearInterval(beat);
+    }
+  });
   if (!accepted) {
+    clearInterval(beat);
     res.status(503).json({ error: "queue full" });
     return;
   }

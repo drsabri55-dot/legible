@@ -121,3 +121,49 @@ describe("runFullJob", () => {
     ]);
   });
 });
+
+describe("runFullJob and its run number", () => {
+  const page = (url: string) => ({ url, status: "scanned" as const, violations: [], incomplete: [], passes: [], inapplicable: [] });
+
+  it("sends the run's number with every message, and stops when told to", async () => {
+    const sent: Record<string, unknown>[] = [];
+    let stopNow = false;
+    await runFullJob("https://a.example/", {
+      model: null,
+      done: [],
+      maxPages: 50,
+      fixesLeft: 0,
+      attempt: 2,
+      shouldStop: () => stopNow,
+      send: async (m) => void sent.push(m as Record<string, unknown>),
+      crawl: async (_url, opts) => {
+        const first = await opts.onPage(page("https://a.example/1"));
+        stopNow = true;
+        const second = await opts.onPage(page("https://a.example/2"));
+        expect([first.stop, second.stop]).toEqual([false, true]);
+        return { tested: 2, reason: "stopped" };
+      },
+    });
+    expect(sent.every((m) => m.attempt === 2)).toBe(true);
+  });
+
+  it("does not start a run that was replaced while it waited", async () => {
+    const sent: unknown[] = [];
+    let crawled = false;
+    await runFullJob("https://a.example/", {
+      model: null,
+      done: [],
+      maxPages: 50,
+      fixesLeft: 0,
+      attempt: 1,
+      shouldStop: () => true,
+      send: async (m) => void sent.push(m),
+      crawl: async () => {
+        crawled = true;
+        return { tested: 0, reason: "done" };
+      },
+    });
+    expect(crawled).toBe(false);
+    expect(sent).toEqual([]);
+  });
+});

@@ -46,7 +46,7 @@ export async function runScanJob(url: string, opts: JobOptions): Promise<void> {
 
 type Shot = { id: string; data: string };
 
-async function sendShots(shots: Shot[], send: JobOptions["send"]): Promise<void> {
+async function sendShots(shots: Shot[], send: (message: Record<string, unknown>) => Promise<unknown>): Promise<void> {
   let batch: Shot[] = [];
   let size = 0;
   for (const s of shots) {
@@ -91,12 +91,19 @@ export interface FullJobOptions {
   maxPages: number;
   fixesLeft: number;
   crawl?: (url: string, opts: CrawlOptions) => Promise<{ tested: number; reason: CrawlReason }>;
+  // The run's number from the site, sent back with every message.
+  attempt?: number;
+  // True once the site has said this run is over or replaced.
+  shouldStop?: () => boolean;
 }
 
 // The paid whole-site test. Each page goes to the site as soon as it is
 // tested, with what the agent used for it, so a restart loses nothing stored
 // and the site can stop the run at its spending limit.
-export async function runFullJob(url: string, opts: FullJobOptions): Promise<void> {
+export async function runFullJob(url: string, given: FullJobOptions): Promise<void> {
+  // A run replaced while it waited in the queue never starts.
+  if (given.shouldStop?.()) return;
+  const opts = { ...given, send: (m: Record<string, unknown>) => given.send({ ...m, attempt: given.attempt }) };
   const metered = opts.model ? meter(opts.model) : null;
   const crawl = opts.crawl ?? crawlSite;
   let charged = emptyUsage();
@@ -122,7 +129,7 @@ export async function runFullJob(url: string, opts: FullJobOptions): Promise<voi
         shots = [];
         tested++;
         const answer = (await opts.send({ type: "page", page: fitPage(page), ...spend() })) as { stop?: unknown } | null;
-        return { stop: answer?.stop === true };
+        return { stop: answer?.stop === true || !!given.shouldStop?.() };
       },
     });
     await opts.send({ type: "done", reason: result.reason, tested: result.tested, ...leftover(spend()) });

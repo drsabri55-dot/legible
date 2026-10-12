@@ -257,10 +257,36 @@ export async function countFullPages(scanId: string): Promise<number> {
   return row.n;
 }
 
-export async function startFullJob(reportId: string): Promise<void> {
-  await db()`
+// Starts run number N (returned). Every message of a run carries its number,
+// so messages from an older run are recognised and ignored.
+export async function startFullJob(reportId: string): Promise<number> {
+  const [row] = await db()<{ full_attempts: number }[]>`
     update reports set full_status = 'running', full_updated_at = now(), full_attempts = full_attempts + 1
-    where id = ${reportId}`;
+    where id = ${reportId}
+    returning full_attempts`;
+  return row?.full_attempts ?? 0;
+}
+
+// Claims the next run of a running test, in one step, so two callers at once
+// never start two runs. With `quietMinutes`, only when the run has been quiet
+// that long; with `fromAttempt`, only when run N is still the current one.
+export async function claimNextFullRun(
+  reportId: string,
+  opts: { quietMinutes?: number; fromAttempt?: number },
+): Promise<ReportRow | null> {
+  const sql = db();
+  const [row] = await sql<ReportRow[]>`
+    update reports set full_attempts = full_attempts + 1, full_updated_at = now()
+    where id = ${reportId} and full_status = 'running'
+      ${opts.quietMinutes === undefined ? sql`` : sql`and full_updated_at < now() - make_interval(mins => ${opts.quietMinutes})`}
+      ${opts.fromAttempt === undefined ? sql`` : sql`and full_attempts = ${opts.fromAttempt}`}
+    returning *`;
+  return row ?? null;
+}
+
+// A run that says it is alive (waiting in the queue or working).
+export async function aliveFullJob(reportId: string): Promise<void> {
+  await db()`update reports set full_updated_at = now() where id = ${reportId} and full_status = 'running'`;
 }
 
 export async function touchFullJob(reportId: string, pages: number): Promise<void> {
@@ -282,6 +308,19 @@ export async function claimFullEmail(reportId: string): Promise<boolean> {
   const rows = await db()`
     update reports set full_emailed_at = now() where id = ${reportId} and full_emailed_at is null returning id`;
   return rows.length > 0;
+}
+
+// After a failed send, so the email is tried again.
+export async function releaseFullEmail(reportId: string): Promise<void> {
+  await db()`update reports set full_emailed_at = null where id = ${reportId}`;
+}
+
+// Finished tests whose email has not gone out (a send that failed).
+export async function unsentFullEmails(minutes: number): Promise<ReportRow[]> {
+  return db()<ReportRow[]>`
+    select * from reports
+    where full_status in ('done', 'limit', 'stopped') and full_emailed_at is null
+      and full_updated_at < now() - make_interval(mins => ${minutes})`;
 }
 
 export async function staleFullJobs(minutes: number): Promise<ReportRow[]> {

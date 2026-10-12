@@ -38,6 +38,8 @@ export async function dispatchFull(job: {
   maxPages: number;
   fixesLeft: number;
   agent: boolean;
+  // The run's number: the worker sends it back with every message.
+  attempt: number;
 }): Promise<void> {
   let res: Response;
   try {
