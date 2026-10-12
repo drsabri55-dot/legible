@@ -153,7 +153,7 @@ async function addFrameHosts(page: Page, rules: RawRule[]): Promise<void> {
 
 const SKIP_EXTENSIONS = /\.(pdf|jpe?g|png|gif|webp|svg|zip|docx?|xlsx?|pptx?|mp4|mp3|mov|avi|ics|csv|xml|rss|json)$/i;
 
-function sameSite(a: string, b: string): boolean {
+export function sameSite(a: string, b: string): boolean {
   return a.replace(/^www\./, "") === b.replace(/^www\./, "");
 }
 
@@ -284,12 +284,14 @@ async function testFixes(page: Page, violations: RawRule[], opts: ScanOptions) {
 
 // `keep` says whether the scan will keep this page (not a redirect away or a
 // page already scanned); the testing agent only runs on pages that are kept.
-async function scanPage(
+export async function scanPage(
   context: BrowserContext,
   url: string,
   first: boolean,
   opts: ScanOptions = {},
   keep: (finalUrl: string, signature: string | null) => boolean = () => true,
+  // The whole-site crawl needs every page's links, not only the home page's.
+  withLinks = first,
 ) {
   const page = await context.newPage();
   try {
@@ -331,7 +333,7 @@ async function scanPage(
           .options({ runOnly: { type: "tag", values: WCAG_TAGS }, resultTypes: ["violations", "incomplete"] })
           .analyze();
         const finalUrl = page.url();
-        const links = first ? await collectLinks(page, new URL(finalUrl)) : [];
+        const links = withLinks ? await collectLinks(page, new URL(finalUrl)) : [];
         const builtWith = first ? ((await page.evaluate(BUILDER_PROBE).catch(() => null)) as string | null) : null;
         const raw = toRawPage(finalUrl, heading, axe);
         await addFrameHosts(page, raw.violations);
@@ -404,10 +406,9 @@ export interface ScanOptions {
   fixTimes?: { ruleMs: number; aiMs: number };
 }
 
-export async function scanSite(startUrl: string, opts: ScanOptions = {}): Promise<RawScan> {
-  if (opts.agent && !opts.fixBudget) opts = { ...opts, fixBudget: { left: AI_FIXES_PER_SCAN } };
-  const startedAt = new Date().toISOString();
-  const ua = userAgent();
+// Checks the start address and robots.txt, then opens a browser context that
+// can only reach public hosts. Shared by the free scan and the whole-site crawl.
+export async function openSite(startUrl: string, ua: string) {
   const start = new URL(startUrl);
   const guard = makeHostGuard();
   if (!allowPrivateTargets()) {
@@ -440,6 +441,32 @@ export async function scanSite(startUrl: string, opts: ScanOptions = {}): Promis
     if (request.resourceType() === "media") return route.abort("blockedbyclient");
     return (await guard(u.hostname)) ? route.continue() : route.abort("blockedbyclient");
   });
+
+  return { start, robots, context };
+}
+
+// Loads a page only for its links and signature (a page tested before).
+export async function linksOf(context: BrowserContext, url: string) {
+  const page = await context.newPage();
+  try {
+    await page.goto(url, { waitUntil: "domcontentloaded", timeout: PAGE_TIMEOUT_MS });
+    await page.waitForLoadState("load", { timeout: 10_000 }).catch(() => {});
+    const finalUrl = page.url();
+    const links = await collectLinks(page, new URL(finalUrl));
+    const signature = (await page.evaluate(PAGE_SIGNATURE).catch(() => null)) as string | null;
+    return { finalUrl, links, signature };
+  } catch {
+    return null;
+  } finally {
+    await page.close().catch(() => {});
+  }
+}
+
+export async function scanSite(startUrl: string, opts: ScanOptions = {}): Promise<RawScan> {
+  if (opts.agent && !opts.fixBudget) opts = { ...opts, fixBudget: { left: AI_FIXES_PER_SCAN } };
+  const startedAt = new Date().toISOString();
+  const ua = userAgent();
+  const { start, robots, context } = await openSite(startUrl, ua);
 
   const pages: RawPage[] = [];
   let finalUrl = start.toString();
