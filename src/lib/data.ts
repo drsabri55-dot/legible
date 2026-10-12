@@ -252,6 +252,11 @@ export async function listFullPages(scanId: string): Promise<RawPage[]> {
   return rows.map((r) => r.page);
 }
 
+export async function countFullPages(scanId: string): Promise<number> {
+  const [row] = await db()<{ n: number }[]>`select count(*)::int as n from full_pages where scan_id = ${scanId}`;
+  return row.n;
+}
+
 export async function startFullJob(reportId: string): Promise<void> {
   await db()`
     update reports set full_status = 'running', full_updated_at = now(), full_attempts = full_attempts + 1

@@ -1,6 +1,6 @@
 import "server-only";
 import type { AgentUsage } from "@/types/scan";
-import { type AgentMode, averageFreeScanCostUsd, freeAgentScansInFlight, freeSpendTodayUsd } from "./data";
+import { type AgentMode, type SpendKind, averageFreeScanCostUsd, freeAgentScansInFlight, freeSpendTodayUsd, recordScanSpend } from "./data";
 import { env } from "./env";
 
 // What the testing agent costs, and whether a free scan may use it today.
@@ -69,4 +69,31 @@ export async function freeAgentMode(): Promise<AgentMode> {
     averageFreeScanCostUsd(),
   ]);
   return decideFreeAgent({ spent, cap: dailyCapUsd(), inFlight, averageScanCost });
+}
+
+// Records what the worker says the agent used, priced now. Each charge is
+// kept once (scan, kind and ref), so a repeated message never charges twice.
+export async function chargeAgent(
+  scanId: string,
+  kind: SpendKind,
+  agent: { model?: unknown; usage?: Partial<AgentUsage> } | undefined,
+  ref = "",
+): Promise<void> {
+  if (!agent?.usage) return;
+  const n = (v: unknown) => (Number.isFinite(Number(v)) && Number(v) > 0 ? Math.round(Number(v)) : 0);
+  const usage: AgentUsage = {
+    inputTokens: n(agent.usage.inputTokens),
+    outputTokens: n(agent.usage.outputTokens),
+    cacheReadTokens: n(agent.usage.cacheReadTokens),
+    cacheWriteTokens: n(agent.usage.cacheWriteTokens),
+  };
+  const prices = agentPrices();
+  await recordScanSpend({
+    scanId,
+    kind,
+    ref: ref.slice(0, 2000),
+    model: String(agent.model || "unknown").slice(0, 80),
+    usage,
+    costUsd: prices ? costUsd(usage, prices) : null,
+  });
 }

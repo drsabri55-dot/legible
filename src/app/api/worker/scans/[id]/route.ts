@@ -1,10 +1,11 @@
 import { safeEqual } from "@/lib/crypto";
-import { completeScan, failScan, getScan, markScanProgress, recordScanSpend, saveShots } from "@/lib/data";
+import { completeScan, failScan, getScan, markScanProgress } from "@/lib/data";
 import { alertOwner } from "@/lib/email/send";
 import { env } from "@/lib/env";
 import { bearer, json } from "@/lib/http";
 import { buildReport, freeSummary } from "@/lib/report/model";
-import { agentPrices, costUsd } from "@/lib/spend";
+import { saveWorkerShots } from "@/lib/shots";
+import { chargeAgent } from "@/lib/spend";
 import type { AgentUsage, RawScan } from "@/types/scan";
 
 export const maxDuration = 30;
@@ -14,27 +15,6 @@ type Message =
   | { type: "complete"; raw: RawScan }
   | { type: "failed"; error: string; detail?: string; agent?: { model: string; usage: AgentUsage } }
   | { type: "shots"; shots: { id: string; data: string }[] };
-
-// Charged once per scan run (the table refuses a repeat), whatever state the
-// scan is in, so a late or repeated message can never lose or double spend.
-async function recordSpend(scanId: string, agent: { model?: unknown; usage?: Partial<AgentUsage> } | undefined) {
-  if (!agent?.usage) return;
-  const n = (v: unknown) => (Number.isFinite(Number(v)) && Number(v) > 0 ? Math.round(Number(v)) : 0);
-  const usage: AgentUsage = {
-    inputTokens: n(agent.usage.inputTokens),
-    outputTokens: n(agent.usage.outputTokens),
-    cacheReadTokens: n(agent.usage.cacheReadTokens),
-    cacheWriteTokens: n(agent.usage.cacheWriteTokens),
-  };
-  const prices = agentPrices();
-  await recordScanSpend({
-    scanId,
-    kind: "free",
-    model: String(agent.model || "unknown").slice(0, 80),
-    usage,
-    costUsd: prices ? costUsd(usage, prices) : null,
-  });
-}
 
 // Called by the scan worker only (shared secret).
 export async function POST(req: Request, ctx: RouteContext<"/api/worker/scans/[id]">) {
@@ -46,15 +26,7 @@ export async function POST(req: Request, ctx: RouteContext<"/api/worker/scans/[i
   if (!msg) return json({ error: "Bad request" }, 400);
 
   if (msg.type === "shots") {
-    const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    const list = Array.isArray(msg.shots) ? msg.shots : [];
-    const shots = list
-      .filter((s) => s && typeof s.id === "string" && UUID.test(s.id) && typeof s.data === "string" && s.data.length < 400_000)
-      .slice(0, 200)
-      .map((s) => ({ id: s.id.toLowerCase(), jpeg: Buffer.from(s.data, "base64") }))
-      .filter((s) => s.jpeg[0] === 0xff && s.jpeg[1] === 0xd8); // JPEG only
-    await saveShots(id, shots);
-    return json({ ok: true, saved: shots.length });
+    return json({ ok: true, saved: await saveWorkerShots(id, msg.shots) });
   }
 
   if (msg.type === "progress") {
@@ -63,7 +35,7 @@ export async function POST(req: Request, ctx: RouteContext<"/api/worker/scans/[i
   }
 
   if (msg.type === "failed") {
-    await recordSpend(id, msg.agent);
+    await chargeAgent(id, "free", msg.agent);
     const code = String(msg.error || "error").slice(0, 40);
     await failScan(id, code);
     if (!["robots", "unreachable", "not_html", "blocked_target", "unresolvable", "not_found", "refused"].includes(code)) {
@@ -73,7 +45,7 @@ export async function POST(req: Request, ctx: RouteContext<"/api/worker/scans/[i
   }
 
   if (msg.type === "complete" && msg.raw?.version === 1 && Array.isArray(msg.raw.pages)) {
-    await recordSpend(id, msg.raw.agent);
+    await chargeAgent(id, "free", msg.raw.agent);
     const report = buildReport(msg.raw);
     if (report.pagesScanned === 0) {
       await failScan(id, "unreachable");

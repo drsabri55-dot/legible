@@ -19,3 +19,10 @@ export function reportStartWith(must: number): string {
     ? "None are in the must-fix group, so start with the should-fix issues."
     : `Must-fix issues: ${must}. Start with those.`;
 }
+
+// The last sentence of the whole-site email, by how the run ended.
+export function fullReportEnding(status: "done" | "limit" | "stopped"): string {
+  if (status === "limit") return "Testing stopped there because this report reached its testing limit.";
+  if (status === "stopped") return "Testing stopped there because of a problem on our side. The pages we tested are all in the report.";
+  return "That is every page we could reach, up to 50.";
+}

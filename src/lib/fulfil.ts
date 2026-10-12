@@ -1,10 +1,12 @@
 import "server-only";
 import { randomToken } from "./crypto";
-import { createReportOnce, getScan, markReportDelivered, upsertUser, type ReportRow } from "./data";
+import { createReportOnce, getReportByToken, getScan, listFullPages, markReportDelivered, upsertUser, type ReportRow } from "./data";
 import { alertOwner, sendEmail } from "./email/send";
-import { countOf, reportStartWith } from "./email/wording";
+import { countOf, fullReportEnding, reportStartWith } from "./email/wording";
 import { env } from "./env";
 import { formatUsd } from "./pricing";
+import { mergeFullPages } from "./report/full";
+import { buildReport } from "./report/model";
 import { siteName } from "./url";
 import { renderPdf } from "./worker";
 
@@ -65,4 +67,32 @@ export async function deliverReport(report: ReportRow, email: string): Promise<v
     attachments,
   });
   await markReportDelivered(report.id);
+}
+
+// The one email at the end of the whole-site test, with the finished
+// report's PDF. If the PDF cannot be made, the email still goes with the link.
+export async function deliverFullReport(report: ReportRow, status: "done" | "limit" | "stopped"): Promise<void> {
+  const full = await getReportByToken(report.token);
+  if (!full) throw new Error(`Report ${report.id} not found`);
+  const base = env.appUrl();
+  const r = buildReport(mergeFullPages(full.raw, await listFullPages(report.scan_id)));
+  let attachments: { filename: string; content: Buffer }[] = [];
+  try {
+    const pdf = await renderPdf(`/report/${report.token}?print=1`);
+    attachments = [{ filename: pdfFilename(full.host, new Date()), content: pdf }];
+  } catch (e) {
+    await alertOwner("A report PDF could not be made", `${full.host}: ${(e as Error).message}`, `${base}/report/${report.token}`);
+  }
+  await sendEmail({
+    to: full.email,
+    template: "full-report-ready",
+    vars: {
+      site: siteName(full.host),
+      pages: countOf(r.pagesScanned, "page"),
+      ending: fullReportEnding(status),
+      report_link: `${base}/report/${report.token}`,
+      account_link: `${base}/account`,
+    },
+    attachments,
+  });
 }

@@ -9,6 +9,7 @@ export const TEMPLATES = [
   "monitoring-offer",
   "monitoring-result",
   "owner-alert",
+  "full-report-ready",
 ] as const;
 export type TemplateName = (typeof TEMPLATES)[number];
 
