@@ -37,6 +37,12 @@ Three processes: the Next.js site (Vercel), the scan worker (`worker/`, Railway 
   then, with the agent, one AI-written fix per failure group (40 per scan). `apply.ts` applies a fix to the live page, re-runs the
   same axe rule or measurement on that element and undoes it. Results ride on `RawNode.fix` (`null` = guidance only).
   `src/lib/report/plan.ts` orders the fix plan by fixed rules; the free result shows the plan and every problem.
+- **Whole-site test** (paid): `deliverReport` → `startFullTest` (`src/lib/full.ts`) → worker `/jobs/full` (its own queue of one)
+  → `crawlSite` (`worker/src/crawl.ts`, breadth first, free-scan skip rules, robots.txt, up to 50 pages in all, free-scan pages
+  only loaded for links) → one `page` message per tested page to `/api/worker/full/[id]` → `full_pages`, `paid` spend per page,
+  answer `stop` at `AGENT_REPORT_CAP_USD`. `done` finishes it (`reports.full_status`) and sends `full-report-ready` with the PDF
+  once. Quiet runs (20 min) resume from stored pages via the report page and the daily cron, 3 attempts in all. The report
+  page and PDF use `fullReport()` (free scan + `full_pages`, merged before the pure `buildReport`).
 - **Reports are computed, never stored:** `buildReport(raw)` in `src/lib/report/model.ts` is pure; the report page and PDF rebuild from
   `scans.raw`. PDFs are rendered on demand by the worker's `/pdf`, which prints `/report/[token]?print=1` (only on `APP_URL`).
 - **Payment:** `/api/checkout` → Stripe Checkout (or `/checkout/dev` when `ALLOW_FAKE_PAYMENTS=true` and no key). The webhook and

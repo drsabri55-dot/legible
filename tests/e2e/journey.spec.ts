@@ -49,7 +49,9 @@ test("the visitor can email the free result to themselves", async ({ page }) => 
   expect(email.html).toContain(resultUrl.replace(/:\d+/, ":3100"));
 });
 
-test("buying the report creates it, shows it and emails it with the PDF", async ({ page }) => {
+test("buying the report creates it, tests the whole site and emails it with the PDF", async ({ page }) => {
+  // The whole-site test runs after payment; the fixture site takes about a minute.
+  test.setTimeout(240_000);
   await page.goto(resultUrl);
   await page.getByRole("button", { name: "Test the whole site · $99" }).click();
   await page.waitForURL(/\/checkout\/dev\?scan=/);
@@ -58,7 +60,7 @@ test("buying the report creates it, shows it and emails it with the PDF", async 
   await page.waitForURL(/\/report\/[A-Za-z0-9_-]+\?welcome=1$/, { timeout: 60_000 });
   reportUrl = page.url().replace("?welcome=1", "");
 
-  await expect(page.getByRole("status")).toContainText(`on its way to ${buyer}`);
+  await expect(page.getByRole("status")).toContainText(`We are testing the rest of your site now. We will email ${buyer}`);
   await expect(page.getByRole("heading", { level: 1, name: "127.0.0.1" })).toBeVisible();
   for (const name of ["127.0.0.1 at a glance", "Pages scanned", "Must fix", "How this report was made", "What this report can and cannot tell you"]) {
     await expect(page.getByRole("heading", { level: 2, name })).toBeVisible();
@@ -69,9 +71,18 @@ test("buying the report creates it, shows it and emails it with the PDF", async 
   await expect(page.locator(".rp-limits")).toContainText("A result with no failures does not mean a site meets WCAG 2.1 AA or any law.");
   await expectNoWcagViolations(page);
 
+  // The purchase email says the rest of the site is being tested; the PDF
+  // comes with the email at the end of that test.
   const email = await waitForEmail(buyer, "report-ready");
   expect(email.subject).toBe("Your Legible report for 127.0.0.1 is ready");
-  expect(email.attachments).toMatch(/^legible-report-127\.0\.0\.1-\d{4}-\d{2}-\d{2}\.pdf$/);
+  expect(email.attachments).toBe("none");
+  expect(email.html).toContain("We are now testing the rest of your site");
+
+  const full = await waitForEmail(buyer, "full-report-ready", 120_000);
+  expect(full.subject).toBe("Your full Legible report for 127.0.0.1 is ready");
+  expect(full.attachments).toMatch(/^legible-report-127\.0\.0\.1-\d{4}-\d{2}-\d{2}\.pdf$/);
+  await page.goto(reportUrl);
+  await expect(page.locator("#pages").locator("xpath=..")).toContainText("team.html");
 });
 
 test("the PDF downloads", async ({ request }) => {

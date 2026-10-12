@@ -42,13 +42,13 @@ export async function outbox(to: string, template?: string): Promise<OutboxEmail
   return out;
 }
 
-export async function waitForEmail(to: string, template: string): Promise<OutboxEmail> {
+export async function waitForEmail(to: string, template: string, timeout = 30_000): Promise<OutboxEmail> {
   let found: OutboxEmail | undefined;
   await expect
     .poll(async () => {
       found = (await outbox(to, template))[0];
       return !!found;
-    }, { timeout: 30_000 })
+    }, { timeout })
     .toBe(true);
   return found!;
 }
