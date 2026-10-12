@@ -26,9 +26,23 @@ export function costUsd(u: AgentUsage, p: AgentPrices): number {
   return (input * p.inputPerMtok + u.outputTokens * p.outputPerMtok) / 1_000_000;
 }
 
+function capFrom(value: string, fallback: number): number {
+  const n = toNumber(value);
+  return Number.isFinite(n) && n >= 0 ? n : fallback;
+}
+
 export function dailyCapUsd(): number {
-  const n = toNumber(env.agentDailyCapUsd());
-  return Number.isFinite(n) && n >= 0 ? n : 10;
+  return capFrom(env.agentDailyCapUsd(), 10);
+}
+
+// What one paid report's whole-site test may spend on the agent.
+export function reportCapUsd(): number {
+  return capFrom(env.agentReportCapUsd(), 15);
+}
+
+// Paid work is outside the daily cap: the agent runs whenever it can.
+export function paidAgentOn(): boolean {
+  return !!env.anthropicApiKey() && !!agentPrices();
 }
 
 // Free scans and free chat share the cap. Scans still running are charged only

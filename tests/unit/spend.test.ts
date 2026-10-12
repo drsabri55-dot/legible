@@ -235,3 +235,28 @@ describe("the site's own key", () => {
     delete process.env.AGENT_DAILY_CAP_USD;
   });
 });
+
+describe("paid work", () => {
+  it("has a $15 report limit unless another is set", async () => {
+    const { reportCapUsd } = await import("@/lib/spend");
+    delete process.env.AGENT_REPORT_CAP_USD;
+    expect(reportCapUsd()).toBe(15);
+    process.env.AGENT_REPORT_CAP_USD = "40";
+    expect(reportCapUsd()).toBe(40);
+    process.env.AGENT_REPORT_CAP_USD = "nonsense";
+    expect(reportCapUsd()).toBe(15);
+    delete process.env.AGENT_REPORT_CAP_USD;
+  });
+
+  it("uses the agent whenever the key and prices are set, whatever today's free spend", async () => {
+    const { paidAgentOn } = await import("@/lib/spend");
+    process.env.AGENT_PRICE_INPUT_PER_MTOK = "2";
+    process.env.AGENT_PRICE_OUTPUT_PER_MTOK = "10";
+    process.env.AGENT_DAILY_CAP_USD = "0";
+    expect(paidAgentOn()).toBe(true);
+    delete process.env.AGENT_PRICE_INPUT_PER_MTOK;
+    expect(paidAgentOn()).toBe(false);
+    delete process.env.AGENT_PRICE_OUTPUT_PER_MTOK;
+    delete process.env.AGENT_DAILY_CAP_USD;
+  });
+});

@@ -47,6 +47,7 @@ export const env = {
   agentPriceInputPerMtok: () => process.env.AGENT_PRICE_INPUT_PER_MTOK || "",
   agentPriceOutputPerMtok: () => process.env.AGENT_PRICE_OUTPUT_PER_MTOK || "",
   agentDailyCapUsd: () => process.env.AGENT_DAILY_CAP_USD || "",
+  agentReportCapUsd: () => process.env.AGENT_REPORT_CAP_USD || "",
   isVercelProduction: () => process.env.VERCEL_ENV === "production",
   // Development conveniences. Both refuse to switch on in a Vercel deployment.
   fakePayments: () =>
