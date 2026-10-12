@@ -1,6 +1,6 @@
 import "server-only";
 import type { JSONValue } from "postgres";
-import type { AgentUsage, RawScan, ScanStatus } from "@/types/scan";
+import type { AgentUsage, RawPage, RawScan, ScanStatus } from "@/types/scan";
 import type { FreeSummary } from "./report/model";
 import { db } from "./db";
 
@@ -38,7 +38,15 @@ export interface ReportRow {
   delivered_at: Date | null;
   offer_sent_at: Date | null;
   created_at: Date;
+  // The paid whole-site test. Null status: bought before it existed.
+  full_status: FullStatus | null;
+  full_pages: number;
+  full_updated_at: Date | null;
+  full_attempts: number;
+  full_emailed_at: Date | null;
 }
+
+export type FullStatus = "running" | "done" | "limit" | "stopped";
 
 export interface UserRow {
   id: string;
@@ -173,18 +181,20 @@ export async function setLeadEmail(scanId: string, email: string): Promise<void>
 
 // ── agent spend ──────────────────────────────────────────────────────
 
-// A free or paid scan run is charged once (a unique index refuses a repeat).
+// Each charge is recorded once (a unique index on scan, kind and ref refuses a repeat).
 export async function recordScanSpend(input: {
   scanId: string;
   kind: SpendKind;
   model: string;
   usage: AgentUsage;
   costUsd: number | null;
+  // Tells charges of one scan apart: the page address for paid pages.
+  ref?: string;
 }): Promise<boolean> {
   const u = input.usage;
   const rows = await db()`
-    insert into agent_spend (scan_id, kind, model, input_tokens, output_tokens, cache_read_tokens, cache_write_tokens, cost_usd)
-    values (${input.scanId}, ${input.kind}, ${input.model}, ${u.inputTokens}, ${u.outputTokens},
+    insert into agent_spend (scan_id, kind, ref, model, input_tokens, output_tokens, cache_read_tokens, cache_write_tokens, cost_usd)
+    values (${input.scanId}, ${input.kind}, ${input.ref ?? ""}, ${input.model}, ${u.inputTokens}, ${u.outputTokens},
             ${u.cacheReadTokens}, ${u.cacheWriteTokens}, ${input.costUsd})
     on conflict do nothing
     returning id`;
@@ -217,6 +227,62 @@ export async function averageFreeScanCostUsd(): Promise<number | null> {
     select avg(cost_usd) as avg from agent_spend
     where kind = 'free' and cost_usd is not null and created_at > now() - interval '7 days'`;
   return row?.avg == null ? null : Number(row.avg);
+}
+
+// What the paid whole-site test of a scan has cost so far.
+export async function paidSpendUsd(scanId: string): Promise<number> {
+  const [row] = await db()<{ total: string | null }[]>`
+    select sum(cost_usd) as total from agent_spend where scan_id = ${scanId} and kind = 'paid'`;
+  return Number(row?.total ?? 0);
+}
+
+// ── whole-site test ──────────────────────────────────────────────────
+
+export async function saveFullPage(scanId: string, url: string, page: RawPage): Promise<boolean> {
+  const sql = db();
+  const rows = await sql`
+    insert into full_pages (scan_id, url, page) values (${scanId}, ${url}, ${sql.json(page as unknown as JSONValue)})
+    on conflict (scan_id, url) do nothing
+    returning id`;
+  return rows.length > 0;
+}
+
+export async function listFullPages(scanId: string): Promise<RawPage[]> {
+  const rows = await db()<{ page: RawPage }[]>`select page from full_pages where scan_id = ${scanId} order by id`;
+  return rows.map((r) => r.page);
+}
+
+export async function startFullJob(reportId: string): Promise<void> {
+  await db()`
+    update reports set full_status = 'running', full_updated_at = now(), full_attempts = full_attempts + 1
+    where id = ${reportId}`;
+}
+
+export async function touchFullJob(reportId: string, pages: number): Promise<void> {
+  await db()`
+    update reports set full_pages = ${pages}, full_updated_at = now()
+    where id = ${reportId} and full_status = 'running'`;
+}
+
+export async function finishFullJob(reportId: string, status: Exclude<FullStatus, "running">): Promise<boolean> {
+  const rows = await db()`
+    update reports set full_status = ${status}, full_updated_at = now()
+    where id = ${reportId} and full_status = 'running'
+    returning id`;
+  return rows.length > 0;
+}
+
+// True for the one caller allowed to send the completion email.
+export async function claimFullEmail(reportId: string): Promise<boolean> {
+  const rows = await db()`
+    update reports set full_emailed_at = now() where id = ${reportId} and full_emailed_at is null returning id`;
+  return rows.length > 0;
+}
+
+export async function staleFullJobs(minutes: number): Promise<ReportRow[]> {
+  return db()<ReportRow[]>`
+    select * from reports
+    where full_status = 'running' and full_updated_at < now() - make_interval(mins => ${minutes})`;
 }
 
 // ── users ────────────────────────────────────────────────────────────
