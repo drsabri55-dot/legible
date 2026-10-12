@@ -74,6 +74,18 @@
 .rp-actions a:not(.btn):hover {
   color: var(--color-accent-200);
 }
+/* Progress of the paid whole-site test, or why it stopped early. */
+.rp-fullnote {
+  max-width: 820px;
+  margin: 0 auto 16px;
+  padding: 12px 16px;
+  border-radius: 10px;
+  border: 1px solid var(--rp-rule);
+  background: var(--rp-tint);
+  color: var(--rp-ink);
+  font-size: 14px;
+  line-height: 1.6;
+}
 .rp-welcome {
   max-width: 820px;
   margin: 0 auto 16px;

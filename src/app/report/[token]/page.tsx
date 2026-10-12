@@ -1,13 +1,16 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { after } from "next/server";
 import { cache } from "react";
 import { AgentReview, ElementShot, agentMethod, agentPageNote, axeRuleCounts } from "@/components/report/AgentSections";
 import { GUIDANCE_ONLY, builderNote, codeLabel, fixLabel } from "@/components/report/FixLabels";
+import { fullTestNote, welcomeNote } from "@/components/report/FullNote";
 import { Logo } from "@/components/site/Logo";
 import { getReportByToken } from "@/lib/data";
+import { fullReport, resumeStaleFullTest } from "@/lib/full";
 import { privatePage } from "@/lib/page-meta";
-import { buildReport, type Issue, type Report } from "@/lib/report/model";
+import { type Issue, type Report } from "@/lib/report/model";
 import { planIntro, stepLine } from "@/lib/report/plan";
 import type { Effort, Impact } from "@/lib/rules/catalogue";
 import { understandingUrl } from "@/lib/rules/wcag";
@@ -437,7 +440,12 @@ export default async function ReportPage(props: PageProps<"/report/[token]">) {
   const sp = await props.searchParams;
   const row = await loadReport(token);
   if (!row) notFound();
-  const r = buildReport(row.raw);
+  // The free scan plus every page the paid whole-site test has stored so far.
+  const r = await fullReport(row.raw, row.scan_id);
+  const testing = row.full_status === "running";
+  const note = fullTestNote(row.full_status, r.pagesScanned);
+  // A run that has gone quiet (the worker restarted, say) is picked up again.
+  if (testing) after(() => resumeStaleFullTest(row).catch(() => {}));
   const print = sp.print === "1";
   const welcome = sp.welcome === "1";
   const safeHost = r.site.replace(/[^a-z0-9.-]/gi, "");
@@ -464,12 +472,12 @@ export default async function ReportPage(props: PageProps<"/report/[token]">) {
       )}
       {welcome && !print && (
         <p className="rp-welcome" role="status">
-          Payment received. A copy of this report, with the PDF, is on its way to {row.email}. Bookmark this page: the
-          link is yours to share.
+          {welcomeNote(row.email, testing)}
         </p>
       )}
 
       <main className="rp-doc" id="main">
+        {note && <p className="rp-fullnote">{note}</p>}
         <section className="rp-cover" aria-labelledby="cover-title">
           <div className="rp-cover-top">
             <span className="rp-cover-brand">

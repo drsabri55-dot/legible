@@ -17,7 +17,8 @@ export async function GET(_req: Request, ctx: RouteContext<"/report/[token]/pdf"
       headers: {
         "content-type": "application/pdf",
         "content-disposition": `attachment; filename="${name}"`,
-        "cache-control": "private, max-age=3600",
+        // While the whole site is being tested, the PDF changes with each page.
+        "cache-control": report.full_status === "running" ? "private, no-store" : "private, max-age=3600",
         "x-robots-tag": "noindex",
       },
     });

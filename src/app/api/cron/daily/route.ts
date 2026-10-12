@@ -1,5 +1,6 @@
 import { signFor, safeEqual } from "@/lib/crypto";
-import { claimOffer, deleteExpiredLoginTokens, failStaleScans, releaseOffer, reportsDueForOffer } from "@/lib/data";
+import { claimOffer, deleteExpiredLoginTokens, failStaleScans, releaseOffer, reportsDueForOffer, staleFullJobs } from "@/lib/data";
+import { QUIET_MINUTES, resumeStaleFullTest } from "@/lib/full";
 import { sendEmail } from "@/lib/email/send";
 import { env } from "@/lib/env";
 import { bearer, json } from "@/lib/http";
@@ -9,13 +10,20 @@ import { siteName } from "@/lib/url";
 export const maxDuration = 60;
 
 // Runs once a day (vercel.json). Sends the day-3 monitoring offer, marks scans
-// that never finished as failed, and clears old sign-in links.
+// that never finished as failed, resumes quiet whole-site tests and clears old
+// sign-in links.
 export async function GET(req: Request) {
   if (!safeEqual(bearer(req), env.cronSecret())) return json({ error: "Unauthorised" }, 401);
 
   // Agent scans can wait in the worker's queue and take up to 25 minutes.
   const stale = await failStaleScans(90);
   await deleteExpiredLoginTokens();
+  // Whole-site tests that went quiet (the worker restarted) are picked up again.
+  let resumed = 0;
+  for (const report of await staleFullJobs(QUIET_MINUTES)) {
+    await resumeStaleFullTest(report).catch((e) => console.error("[cron] resume failed", report.id, e));
+    resumed++;
+  }
 
   const base = env.appUrl();
   let sent = 0;
@@ -43,5 +51,5 @@ export async function GET(req: Request) {
       failed++;
     }
   }
-  return json({ ok: true, staleScans: stale, offersSent: sent, offersFailed: failed });
+  return json({ ok: true, staleScans: stale, resumedTests: resumed, offersSent: sent, offersFailed: failed });
 }

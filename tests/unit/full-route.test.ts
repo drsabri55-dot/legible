@@ -199,3 +199,13 @@ describe("the email at purchase", () => {
     expect(String(email.vars.pdf_note)).toContain("testing the rest of your site");
   });
 });
+
+describe("the report", () => {
+  it("is built from the free scan and every stored page", async () => {
+    const { fullReport } = await import("@/lib/full");
+    const { scan } = await paidReport("fr11.example");
+    await data.saveFullPage(scan.id, "https://www.shop.example/team", page("https://www.shop.example/team", [], ["image-alt"]));
+    const raw = (await data.getScanRaw(scan.id))!;
+    expect((await fullReport(raw, scan.id)).pagesScanned).toBe(3);
+  });
+});

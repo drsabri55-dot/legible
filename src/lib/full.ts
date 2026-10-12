@@ -11,8 +11,10 @@ import {
 } from "./data";
 import { alertOwner } from "./email/send";
 import { deliverFullReport } from "./fulfil";
-import { AI_FIXES_PER_REPORT, FULL_REPORT_PAGES, aiFixesUsed } from "./report/full";
+import { AI_FIXES_PER_REPORT, FULL_REPORT_PAGES, aiFixesUsed, mergeFullPages } from "./report/full";
+import { buildReport, type Report } from "./report/model";
 import { paidAgentOn } from "./spend";
+import type { RawScan } from "@/types/scan";
 import { dispatchFull } from "./worker";
 
 // The paid whole-site test, on the site's side: start (or resume) it, and
@@ -67,4 +69,10 @@ export async function finishFullTest(scanId: string, status: "done" | "limit" | 
   if (!(await claimFullEmail(report.id))) return;
   const ended = (await getReportByScanId(scanId))?.full_status ?? status;
   await deliverFullReport(report, ended === "running" ? status : ended);
+}
+
+// The report as it stands: the free scan plus every page the whole-site test
+// has stored so far. buildReport stays pure; this only gathers its input.
+export async function fullReport(raw: RawScan, scanId: string): Promise<Report> {
+  return buildReport(mergeFullPages(raw, await listFullPages(scanId)));
 }
