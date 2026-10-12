@@ -11,7 +11,7 @@ import {
   type ReportRow,
 } from "./data";
 import { alertOwner, sendEmail } from "./email/send";
-import { countOf, fullReportEnding, purchasePdfNote, reportStartWith } from "./email/wording";
+import { countOf, fullPdfNote, fullReportEnding, purchasePdfNote, reportStartWith } from "./email/wording";
 import { env } from "./env";
 import { startFullTest } from "./full";
 import { formatUsd } from "./pricing";
@@ -58,8 +58,14 @@ export async function deliverReport(report: ReportRow, email: string): Promise<v
   if (!scan?.summary) throw new Error(`Report ${report.id} has no scan summary`);
   const base = env.appUrl();
   // A test that could not be sent yet is still running: it is resumed later.
-  await startFullTest(report);
-  const testing = (await getReportByScanId(report.scan_id))?.full_status === "running";
+  // If it cannot even be set up, the buyer still gets the email, with the PDF.
+  let testing = false;
+  try {
+    await startFullTest(report);
+    testing = (await getReportByScanId(report.scan_id))?.full_status === "running";
+  } catch (e) {
+    await alertOwner("A whole-site test could not be set up", `${scan.host}: ${(e as Error).message}`, `${base}/report/${report.token}`);
+  }
   let attachments: { filename: string; content: Buffer }[] = [];
   if (!testing) {
     try {
@@ -108,6 +114,7 @@ export async function deliverFullReport(report: ReportRow, status: "done" | "lim
       site: siteName(full.host),
       pages: countOf(r.pagesScanned, "page"),
       ending: fullReportEnding(status),
+      pdf_note: fullPdfNote(attachments.length > 0),
       report_link: `${base}/report/${report.token}`,
       account_link: `${base}/account`,
     },

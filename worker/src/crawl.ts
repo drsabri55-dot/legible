@@ -44,7 +44,8 @@ export async function crawlSite(startUrl: string, opts: CrawlOptions): Promise<{
   const signatures = new Set<string>();
   const queue = [start.toString()];
   const pause = Math.max(opts.pauseMs ?? PAUSE_BETWEEN_PAGES_MS, robots.crawlDelayMs);
-  let host: string | null = null;
+  // The site is the start address's (the address the free scan landed on).
+  const host = start.hostname;
   let count = 0;
   let loads = 0;
 
@@ -69,8 +70,7 @@ export async function crawlSite(startUrl: string, opts: CrawlOptions): Promise<{
 
       if (tested.has(keyOf(url) ?? "")) {
         const seen = await linksOf(context, url);
-        if (!seen) continue;
-        host ??= new URL(seen.finalUrl).hostname;
+        if (!seen || !sameSite(new URL(seen.finalUrl).hostname, host)) continue;
         if (seen.signature) signatures.add(seen.signature);
         enqueue(seen.links);
         continue;
@@ -86,7 +86,7 @@ export async function crawlSite(startUrl: string, opts: CrawlOptions): Promise<{
           (landedUrl, signature) => {
             const landed = new URL(landedUrl);
             return (
-              sameSite(landed.hostname, host ?? start.hostname) &&
+              sameSite(landed.hostname, host) &&
               !tested.has(pageKey(landed)) &&
               !(signature && signatures.has(signature))
             );
@@ -97,7 +97,6 @@ export async function crawlSite(startUrl: string, opts: CrawlOptions): Promise<{
         continue; // a page that fails is skipped
       }
       const landed = new URL(result.finalUrl);
-      host ??= landed.hostname;
       if (!sameSite(landed.hostname, host)) continue; // redirected to another website
       const key = pageKey(landed);
       if (tested.has(key)) {

@@ -17,3 +17,16 @@ export function welcomeNote(email: string, testing: boolean): string {
     ? `Payment received. We are testing the rest of your site now. We will email ${email} when the full report is ready, with the PDF. Bookmark this page: the link is yours to share.`
     : `Payment received. A copy of this report, with the PDF, is on its way to ${email}. Bookmark this page: the link is yours to share.`;
 }
+
+// Whether the paid whole-site test is under way. On the Stripe path the buyer
+// can land on the report before delivery has started it: a report not yet
+// delivered was bought with the whole-site test.
+export function wholeSiteTesting(row: { full_status: FullStatus | null; delivered_at: Date | null }): boolean {
+  return row.full_status === "running" || (row.full_status === null && !row.delivered_at);
+}
+
+export function scopeSentence(wholeSite: boolean, date: string): string {
+  return wholeSite
+    ? `Legible tested the home page and up to ${FULL_REPORT_PAGES - 1} more pages it found by following the site's links, starting on ${date}.`
+    : `Legible scanned the home page and up to five pages linked from its navigation on ${date}.`;
+}

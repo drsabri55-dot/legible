@@ -64,3 +64,19 @@ it("stops when the site says so", async () => {
   const result = await crawlSite(`${base}/`, { done, maxPages: 50, pauseMs: 10, onPage: async () => ({ stop: true }) });
   expect(result).toEqual({ reason: "stopped", tested: 1 });
 }, 60_000);
+
+it("never follows a redirect onto another website", async () => {
+  const pages: RawPage[] = [];
+  // /elsewhere sends visitors to localhost, which counts as another site.
+  const result = await crawlSite(`${base}/elsewhere`, {
+    done: [`${base}/elsewhere`],
+    maxPages: 50,
+    pauseMs: 10,
+    onPage: async (p) => {
+      pages.push(p);
+      return { stop: false };
+    },
+  });
+  expect(pages.map((p) => p.url)).toEqual([]);
+  expect(result.tested).toBe(0);
+}, 60_000);

@@ -34,3 +34,10 @@ export function purchasePdfNote(testingWholeSite: boolean): string {
     ? "We are now testing the rest of your site, up to 50 pages. We will email you again when it is finished, with the PDF. The report link already shows the pages tested so far."
     : "The PDF is attached. You can also download it from the report page, or share the report link with whoever looks after your site.";
 }
+
+// The whole-site email's PDF line: the PDF can fail to render (the worker is down).
+export function fullPdfNote(attached: boolean): string {
+  return attached
+    ? "The PDF is attached. You can also download it from the report page, or share the report link with whoever looks after your site."
+    : "The PDF could not be made just now. Download it from the report page, or share the report link with whoever looks after your site.";
+}

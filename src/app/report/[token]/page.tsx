@@ -5,7 +5,7 @@ import { after } from "next/server";
 import { cache } from "react";
 import { AgentReview, ElementShot, agentMethod, agentPageNote, axeRuleCounts } from "@/components/report/AgentSections";
 import { GUIDANCE_ONLY, builderNote, codeLabel, fixLabel } from "@/components/report/FixLabels";
-import { fullTestNote, welcomeNote } from "@/components/report/FullNote";
+import { fullTestNote, scopeSentence, welcomeNote, wholeSiteTesting } from "@/components/report/FullNote";
 import { Logo } from "@/components/site/Logo";
 import { getReportByToken } from "@/lib/data";
 import { fullReport, resumeStaleFullTest } from "@/lib/full";
@@ -114,14 +114,12 @@ function Summary({ r }: { r: Report }) {
   );
 }
 
-function Pages({ r }: { r: Report }) {
+function Pages({ r, wholeSite }: { r: Report; wholeSite: boolean }) {
   return (
     <section className="rp-section" aria-labelledby="pages">
       <p className="rp-kicker">Scope</p>
       <h2 id="pages">Pages scanned</h2>
-      <p>
-        Legible scanned the home page and up to five pages linked from its navigation on {formatDate(r.scannedAt)}.
-      </p>
+      <p>{scopeSentence(wholeSite, formatDate(r.scannedAt))}</p>
       <table className="rp-table">
         <thead>
           <tr>
@@ -442,10 +440,10 @@ export default async function ReportPage(props: PageProps<"/report/[token]">) {
   if (!row) notFound();
   // The free scan plus every page the paid whole-site test has stored so far.
   const r = await fullReport(row.raw, row.scan_id);
-  const testing = row.full_status === "running";
+  const testing = wholeSiteTesting(row);
   const note = fullTestNote(row.full_status, r.pagesScanned);
   // A run that has gone quiet (the worker restarted, say) is picked up again.
-  if (testing) after(() => resumeStaleFullTest(row).catch(() => {}));
+  if (row.full_status === "running") after(() => resumeStaleFullTest(row).catch(() => {}));
   const print = sp.print === "1";
   const welcome = sp.welcome === "1";
   const safeHost = r.site.replace(/[^a-z0-9.-]/gi, "");
@@ -511,7 +509,7 @@ export default async function ReportPage(props: PageProps<"/report/[token]">) {
 
         <Summary r={r} />
         <Plan r={r} />
-        <Pages r={r} />
+        <Pages r={r} wholeSite={row.full_status !== null || !row.delivered_at} />
         <Issues r={r} />
         <Review r={r} />
         <AgentReview r={r} />
