@@ -11,6 +11,7 @@ const VARS = {
   pages: "6 pages",
   next_step: "The full report lists every failure. It costs $99, once.",
   start_with: "Must-fix issues: 4. Start with those.",
+  ending: "That is every page we could reach, up to 50.",
   result_link: "https://legible.example/scan/1",
   report_link: "https://legible.example/report/abc",
   account_link: "https://legible.example/account",
