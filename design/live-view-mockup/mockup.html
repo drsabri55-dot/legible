@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Live view and chat mockup</title>
+<!-- Phase 5 mockup for the owner's design doc. Static: no screen is built
+     until the owner approves it. Tokens copied from src/app/globals.css. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#161826;--surface:#232532;--text:#e9e9ed;--accent:#9184d9;
+    --divider:color-mix(in srgb,#e9e9ed 16%,transparent);
+    --n100:#f3f5fe;--n200:#e4e7f5;--n300:#cfd3e5;--n400:#b2b6ca;--n500:#9397ab;--n600:#75798c;--n800:#3f424d;
+    --a200:#e7e5fe;--a300:#d2cefd;--a400:#b5abfc;--a500:#968ae0;--a800:#423a6a;--a900:#2b2741;
+    --serious:#e0b07a;--good:#9fd3b0;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg)}
+  body{color:var(--text);font-family:Inter,system-ui,sans-serif;font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased}
+  .screen{position:relative;overflow:hidden;background:linear-gradient(176deg,oklch(0.128 0.022 266) 0%,oklch(0.1 0.016 264) 46%,oklch(0.074 0.01 262) 100%)}
+  .screen::before{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(70% 50% at 78% 0%,oklch(0.7 0.07 266/.08) 0%,transparent 70%)}
+  .pad{position:relative;padding:0 clamp(20px,6vw,96px)}
+  header{display:flex;height:64px;align-items:center;justify-content:space-between}
+  .logo{display:inline-flex;align-items:flex-end;gap:7px;border-bottom:1.5px solid currentColor;font-size:17px;line-height:1;font-weight:500;letter-spacing:-.01em}
+  .logo span{padding-bottom:.22em}
+  header a{font-size:13px;color:var(--n300);text-decoration:none}
+  main{margin:0 auto;width:100%;max-width:64rem;padding:40px 0 64px}
+  .kicker{display:flex;align-items:center;gap:12px;font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--n500)}
+  .kicker::before{content:"";width:26px;height:1px;background:var(--a500)}
+  h1{margin:24px 0 0;font-weight:500;font-size:clamp(30px,4vw,48px);line-height:1.1;letter-spacing:-.025em}
+  h2{margin:0;font-weight:500;font-size:clamp(22px,2.4vw,28px);line-height:1.2;letter-spacing:-.02em}
+  h3{margin:0;font-weight:500;font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--n400)}
+  p{margin:0}
+  .muted{color:var(--n400)} .soft{color:var(--n300)}
+  .progress-line{margin-top:32px;font-size:15px;color:var(--n300)}
+  .bar{margin-top:16px;height:2px;max-width:30rem;border-radius:2px;background:rgba(255,255,255,.1)}
+  .bar i{display:block;height:2px;width:28%;border-radius:2px;background:var(--a400)}
+  .how{margin-top:24px;max-width:46ch;font-size:14px;line-height:1.8;color:var(--n400)}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font:500 13px/1.2 Inter,sans-serif;color:var(--text);background:transparent;border:1px solid var(--divider);padding:8px 12px;border-radius:8px;min-height:32px;white-space:nowrap}
+  .btn-primary{color:var(--accent);border-color:var(--accent)}
+  .btn-cta{font-size:14px;padding:10px 16px;background:oklch(0.38 0.05 280);border-color:var(--a300);color:#fff}
+  .focus{outline:2px solid var(--a400);outline-offset:2px}
+  section{margin-top:56px}
+  .head{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px 24px}
+  .intro{margin-top:10px;max-width:58ch;font-size:15px;line-height:1.8;color:var(--n300)}
+  .live{margin-top:24px;display:grid;grid-template-columns:minmax(0,1fr) 15rem;gap:28px;align-items:start}
+  figure{margin:0}
+  .frame{border-radius:10px;overflow:hidden;box-shadow:0 0 0 1px #595d6c,0 6px 18px rgba(0,0,0,.55);background:var(--surface)}
+  .chrome{display:flex;align-items:center;gap:10px;height:34px;padding:0 12px;background:#1c1e2a;border-bottom:1px solid var(--divider)}
+  .dots{display:flex;gap:6px}.dots i{width:8px;height:8px;border-radius:50%;background:var(--n800)}
+  .url{flex:1;max-width:22rem;height:22px;border-radius:6px;background:var(--surface);font-size:12px;line-height:22px;padding:0 10px;color:var(--n300)}
+  .frame img{display:block;width:100%;aspect-ratio:1280/800}
+  figcaption{margin-top:12px;font-size:14px;line-height:1.7;color:var(--n300)}
+  figcaption b{font-weight:500;color:var(--n100)}
+  .step{font-variant-numeric:tabular-nums;color:var(--a300)}
+  .pages ol{list-style:none;margin:12px 0 0;padding:0}
+  .pages li{display:grid;grid-template-columns:1.5rem minmax(0,1fr);column-gap:6px;padding:10px 0;border-top:1px solid rgba(255,255,255,.07)}
+  .pages li .n{font-size:13px;color:var(--n500);font-variant-numeric:tabular-nums;padding-top:1px}
+  .pages .name{font-size:14.5px;color:var(--n100)}
+  .pages .state{display:flex;align-items:center;gap:7px;font-size:13px;color:var(--n400)}
+  .pages .now .state{color:var(--a300)}
+  .pages .done .state{color:var(--n300)}
+  .pulse{width:7px;height:7px;border-radius:50%;background:var(--a400);box-shadow:0 0 0 4px color-mix(in srgb,var(--a400) 22%,transparent)}
+  .tick{width:12px;height:12px;flex:none}
+  .log{margin-top:28px}
+  .log ol{list-style:none;margin:12px 0 0;padding:0}
+  .log li{display:grid;grid-template-columns:2.5rem 5.5rem minmax(0,1fr);gap:8px;padding:9px 0;border-top:1px solid rgba(255,255,255,.07);font-size:14px;line-height:1.6}
+  .log .pg{color:var(--n400)}
+  .log .note{color:var(--n200)}
+  .more{margin-top:10px;font-size:13.5px;color:var(--a300);text-decoration:underline;text-underline-offset:3px}
+  /* Chat */
+  .chat{margin-top:24px;max-width:46rem}
+  .thread{list-style:none;margin:0;padding:0}
+  .msg{padding:16px 0;border-top:1px solid rgba(255,255,255,.07)}
+  .who{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--n500)}
+  .who.ai{color:var(--a300)}
+  .msg p{margin-top:6px;font-size:15px;line-height:1.75;color:var(--n200);max-width:62ch}
+  .msg.you p{color:var(--n100)}
+  .msg a{color:var(--a300);text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:1px}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+  .chips .btn{font-weight:400;font-size:13.5px;color:var(--n200)}
+  form{margin-top:18px}
+  label{display:block;font-size:13px;color:var(--n300);margin-bottom:6px}
+  .row{display:flex;gap:10px;align-items:stretch}
+  .input{flex:1;min-height:44px;padding:10px 12px;font:inherit;font-size:15px;color:var(--text);background:var(--surface);border:1px solid var(--n600);border-radius:8px}
+  .input::placeholder{color:var(--n500)}
+  .meta{display:flex;flex-wrap:wrap;justify-content:space-between;gap:6px 16px;margin-top:10px;font-size:13px;color:var(--n400)}
+  .count{font-variant-numeric:tabular-nums;color:var(--n300)}
+  .thinking{display:flex;align-items:center;gap:8px;margin-top:6px;font-size:14.5px;color:var(--n400)}
+  /* States board */
+  .board{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;padding:40px clamp(20px,4vw,48px) 48px;max-width:1040px;margin:0 auto}
+  .card{position:relative;padding:20px 22px;border-radius:14px;background:color-mix(in srgb,var(--surface) 70%,transparent);box-shadow:0 0 0 1px #3f424d}
+  .card .tag{font-size:11.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--n500);margin-bottom:10px}
+  .card .msg:first-of-type{border-top:0;padding-top:4px}
+  .notice{font-size:15px;line-height:1.75;color:var(--n200);max-width:56ch}
+  .board h2{grid-column:1/-1;font-size:22px}
+  .board .sub{grid-column:1/-1;margin-top:-8px;font-size:14px;color:var(--n400)}
+  /* Phone */
+  @media (max-width:640px){
+    .live{grid-template-columns:1fr}
+    .log li{grid-template-columns:2rem minmax(0,1fr)}
+    .log .pg{display:none}
+    .row{flex-direction:column}
+    .board{grid-template-columns:1fr}
+    .chrome .dots{display:none}
+  }
+</style>
+</head>
+<body>
+
+<!-- Screen 1: a free scan while it runs -->
+<div class="screen" id="scanning">
+ <div class="pad">
+  <header><span class="logo"><svg viewBox="8.3 6 13 25.9" width="12" height="24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M9 6V31.9"/><path d="M9 12H21"/><path d="M9 20H18" stroke="#968ae0"/><path d="M9 28H14"/></svg><span>Legible</span></span><a href="#">Your reports</a></header>
+  <main>
+   <span class="kicker">Scanning</span>
+   <h1>yourbusiness.com</h1>
+   <p class="progress-line">Testing page 2 of 6: Menu</p>
+   <div class="bar"><i></i></div>
+   <p class="how">Legible loads yourbusiness.com in a real browser, checks every link, label, image and colour pair on each page, then tests it by keyboard like a person would. Most scans take 3 to 6 minutes.</p>
+
+   <section aria-labelledby="live">
+    <div class="head">
+     <div>
+      <h2 id="live">Live view</h2>
+      <p class="intro">What our testing agent sees as it uses your site with a keyboard. The picture changes every few seconds.</p>
+     </div>
+     <button class="btn" type="button">Pause live view</button>
+    </div>
+    <div class="live">
+     <figure>
+      <div class="frame">
+       <div class="chrome" aria-hidden="true"><span class="dots"><i></i><i></i><i></i></span><span class="url">yourbusiness.com/menu</span></div>
+       <img src="frame.jpg" alt="The Menu page, as the agent sees it. Step 14: it pressed Tab and focus moved to the Book a table link.">
+      </div>
+      <figcaption><span class="step">Step 14</span> · Pressed Tab. Focus moved to <b>Book a table</b>. Its focus outline is faint, so we are measuring its contrast.</figcaption>
+     </figure>
+     <div class="pages">
+      <h3>Pages</h3>
+      <ol>
+       <li class="done"><span class="n">1</span><span><span class="name">Home</span><span class="state"><svg class="tick" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 6.5l2.5 2.5L10 3.5"/></svg>Done</span></span></li>
+       <li class="now"><span class="n">2</span><span><span class="name">Menu</span><span class="state"><span class="pulse" aria-hidden="true"></span>Testing now</span></span></li>
+       <li><span class="n">3</span><span><span class="name">About</span><span class="state">Waiting</span></span></li>
+       <li><span class="n">4</span><span><span class="name">Visit us</span><span class="state">Waiting</span></span></li>
+       <li><span class="n">5</span><span><span class="name">Book a table</span><span class="state">Waiting</span></span></li>
+       <li><span class="n">6</span><span><span class="name">Gallery</span><span class="state">Waiting</span></span></li>
+      </ol>
+     </div>
+    </div>
+    <div class="log">
+     <h3>Latest steps</h3>
+     <ol>
+      <li><span class="step">14</span><span class="pg">Menu</span><span class="note">Pressed Tab. Focus moved to “Book a table”. Its focus outline is faint, so we are measuring its contrast.</span></li>
+      <li><span class="step">13</span><span class="pg">Menu</span><span class="note">Pressed Tab. Focus moved to “Visit us”.</span></li>
+      <li><span class="step">12</span><span class="pg">Menu</span><span class="note">Viewed the page 320 pixels wide. Nothing was cut off.</span></li>
+      <li><span class="step">11</span><span class="pg">Menu</span><span class="note">Opened the page.</span></li>
+      <li><span class="step">10</span><span class="pg">Home</span><span class="note">Finished the home page. 2 problems confirmed by measurement.</span></li>
+     </ol>
+     <a class="more" href="#">Show all 14 steps</a>
+    </div>
+   </section>
+
+   <section aria-labelledby="ask">
+    <h2 id="ask">Ask about this scan</h2>
+    <p class="intro">Ask our agent about what it has found so far, or what a problem means. You can ask 5 questions with this free scan.</p>
+    <div class="chat">
+     <div class="chips" aria-label="Suggested questions">
+      <button class="btn" type="button">What have you found so far?</button>
+      <button class="btn" type="button">What does WCAG mean?</button>
+      <button class="btn" type="button">Why test with a keyboard?</button>
+     </div>
+     <form>
+      <label for="q1">Your question</label>
+      <div class="row"><input id="q1" class="input" placeholder="For example: what should I fix first?"><button class="btn btn-cta" type="button">Ask</button></div>
+      <div class="meta"><span class="count">5 of 5 questions left</span><span>Questions and answers are saved with this scan. Anyone with this page's link can read them.</span></div>
+     </form>
+    </div>
+   </section>
+  </main>
+ </div>
+</div>
+
+<!-- Screen 2: the finished free result, chat section -->
+<div class="screen" id="result-chat">
+ <div class="pad">
+  <main style="padding-top:48px">
+   <section aria-labelledby="ask2" style="margin-top:0">
+    <h2 id="ask2">Ask about your result</h2>
+    <p class="intro">Ask about any problem on this page, how to fix it, or what to do first. Answers come from this scan's results.</p>
+    <div class="chat">
+     <ol class="thread">
+      <li class="msg you"><span class="who">You</span><p>What should I fix first?</p></li>
+      <li class="msg"><span class="who ai">Legible</span><p>Start with the missing form labels on Visit us. A screen reader cannot tell anyone what the email and phone fields are for, and step 1 of <a href="#">your fix plan</a> has code we tested on your page. Then make the focus outline on “Book a table” easier to see (step 2).</p></li>
+      <li class="msg you"><span class="who">You</span><p>Can I fix the labels myself? I use WordPress.</p></li>
+      <li class="msg"><span class="who ai">Legible</span><p>Yes. Open the contact form in your form plugin and give each field a visible label, such as “Email address”. The tested code under <a href="#">Form fields without labels</a> shows what the finished field should look like. If a field still has no label after that, the plugin may need a developer.</p></li>
+      <li class="msg you"><span class="who">You</span><p>Is the Gallery page alright?</p></li>
+      <li class="msg"><span class="who ai">Legible</span><p class="thinking"><span class="pulse" aria-hidden="true"></span>Writing an answer…</p></li>
+     </ol>
+     <form>
+      <label for="q2">Your question</label>
+      <div class="row"><input id="q2" class="input focus" placeholder=""><button class="btn btn-cta" type="button">Ask</button></div>
+      <div class="meta"><span class="count">2 of 5 questions left</span><span>Questions and answers are saved with this scan. Anyone with this page's link can read them.</span></div>
+     </form>
+    </div>
+   </section>
+  </main>
+ </div>
+</div>
+
+<!-- Screen 3: every other chat state -->
+<div class="screen" id="states">
+ <div class="board">
+  <h2>Chat: the other states</h2>
+  <p class="sub">Each card replaces the question box, or adds one answer, in the same place on the page.</p>
+
+  <div class="card">
+   <div class="tag">Free questions used</div>
+   <p class="notice">You have used your 5 questions. The full report tests your whole site, up to 50 pages, and comes with 100 questions.</p>
+   <p style="margin-top:14px"><a class="btn btn-primary" href="#" style="text-decoration:none">Test the whole site · $99</a></p>
+  </div>
+
+  <div class="card">
+   <div class="tag">Daily limit reached</div>
+   <p class="notice">Questions are paused until tomorrow, because our agent has reached its limit for today. Your result and every fix are still here.</p>
+  </div>
+
+  <div class="card">
+   <div class="tag">A question about something else</div>
+   <ol class="thread">
+    <li class="msg you"><span class="who">You</span><p>Can you write a blog post about our bread?</p></li>
+    <li class="msg"><span class="who ai">Legible</span><p>I can only answer questions about this scan and the accessibility of yourbusiness.com. You could ask what to fix first.</p></li>
+   </ol>
+  </div>
+
+  <div class="card">
+   <div class="tag">A question about the law</div>
+   <ol class="thread">
+    <li class="msg you"><span class="who">You</span><p>Does this mean my site is legal now?</p></li>
+    <li class="msg"><span class="who ai">Legible</span><p>I can't tell you whether your site meets the law. Legible identifies issues measured against WCAG 2.1 Level AA. Automated testing cannot detect every issue, so manual review is recommended.</p></li>
+   </ol>
+  </div>
+
+  <div class="card">
+   <div class="tag">An answer that fails</div>
+   <p class="notice">That answer did not come through. It has not used one of your questions. Please try again.</p>
+   <p style="margin-top:14px"><button class="btn" type="button">Try again</button></p>
+  </div>
+
+  <div class="card">
+   <div class="tag">Paid report</div>
+   <p class="notice" style="font-size:17px;color:var(--n100)">Ask about your report</p>
+   <p class="notice" style="margin-top:6px;color:var(--n300)">Ask about any page we tested, any problem, or the order to fix them in.</p>
+   <div class="meta" style="margin-top:12px"><span class="count">97 of 100 questions left</span></div>
+  </div>
+ </div>
+</div>
+
+</body>
+</html>
