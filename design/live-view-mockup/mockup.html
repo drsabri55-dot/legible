@@ -257,5 +257,70 @@
  </div>
 </div>
 
+<!-- Screen 4: the end of the landing page, with the new button (owner's request, 13 October) -->
+<div class="screen" id="landing-end">
+ <div class="pad">
+  <main style="max-width:64rem;padding:64px 0 72px">
+   <div style="max-width:31rem">
+    <span class="kicker">07 · Landing</span>
+    <h1 style="font-size:56px;line-height:1.07">Enter your site and we will test it.</h1>
+    <p class="intro" style="margin-top:22px;max-width:46ch;font-size:16px">You landed. The free scan tests your home page and five more, and shows how to fix each problem, in the order to do them.</p>
+    <p class="intro" style="margin-top:12px;max-width:46ch;font-size:16px">The full report tests your whole site, up to 50 pages, with a PDF to share, for a one-time $99.</p>
+    <form style="margin-top:38px">
+     <label style="font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:var(--n100)">Website address</label>
+     <div class="row"><input class="input" style="background:oklch(0.34 0.016 266);border-color:var(--n300);color:#fff" placeholder="yourbusiness.com"><button class="btn btn-cta" type="button">Scan a site</button></div>
+    </form>
+    <div style="margin-top:28px;padding-top:22px;border-top:1px solid rgba(255,255,255,.08)">
+     <p class="muted" style="font-size:14px;line-height:1.7">Have a question first?</p>
+     <a class="btn btn-primary" href="#" style="margin-top:10px;text-decoration:none;font-size:14px;padding:10px 16px">Ask our AI agent about your site <span aria-hidden="true">&rarr;</span></a>
+    </div>
+   </div>
+  </main>
+ </div>
+</div>
+
+<!-- Screen 5: the AI agent page, before and after the domain is entered -->
+<div class="screen" id="agent-page">
+ <div class="pad">
+  <header><span class="logo"><svg viewBox="8.3 6 13 25.9" width="12" height="24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M9 6V31.9"/><path d="M9 12H21"/><path d="M9 20H18" stroke="#968ae0"/><path d="M9 28H14"/></svg><span>Legible</span></span><a href="#">Your reports</a></header>
+  <main style="max-width:52rem">
+   <span class="kicker">AI agent</span>
+   <h1>Ask our agent about your site</h1>
+   <p class="intro" style="margin-top:16px">Type your website address and start asking. While you talk, our agent tests your home page and five more by keyboard, so its answers come from real tests. You can ask 5 questions free.</p>
+   <form style="margin-top:28px;max-width:34rem">
+    <label for="d1">Website address</label>
+    <div class="row"><input id="d1" class="input" placeholder="yourbusiness.com"><button class="btn btn-cta" type="button">Start the chat</button></div>
+   </form>
+  </main>
+ </div>
+</div>
+
+<div class="screen" id="agent-chat">
+ <div class="pad">
+  <header><span class="logo"><svg viewBox="8.3 6 13 25.9" width="12" height="24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M9 6V31.9"/><path d="M9 12H21"/><path d="M9 20H18" stroke="#968ae0"/><path d="M9 28H14"/></svg><span>Legible</span></span><a href="#">Your reports</a></header>
+  <main style="max-width:52rem">
+   <span class="kicker">AI agent</span>
+   <h1>yourbusiness.com</h1>
+   <p class="progress-line" style="margin-top:20px">Testing page 2 of 6: Menu. <a href="#" style="color:var(--a300)">Watch the test</a></p>
+   <div class="bar"><i></i></div>
+   <div class="chat" style="margin-top:28px">
+    <ol class="thread">
+     <li class="msg you"><span class="who">You</span><p>Can people use my booking form without a mouse?</p></li>
+     <li class="msg"><span class="who ai">Legible</span><p>I have not reached the Book a table page yet. It is page 5 of 6, so I will know in a few minutes. So far, on the home page, every link can be reached with the Tab key, but the focus outline on “Book a table” is faint, which makes it hard to see where you are.</p></li>
+    </ol>
+    <div class="chips" aria-label="Suggested questions">
+     <button class="btn" type="button">What have you found so far?</button>
+     <button class="btn" type="button">What should I fix first?</button>
+    </div>
+    <form>
+     <label for="q5">Your question</label>
+     <div class="row"><input id="q5" class="input" placeholder=""><button class="btn btn-cta" type="button">Ask</button></div>
+     <div class="meta"><span class="count">4 of 5 questions left</span><span>Questions and answers are saved with this scan. Anyone with this page's link can read them.</span></div>
+    </form>
+   </div>
+  </main>
+ </div>
+</div>
+
 </body>
 </html>
