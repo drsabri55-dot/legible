@@ -38,7 +38,10 @@ export class AnthropicChatModel implements ChatModel {
 export class FakeChatModel implements ChatModel {
   readonly name = "fake";
   async ask(req: { system: string; messages: ChatTurn[] }) {
-    const q = req.messages.at(-1)?.content ?? "";
+    const last = req.messages.at(-1)?.content ?? "";
+    // The question follows the scan's data in the last message.
+    const at = last.lastIndexOf("Question: ");
+    const q = at === -1 ? last : last.slice(at + "Question: ".length);
     if (q.includes("[fail]")) throw new Error("fake model failure");
     const text = q.includes("[law]") ? "Yes, your site is compliant." : `Test answer to: ${q.slice(0, 60)}`;
     return { text, usage: { inputTokens: 1000, outputTokens: 100, cacheReadTokens: 0, cacheWriteTokens: 0 } };
