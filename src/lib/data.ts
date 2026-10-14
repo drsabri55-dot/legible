@@ -531,3 +531,74 @@ export async function recentFailures(): Promise<{ id: string; host: string; erro
 function isUuid(value: string): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
 }
+
+// ── live view and chat ───────────────────────────────────────────────
+
+export type LiveEventRow = { step: number; page: string; title: string | null; kind: "page" | "step" | "done"; note: string; at: Date };
+export const LIVE_EVENTS_KEPT = 200;
+
+export async function addLiveEvent(scanId: string, e: Omit<LiveEventRow, "at">): Promise<void> {
+  const sql = db();
+  await sql`insert into scan_events (scan_id, step, page, title, kind, note)
+            values (${scanId}, ${e.step}, ${e.page}, ${e.title}, ${e.kind}, ${e.note})`;
+  await sql`delete from scan_events where scan_id = ${scanId} and id <= (
+              select id from scan_events where scan_id = ${scanId}
+              order by id desc offset ${LIVE_EVENTS_KEPT} limit 1)`;
+}
+
+export async function listLiveEvents(scanId: string, limit = LIVE_EVENTS_KEPT): Promise<LiveEventRow[]> {
+  const rows = await db()<LiveEventRow[]>`
+    select step, page, title, kind, note, at from (
+      select id, step, page, title, kind, note, at from scan_events
+      where scan_id = ${scanId} order by id desc limit ${limit}) recent
+    order by id`;
+  return rows;
+}
+
+export async function saveLiveFrame(scanId: string, jpeg: Buffer, note: string): Promise<void> {
+  await db()`insert into scan_live (scan_id, frame, note) values (${scanId}, ${jpeg}, ${note})
+             on conflict (scan_id) do update set frame = excluded.frame, note = excluded.note, updated_at = now()`;
+}
+
+export async function getLiveFrame(scanId: string): Promise<{ jpeg: Buffer; updatedAt: Date } | null> {
+  if (!isUuid(scanId)) return null;
+  const [row] = await db()<{ frame: Buffer; updated_at: Date }[]>`select frame, updated_at from scan_live where scan_id = ${scanId}`;
+  return row ? { jpeg: row.frame, updatedAt: row.updated_at } : null;
+}
+
+export async function deleteLiveFrame(scanId: string): Promise<void> {
+  await db()`delete from scan_live where scan_id = ${scanId}`;
+}
+
+export type ChatRow = { id: number; role: "user" | "assistant"; body: string; createdAt: Date };
+
+// One transaction with the scan row locked, so two questions sent at once
+// cannot both take the last slot.
+export async function reserveQuestion(scanId: string, body: string, limit: number): Promise<number | null> {
+  return db().begin(async (sql) => {
+    await sql`select id from scans where id = ${scanId} for update`;
+    const [{ n }] = await sql<{ n: number }[]>`select count(*)::int as n from chat_messages where scan_id = ${scanId} and role = 'user'`;
+    if (n >= limit) return null;
+    const [row] = await sql<{ id: string }[]>`insert into chat_messages (scan_id, role, body) values (${scanId}, 'user', ${body}) returning id`;
+    return Number(row.id);
+  }) as Promise<number | null>;
+}
+
+export async function releaseQuestion(messageId: number): Promise<void> {
+  await db()`delete from chat_messages where id = ${messageId} and role = 'user'`;
+}
+
+export async function saveAnswer(scanId: string, body: string): Promise<void> {
+  await db()`insert into chat_messages (scan_id, role, body) values (${scanId}, 'assistant', ${body})`;
+}
+
+export async function listChat(scanId: string): Promise<ChatRow[]> {
+  const rows = await db()<{ id: string; role: "user" | "assistant"; body: string; created_at: Date }[]>`
+    select id, role, body, created_at from chat_messages where scan_id = ${scanId} order by id`;
+  return rows.map((r) => ({ id: Number(r.id), role: r.role, body: r.body, createdAt: r.created_at }));
+}
+
+export async function countQuestions(scanId: string): Promise<number> {
+  const [{ n }] = await db()<{ n: number }[]>`select count(*)::int as n from chat_messages where scan_id = ${scanId} and role = 'user'`;
+  return n;
+}
