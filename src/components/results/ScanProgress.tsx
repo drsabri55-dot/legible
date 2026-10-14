@@ -2,16 +2,15 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { LiveView } from "@/components/live/LiveView";
+import { progressLabel } from "@/components/live/wording";
+import type { LiveState } from "@/lib/live";
 import { scanTimeText, slowAfterMs } from "./AgentNote";
 
-interface Status {
-  status: "queued" | "running" | "complete" | "failed";
-  pagesDone: number;
-  pagesTotal: number | null;
-  error: string | null;
-}
+type Status = Omit<LiveState, "live"> & { live?: LiveState["live"] };
 
 // Polls the scan until it finishes, then asks the server to render the result.
+// With the testing agent it polls the live view too and shows it.
 export function ScanProgress({
   scanId,
   host,
@@ -34,7 +33,7 @@ export function ScanProgress({
     let timer: ReturnType<typeof setTimeout>;
     const poll = async () => {
       try {
-        const res = await fetch(`/api/scans/${scanId}`, { cache: "no-store" });
+        const res = await fetch(agent ? `/api/scans/${scanId}/live` : `/api/scans/${scanId}`, { cache: "no-store" });
         if (res.ok) {
           const next = (await res.json()) as Status;
           if (stop) return;
@@ -60,8 +59,9 @@ export function ScanProgress({
   const total = s.pagesTotal ?? 6;
   const done = s.status === "queued" ? 0 : Math.min(s.pagesDone, total);
   const pct = s.status === "queued" ? 0.04 : Math.max(0.08, done / total);
-  const label =
-    s.status === "queued"
+  const label = agent
+    ? progressLabel({ ...s, title: s.live?.latest?.title ?? null })
+    : s.status === "queued"
       ? "Waiting for a free scanner…"
       : s.pagesTotal
         ? `Reading page ${Math.min(done + 1, total)} of ${total}`
@@ -94,6 +94,7 @@ export function ScanProgress({
           This is taking longer than usual. You can leave this page open; the result will appear when it is ready.
         </p>
       )}
+      {agent && s.live && <LiveView live={s.live} />}
     </div>
   );
 }
