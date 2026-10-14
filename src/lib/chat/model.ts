@@ -19,7 +19,9 @@ export class AnthropicChatModel implements ChatModel {
   async ask(req: { system: string; messages: ChatTurn[] }) {
     const res = await this.client.messages.create(
       { model: this.name, max_tokens: ANSWER_MAX_TOKENS, system: req.system, messages: req.messages },
-      { timeout: 25_000, maxRetries: 1 },
+      // Both tries end well inside the route's 30 seconds, so a failed answer
+      // always gets its question back.
+      { timeout: 12_000, maxRetries: 1 },
     );
     const text = res.content.flatMap((b) => (b.type === "text" ? [b.text] : [])).join("\n").trim();
     return {
