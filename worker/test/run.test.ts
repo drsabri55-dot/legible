@@ -24,6 +24,21 @@ async function open(name: string): Promise<Page> {
 }
 
 describe("runAgentOnPage", () => {
+  it("reports a live event for each measurement and step", async () => {
+    const page = await open("focus");
+    const events: { kind: string; note: string; frame?: Buffer }[] = [];
+    await runAgentOnPage(page, {
+      model: new ReplayModel([{ calls: [{ name: "press", input: { key: "Tab" } }] }, { calls: [{ name: "done", input: { summary: "ok" } }] }]),
+      onLive: (e) => void events.push(e),
+    });
+    expect(events.map((e) => e.note)).toEqual(
+      expect.arrayContaining(["Pressed Tab through the whole page.", "Checked the page 320 pixels wide.", "Checked the text with wider spacing."]),
+    );
+    const press = events.find((e) => e.note.startsWith("Pressed Tab. "));
+    expect(press?.frame).toBeInstanceOf(Buffer);
+    await page.close();
+  });
+
   it("turns measurements into failures, hand checks and passes", async () => {
     const page = await open("focus");
     const shots: string[] = [];

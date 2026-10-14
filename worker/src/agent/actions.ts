@@ -66,7 +66,7 @@ export async function perform(
   name: string,
   input: unknown,
   state: ActionState,
-): Promise<{ ok: boolean; text: string; image?: Buffer }> {
+): Promise<{ ok: boolean; text: string; image?: Buffer; focus?: FocusInfo }> {
   const args = (input && typeof input === "object" ? input : {}) as Record<string, unknown>;
   let note = "";
   switch (name) {
@@ -131,7 +131,7 @@ export async function perform(
   }
   const f = (await page.evaluate(focusInfoScript()).catch(() => null)) as FocusInfo;
   const view = `${state.zoomed ? " Window: 320 pixels wide (400% zoom)." : ""}${state.spaced ? " Text spacing: on." : ""}`;
-  return { ok: true, text: `${describeFocus(f)}${view}${note}`, image: await screenshot(page) };
+  return { ok: true, text: `${describeFocus(f)}${view}${note}`, image: await screenshot(page), focus: f };
 }
 
 export function pageOutlineScript(): string {

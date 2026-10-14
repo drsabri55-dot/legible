@@ -17,6 +17,40 @@ const raw = (): RawScan => ({
 });
 
 describe("runScanJob", () => {
+  it("sends live events as they happen and still completes when they fail", async () => {
+    const sent: Record<string, unknown>[] = [];
+    await runScanJob("https://a.example/", {
+      model: new ReplayModel([]),
+      send: async (m) => {
+        const msg = m as Record<string, unknown>;
+        if (msg.type === "live") throw new Error("site is down");
+        sent.push(msg);
+      },
+      scan: async (_url: string, opts: ScanOptions) => {
+        opts.onLive?.({ step: 1, page: "https://a.example/", title: "Home", kind: "page", note: "Opened the page." });
+        return raw();
+      },
+    });
+    expect(sent.at(-1)?.type).toBe("complete");
+  });
+
+  it("sends live events only through the single-try sender", async () => {
+    const sent: Record<string, unknown>[] = [];
+    const live: Record<string, unknown>[] = [];
+    await runScanJob("https://a.example/", {
+      model: new ReplayModel([]),
+      send: async (m) => void sent.push(m as never),
+      sendLive: async (m) => void live.push(m as never),
+      scan: async (_url: string, opts: ScanOptions) => {
+        opts.onLive?.({ step: 1, page: "https://a.example/", title: "Home", kind: "page", note: "Opened the page." });
+        return raw();
+      },
+    });
+    await new Promise((r) => setTimeout(r, 10));
+    expect(live.map((m) => m.type)).toEqual(["live"]);
+    expect(sent.some((m) => m.type === "live")).toBe(false);
+  });
+
   it("reports every model call the scan made, including ones whose page was dropped", async () => {
     const sent: { type: string; raw?: RawScan }[] = [];
     await runScanJob("https://a.example/", {

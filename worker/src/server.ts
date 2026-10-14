@@ -78,6 +78,21 @@ async function callback(url: string, body: unknown): Promise<unknown> {
   return null;
 }
 
+// Live messages: one try with a short timeout. A lost one costs one step of
+// the live view; a retry would only show it late.
+async function sendOnce(url: string, body: unknown): Promise<void> {
+  try {
+    await fetch(url, {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${SECRET}` },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(5000),
+    });
+  } catch {
+    // dropped
+  }
+}
+
 app.get("/health", (_req, res) => {
   res.json({ ok: true, ...queue.stats, full: fullQueue.stats });
 });
@@ -110,7 +125,11 @@ app.post("/jobs/scan", authorised, (req, res) => {
   // spending cap allows.
   const model = req.body?.agent === true ? agentModelFromEnv() : null;
   const accepted = queue.push(() =>
-    runScanJob(target.toString(), { model, send: (message) => callback(cb.toString(), message) }),
+    runScanJob(target.toString(), {
+      model,
+      send: (message) => callback(cb.toString(), message),
+      sendLive: (message) => sendOnce(cb.toString(), message),
+    }),
   );
   if (!accepted) {
     res.status(503).json({ error: "queue full" });

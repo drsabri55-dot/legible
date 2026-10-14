@@ -1,5 +1,6 @@
 // One scan job: runs the scan and sends its messages to the site. The site
 // charges the agent's spend from these messages against its daily cap.
+import { liveSender, type LiveEvent } from "./agent/live";
 import { emptyUsage, meter, type AgentModel } from "./agent/model";
 import { crawlSite, type CrawlOptions, type CrawlReason } from "./crawl";
 import { ScanError, scanSite, type ScanOptions } from "./scan";
@@ -10,6 +11,8 @@ export interface JobOptions {
   model: AgentModel | null;
   // Sends one message to the site; resolves with the site's answer, if any.
   send: (message: unknown) => Promise<unknown>;
+  // One try, short timeout: live messages are never retried.
+  sendLive?: (message: unknown) => Promise<unknown>;
   scan?: (url: string, opts: ScanOptions) => Promise<RawScan>;
 }
 
@@ -19,11 +22,19 @@ export async function runScanJob(url: string, opts: JobOptions): Promise<void> {
   const scan = opts.scan ?? scanSite;
   const started = Date.now();
   const host = new URL(url).host;
+  // Not awaited before the result: a slow site must not delay it.
+  const live = agent ? liveSender(opts.sendLive ?? opts.send) : null;
   try {
     const shots: { id: string; data: string }[] = [];
     const raw = await scan(url, {
       onProgress: async (done, total) => void (await opts.send({ type: "progress", pagesDone: done, pagesTotal: total })),
-      ...(agent ? { agent, onShot: (id: string, jpeg: Buffer) => void shots.push({ id, data: jpeg.toString("base64") }) } : {}),
+      ...(agent
+        ? {
+            agent,
+            onShot: (id: string, jpeg: Buffer) => void shots.push({ id, data: jpeg.toString("base64") }),
+            onLive: (e: LiveEvent) => live!.push(e),
+          }
+        : {}),
     });
     // Screenshots go first, in batches small enough for one request each.
     await sendShots(shots, opts.send);

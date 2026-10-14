@@ -8,6 +8,7 @@ import type { Page } from "playwright";
 import type { AgentPageResult, AgentReview, AgentReviewKind, RawNode, RawRule } from "../types";
 import { AGENT_TOOLS, CLAIM_KINDS, REVIEW_KINDS, pageOutlineScript, perform, samePage, type ActionState } from "./actions";
 import { guardPage } from "./guard";
+import { MEASURE_NOTES, stepNote, type LiveEvent } from "./live";
 import { keyboardWalk, measureFocusAt, measureKeyboardReach, measureReflow, measureTextSpacing, trapFrom, type Measured, type MeasuredKind } from "./measure";
 import { addUsage, emptyUsage, type AgentModel } from "./model";
 import { SYSTEM_PROMPT, firstMessage } from "./prompts";
@@ -41,6 +42,8 @@ export interface AgentOptions {
   loopMs?: number;
   budgetMs?: number;
   onShot?: (id: string, jpeg: Buffer) => void | Promise<void>;
+  // What the agent is doing, for the live view. Never awaited.
+  onLive?: (e: Pick<LiveEvent, "kind" | "note" | "frame">) => void;
 }
 
 export interface AgentOutcome {
@@ -127,11 +130,19 @@ export async function runAgentOnPage(page: Page, opts: AgentOptions): Promise<Ag
   let status: AgentPageResult["status"] = "tested";
   let reason: string | undefined;
   const state: ActionState = { url, zoomed: false, spaced: false };
+  const live = (note: string, frame?: Buffer) => {
+    try {
+      opts.onLive?.({ kind: "step", note, frame });
+    } catch {
+      // The live view never stops the test.
+    }
+  };
   const release = await guardPage(page);
   try {
     // 1. Measure what can be proven on the page as it loaded.
     const walk = await keyboardWalk(page, { deadline: Math.min(budgetEnd, started + WALK_MS) });
     found.push(...walk.findings);
+    live(MEASURE_NOTES.walk);
     if (walk.complete && walk.reached.length) {
       tested.add("keyboard-trap");
       tested.add("focus-visible");
@@ -140,8 +151,12 @@ export async function runAgentOnPage(page: Page, opts: AgentOptions): Promise<Ag
     if (Date.now() < budgetEnd) {
       found.push(...(await measureReflow(page)));
       tested.add("reflow");
+      live(MEASURE_NOTES.reflow);
     }
-    if (Date.now() < budgetEnd) found.push(...(await measureTextSpacing(page)));
+    if (Date.now() < budgetEnd) {
+      found.push(...(await measureTextSpacing(page)));
+      live(MEASURE_NOTES.spacing);
+    }
     await page.evaluate("document.activeElement && document.activeElement.blur(); window.scrollTo(0, 0)");
 
     // 2. Let the model use the page.
@@ -197,6 +212,7 @@ export async function runAgentOnPage(page: Page, opts: AgentOptions): Promise<Ag
           } else {
             results.push({ type: "tool_result", tool_use_id: call.id, content: "Measured: the problem could not be proven there, so it is not reported." });
           }
+          live(stepNote(call.name, input, null));
           continue;
         }
         if (call.name === "judge") {
@@ -206,10 +222,12 @@ export async function runAgentOnPage(page: Page, opts: AgentOptions): Promise<Ag
           } else {
             judged.push({ kind, selector: input.selector, reason: input.reason });
             results.push({ type: "tool_result", tool_use_id: call.id, content: "Noted. A second check will decide whether it is reported." });
+            live(stepNote(call.name, input, null));
           }
           continue;
         }
         const r = await perform(page, call.name, input, state);
+        if (r.ok) live(stepNote(call.name, input, r.focus ?? null), r.image);
         const content: Anthropic.ToolResultBlockParam["content"] = [{ type: "text", text: r.text }];
         if (r.image) content.push({ type: "image", source: { type: "base64", media_type: "image/jpeg", data: r.image.toString("base64") } });
         results.push({ type: "tool_result", tool_use_id: call.id, content, ...(r.ok ? {} : { is_error: true }) });

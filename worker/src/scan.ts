@@ -5,6 +5,7 @@ import { allowPrivateTargets, classifyHost, makeHostGuard } from "./net";
 import { BOT_NAME, loadRobots } from "./robots";
 import type { RawNode, RawPage, RawRule, RawScan } from "./types";
 import { addUsage, emptyUsage, type AgentModel } from "./agent/model";
+import type { LiveEvent } from "./agent/live";
 import { AGENT_BUDGET_MS, runAgentOnPage } from "./agent/run";
 import { BUILDER_PROBE } from "./builder";
 import { AI_FIXES_PER_SCAN, writeFix } from "./fixes/ai";
@@ -292,6 +293,7 @@ export async function scanPage(
   keep: (finalUrl: string, signature: string | null) => boolean = () => true,
   // The whole-site crawl needs every page's links, not only the home page's.
   withLinks = first,
+  liveFor?: LiveFor,
 ) {
   const page = await context.newPage();
   try {
@@ -340,10 +342,12 @@ export async function scanPage(
         // Taken before the agent, which may leave the page in another state.
         const signature = (await page.evaluate(PAGE_SIGNATURE).catch(() => null)) as string | null;
         const kept = keep(finalUrl, signature);
+        const live = kept && opts.agent ? liveFor?.(finalUrl, heading || null) : undefined;
+        live?.({ kind: "page", note: "Opened the page." });
         if (opts.agent && kept) {
           // The agent must never cost the page its axe-core results.
           try {
-            const outcome = await runAgentOnPage(page, { model: opts.agent, onShot: opts.onShot });
+            const outcome = await runAgentOnPage(page, { model: opts.agent, onShot: opts.onShot, onLive: live });
             raw.violations.push(...outcome.violations);
             raw.incomplete.push(...outcome.incomplete);
             raw.passes.push(...outcome.passes);
@@ -367,6 +371,7 @@ export async function scanPage(
             }),
           ]).finally(() => clearTimeout(timer));
         }
+        live?.({ kind: "done", note: "Finished this page." });
         return { raw, links, finalUrl, signature, builtWith };
       })(),
       PAGE_TIMEOUT_MS + 5000 + RULE_FIX_MS + 15_000 + (opts.agent ? AGENT_BUDGET_MS + AI_FIX_MS + 45_000 : 0),
@@ -404,7 +409,13 @@ export interface ScanOptions {
   fixBudget?: { left: number };
   // Time for the fix step on each page (tests use shorter times).
   fixTimes?: { ruleMs: number; aiMs: number };
+  // What the agent is doing, for the live view (free scans with the agent).
+  onLive?: (e: LiveEvent) => void;
 }
+
+type PageLive = (e: Pick<LiveEvent, "kind" | "note" | "frame">) => void;
+// Gives each page a sender that numbers steps across the whole scan.
+type LiveFor = (url: string, title: string | null) => PageLive | undefined;
 
 // Checks the start address and robots.txt, then opens a browser context that
 // can only reach public hosts. Shared by the free scan and the whole-site crawl.
@@ -471,9 +482,21 @@ export async function scanSite(startUrl: string, opts: ScanOptions = {}): Promis
   const pages: RawPage[] = [];
   let finalUrl = start.toString();
   let builtWith: string | null = null;
+  // Steps are numbered across the whole scan. A live event that cannot be
+  // sent never stops it.
+  let step = 0;
+  const liveFor: LiveFor | undefined = opts.onLive
+    ? (url, title) => (e) => {
+        try {
+          opts.onLive!({ ...e, step: ++step, page: url.slice(0, 2000), title: title ? title.slice(0, 200) : null });
+        } catch {
+          // dropped
+        }
+      }
+    : undefined;
   try {
     // If the start page fails, the whole scan fails with its reason.
-    const home = await scanPage(context, start.toString(), true, opts);
+    const home = await scanPage(context, start.toString(), true, opts, undefined, undefined, liveFor);
     pages.push(home.raw);
     finalUrl = home.finalUrl;
     builtWith = home.builtWith;
@@ -503,14 +526,22 @@ export async function scanSite(startUrl: string, opts: ScanOptions = {}): Promis
       attempts++;
       await new Promise((r) => setTimeout(r, Math.max(opts.pauseMs ?? PAUSE_BETWEEN_PAGES_MS, robots.crawlDelayMs)));
       try {
-        const result = await scanPage(context, link, false, opts, (landedUrl, signature) => {
-          const landed = new URL(landedUrl);
-          return (
-            sameSite(landed.hostname, homeUrl.hostname) &&
-            !scannedKeys.has(pageKey(landed)) &&
-            !(signature && signatures.has(signature))
-          );
-        });
+        const result = await scanPage(
+          context,
+          link,
+          false,
+          opts,
+          (landedUrl, signature) => {
+            const landed = new URL(landedUrl);
+            return (
+              sameSite(landed.hostname, homeUrl.hostname) &&
+              !scannedKeys.has(pageKey(landed)) &&
+              !(signature && signatures.has(signature))
+            );
+          },
+          undefined,
+          liveFor,
+        );
         const landed = new URL(result.finalUrl);
         if (!sameSite(landed.hostname, homeUrl.hostname)) continue; // redirected to another website
         const key = pageKey(landed);

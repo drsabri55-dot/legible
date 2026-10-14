@@ -69,3 +69,22 @@ it("runs the agent only on pages the scan keeps, never on duplicates or redirect
   // (Fix-writing calls are counted apart: they are not the agent testing a page.)
   expect(model.requests.filter((r) => r.system !== FIX_PROMPT).length).toBe(scanned.length);
 }, 120_000);
+
+it("sends live events for each page, numbered across the scan", async () => {
+  const events: { step: number; page: string; title: string | null; kind: string; note: string }[] = [];
+  const done = { calls: [{ name: "done", input: { summary: "ok" } }] };
+  await scanSite(`http://127.0.0.1:${PORT}/agent/focus.html`, {
+    pauseMs: 10,
+    agent: new ReplayModel([done, done, done, done, done, done]),
+    onLive: (e) => void events.push(e),
+  });
+  expect(events[0]).toMatchObject({ step: 1, kind: "page", note: "Opened the page.", page: `http://127.0.0.1:${PORT}/agent/focus.html` });
+  expect(events.map((e) => e.step)).toEqual(events.map((_, i) => i + 1));
+  expect(events.at(-1)).toMatchObject({ kind: "done", note: "Finished this page." });
+});
+
+it("sends no live events without an agent", async () => {
+  const events: unknown[] = [];
+  await scanSite(`http://127.0.0.1:${PORT}/agent/focus.html`, { pauseMs: 10, onLive: (e) => void events.push(e) });
+  expect(events).toEqual([]);
+});
