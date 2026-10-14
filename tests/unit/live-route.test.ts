@@ -58,3 +58,29 @@ describe("live messages", () => {
     expect(await data.listLiveEvents(s.id)).toHaveLength(1); // kept for the chat
   });
 });
+
+describe("the live poll and the frame", () => {
+  it("returns the live state and serves the frame while the scan runs", async () => {
+    const { GET } = await import("@/app/api/scans/[id]/live/route");
+    const frameRoute = await import("@/app/api/scans/[id]/live/frame/route");
+    const s = await data.createScan({ url: "https://poll.test/", host: "poll.test", ipHash: null, agent: "on" });
+    await data.markScanProgress(s.id, 0, 6);
+    await call(s.id, live({ frame: JPEG, kind: "page", note: "Opened the page." }));
+    const res = await GET(new Request("http://site.test/"), { params: Promise.resolve({ id: s.id }) } as never);
+    expect(res.headers.get("cache-control")).toBe("no-store");
+    const body = await res.json();
+    expect(body.live.latest).toMatchObject({ step: 1, note: "Opened the page.", title: "Home" });
+    expect(body.live.frame).toMatch(new RegExp(`^/api/scans/${s.id}/live/frame\\?v=\\d+$`));
+    const img = await frameRoute.GET(new Request("http://site.test/"), { params: Promise.resolve({ id: s.id }) } as never);
+    expect(img.headers.get("content-type")).toBe("image/jpeg");
+    expect(Buffer.from(await img.arrayBuffer()).subarray(0, 2)).toEqual(Buffer.from([0xff, 0xd8]));
+  });
+
+  it("answers 404 for an unknown scan and for a missing frame", async () => {
+    const { GET } = await import("@/app/api/scans/[id]/live/route");
+    const frameRoute = await import("@/app/api/scans/[id]/live/frame/route");
+    const id = "00000000-0000-4000-8000-000000000000";
+    expect((await GET(new Request("http://site.test/"), { params: Promise.resolve({ id }) } as never)).status).toBe(404);
+    expect((await frameRoute.GET(new Request("http://site.test/"), { params: Promise.resolve({ id: "not-a-uuid" }) } as never)).status).toBe(404);
+  });
+});
