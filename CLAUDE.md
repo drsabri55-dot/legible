@@ -43,6 +43,13 @@ Three processes: the Next.js site (Vercel), the scan worker (`worker/`, Railway 
   answer `stop` at `AGENT_REPORT_CAP_USD`. `done` finishes it (`reports.full_status`) and sends `full-report-ready` with the PDF
   once. Quiet runs (20 min) resume from stored pages via the report page and the daily cron, 3 attempts in all. The report
   page and PDF use `fullReport()` (free scan + `full_pages`, merged before the pure `buildReport`).
+- **Live view and chat:** with the agent, each step sends a `live` message (`worker/src/agent/live.ts`: fixed-wording notes,
+  a frame at most every 3 s, one try, dropped when the site is slow) → `scan_events` (last 200) + `scan_live` (latest frame,
+  deleted when the scan ends) → `GET /api/scans/[id]/live`, polled by `ScanProgress`. Chat: `POST /api/scans/[id]/chat` →
+  `askQuestion` (`src/lib/chat/`): a slot reserved in one transaction, `CHAT_SYSTEM` + `chatContext` (site text fenced in
+  `<site_data>`), `safeAnswer` swaps banned phrases for the legal wording, a failed answer gives its slot back. Free chat
+  (scan link, 5, `chat_free` counts toward the daily cap) and paid chat (report token required, 100, `chat_paid`) are two
+  conversations. `/agent` (button at the end of the landing page) → `/agent/[id]`: the chat first while the free scan runs.
 - **Reports are computed, never stored:** `buildReport(raw)` in `src/lib/report/model.ts` is pure; the report page and PDF rebuild from
   `scans.raw`. PDFs are rendered on demand by the worker's `/pdf`, which prints `/report/[token]?print=1` (only on `APP_URL`).
 - **Payment:** `/api/checkout` → Stripe Checkout (or `/checkout/dev` when `ALLOW_FAKE_PAYMENTS=true` and no key). The webhook and
@@ -63,7 +70,7 @@ Three processes: the Next.js site (Vercel), the scan worker (`worker/`, Railway 
 ## Gotchas
 - Worker `page.evaluate` must receive a string, not a function: tsx injects a `__name` helper the page doesn't have.
 - `AxeBuilder.options()` replaces `withTags()`: pass `runOnly` inside `options`.
-- `ALLOW_PRIVATE_TARGETS` (tests only) and `ALLOW_FAKE_PAYMENTS` are refused on Vercel. The worker prefers `WORKER_PORT` over `PORT`.
+- `ALLOW_PRIVATE_TARGETS` (tests only), `CHAT_FAKE_MODEL` (tests only, needs `ALLOW_PRIVATE_TARGETS`) and `ALLOW_FAKE_PAYMENTS` are refused on Vercel. The worker prefers `WORKER_PORT` over `PORT`.
 - E2E runs its own stack: Postgres 54331 (fresh each run), fixture site 5055, worker 4100, production build in `.next-e2e` on 3100.
 
 ## Legal phrasing (non-negotiable)

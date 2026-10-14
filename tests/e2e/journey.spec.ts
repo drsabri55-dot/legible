@@ -69,6 +69,8 @@ test("buying the report creates it, tests the whole site and emails it with the 
   await expect(page.getByText("Skipped: the site's robots.txt asks tools like ours not to visit it")).toBeVisible();
   await expect(page.locator(".rp-cover")).toContainText("This report identifies issues measured against WCAG 2.1 Level AA.");
   await expect(page.locator(".rp-limits")).toContainText("A result with no failures does not mean a site meets WCAG 2.1 AA or any law.");
+  // The paid chat, through the report's own link.
+  await expect(page.getByRole("region", { name: "Ask about your report" })).toContainText("100 of 100 questions left");
   await expectNoWcagViolations(page);
 
   // The purchase email says the rest of the site is being tested; the PDF

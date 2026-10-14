@@ -521,19 +521,20 @@ export default async function ReportPage(props: PageProps<"/report/[token]">) {
         <AgentReview r={r} />
         <Method r={r} />
         <Limitations r={r} />
-        {scan && chat && (
-          <div className="rp-section rp-noprint">
-            <Chat
-              scanId={scan.id}
-              place="report"
-              reportToken={token}
-              anchors={["plan", ...r.issues.map((i) => `issue-${i.ruleId}`)]}
-              offer={null}
-              initial={chat}
-            />
-          </div>
-        )}
       </main>
+      {scan && chat && (
+        // On the Nocturne ground under the paper, like the toolbar: screen only.
+        <div className="rp-noprint rp-chat">
+          <Chat
+            scanId={scan.id}
+            place="report"
+            reportToken={token}
+            anchors={["plan", ...r.issues.map((i) => `issue-${i.ruleId}`)]}
+            offer={null}
+            initial={chat}
+          />
+        </div>
+      )}
     </div>
   );
 }

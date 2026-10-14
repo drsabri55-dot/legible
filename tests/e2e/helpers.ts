@@ -2,6 +2,7 @@ import AxeBuilder from "@axe-core/playwright";
 import { expect, type Locator, type Page } from "@playwright/test";
 import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
+import postgres from "postgres";
 
 export const FIXTURE_URL = "http://127.0.0.1:5055/";
 const OUTBOX = path.join(process.cwd(), ".data", "outbox");
@@ -149,4 +150,34 @@ export async function textOverCanvasFailures(page: Page): Promise<string[]> {
     },
     { shot, items },
   );
+}
+
+const E2E_DB = "postgres://postgres:postgres@127.0.0.1:54331/legible";
+// A 1×1 grey JPEG.
+const TINY_JPEG = Buffer.from(
+  "/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/wAALCAABAAEBAREA/8QAFAABAAAAAAAAAAAAAAAAAAAACf/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAD8AKp//2Q==",
+  "base64",
+);
+
+// A scan that is running with the agent, with these live events and a
+// picture, written straight into the e2e database. It never finishes.
+export async function seedRunningScan(events: { title: string; kind: string; note: string }[]): Promise<string> {
+  const sql = postgres(E2E_DB, { max: 1 });
+  try {
+    const done = events.filter((e) => e.kind === "done").length;
+    const [scan] = await sql<{ id: string }[]>`
+      insert into scans (url, host, status, pages_done, pages_total, agent, started_at)
+      values ('https://seed.test/', 'seed.test', 'running', ${done}, 6, 'on', now()) returning id`;
+    let step = 0;
+    let page = "";
+    for (const e of events) {
+      if (e.kind === "page") page = `https://seed.test/${e.title.toLowerCase()}`;
+      await sql`insert into scan_events (scan_id, step, page, title, kind, note)
+                values (${scan.id}, ${++step}, ${page}, ${e.title}, ${e.kind}, ${e.note})`;
+    }
+    await sql`insert into scan_live (scan_id, frame, note) values (${scan.id}, ${TINY_JPEG}, 'seed')`;
+    return scan.id;
+  } finally {
+    await sql.end();
+  }
 }

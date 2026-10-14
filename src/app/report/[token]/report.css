@@ -743,6 +743,13 @@
   }
 }
 
+/* The chat sits under the paper on the dark ground, as wide as the paper. */
+.rp-chat {
+  max-width: 820px;
+  margin: 0 auto;
+  padding: 8px clamp(4px, 2vw, 16px) 0;
+}
+
 /* Screen-only parts of the report, such as the chat. */
 @media print {
   .rp-noprint {

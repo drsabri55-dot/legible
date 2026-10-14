@@ -25,6 +25,13 @@ const siteEnv = {
   ALLOW_FAKE_PAYMENTS: "true",
   ALLOW_PRIVATE_TARGETS: "1",
   NEXT_PUBLIC_ALLOW_PRIVATE_TARGETS: "1",
+  // The live view and chat are on, as on a site with the key and prices. The
+  // site never calls Anthropic here: the test chat model answers instead. The
+  // worker has no key, so scans still run without the agent.
+  ANTHROPIC_API_KEY: "e2e-not-a-real-key",
+  AGENT_PRICE_INPUT_PER_MTOK: "2",
+  AGENT_PRICE_OUTPUT_PER_MTOK: "10",
+  CHAT_FAKE_MODEL: "1",
 };
 
 export default defineConfig({
