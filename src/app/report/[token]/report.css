@@ -742,3 +742,10 @@
     break-inside: avoid;
   }
 }
+
+/* Screen-only parts of the report, such as the chat. */
+@media print {
+  .rp-noprint {
+    display: none;
+  }
+}

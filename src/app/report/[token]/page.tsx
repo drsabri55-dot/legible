@@ -7,7 +7,10 @@ import { AgentReview, ElementShot, agentMethod, agentPageNote, axeRuleCounts } f
 import { GUIDANCE_ONLY, builderNote, codeLabel, fixLabel } from "@/components/report/FixLabels";
 import { fullTestNote, scopeSentence, welcomeNote, wholeSiteTesting } from "@/components/report/FullNote";
 import { Logo } from "@/components/site/Logo";
-import { getReportByToken } from "@/lib/data";
+import { Chat } from "@/components/chat/Chat";
+import { chatState } from "@/lib/chat/ask";
+import { chatEnabled } from "@/lib/chat/limits";
+import { getReportByToken, getScan } from "@/lib/data";
 import { fullReport, resumeStaleFullTest } from "@/lib/full";
 import { privatePage } from "@/lib/page-meta";
 import { type Issue, type Report } from "@/lib/report/model";
@@ -448,6 +451,9 @@ export default async function ReportPage(props: PageProps<"/report/[token]">) {
   const welcome = sp.welcome === "1";
   const safeHost = r.site.replace(/[^a-z0-9.-]/gi, "");
   const reportId = row.id.slice(0, 8).toUpperCase();
+  // The paid chat: 100 questions through this report's link. Not in the PDF.
+  const scan = !print && chatEnabled() ? await getScan(row.scan_id) : null;
+  const chat = scan ? await chatState(scan, token) : null;
 
   return (
     <div className={`rp-root${print ? " rp-printing" : ""}`}>
@@ -515,6 +521,18 @@ export default async function ReportPage(props: PageProps<"/report/[token]">) {
         <AgentReview r={r} />
         <Method r={r} />
         <Limitations r={r} />
+        {scan && chat && (
+          <div className="rp-section rp-noprint">
+            <Chat
+              scanId={scan.id}
+              place="report"
+              reportToken={token}
+              anchors={["plan", ...r.issues.map((i) => `issue-${i.ruleId}`)]}
+              offer={null}
+              initial={chat}
+            />
+          </div>
+        )}
       </main>
     </div>
   );

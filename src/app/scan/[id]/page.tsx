@@ -3,6 +3,7 @@ import Link from "next/link";
 import { cache } from "react";
 import { notFound } from "next/navigation";
 import { ScanForm } from "@/components/ScanForm";
+import { Chat } from "@/components/chat/Chat";
 import { AgentCapNote } from "@/components/results/AgentNote";
 import { CheckoutButton } from "@/components/results/CheckoutButton";
 import { FixPlan } from "@/components/results/FixPlan";
@@ -13,6 +14,8 @@ import { ScanProgress } from "@/components/results/ScanProgress";
 import { ScoreRing } from "@/components/results/ScoreRing";
 import { SeverityBars } from "@/components/results/SeverityBars";
 import { Kicker, SiteShell } from "@/components/site/SiteShell";
+import { chatState } from "@/lib/chat/ask";
+import { chatEnabled } from "@/lib/chat/limits";
 import { getReportByScanId, getScan, getScanRaw } from "@/lib/data";
 import { privatePage } from "@/lib/page-meta";
 import { buildReport, reportForSale } from "@/lib/report/model";
@@ -54,6 +57,9 @@ export default async function ScanPage(props: PageProps<"/scan/[id]">) {
             initial={{ status: scan.status, pagesDone: scan.pages_done, pagesTotal: scan.pages_total, error: null }}
           />
         </div>
+        {scan.agent === "on" && chatEnabled() && (
+          <Chat scanId={scan.id} place="scan" anchors={[]} offer={null} initial={await chatState(scan)} />
+        )}
       </SiteShell>
     );
   }
@@ -86,6 +92,17 @@ export default async function ScanPage(props: PageProps<"/scan/[id]">) {
   const issues = full?.issues ?? s.samples;
   const report = await getReportByScanId(scan.id);
   const scannedPages = s.pages.filter((p) => p.status === "scanned");
+  // Questions about this result: 5 free. Answers may link to the plan and to
+  // each problem below.
+  const chat = chatEnabled() ? (
+    <Chat
+      scanId={scan.id}
+      place="result"
+      anchors={["plan", ...issues.map((i) => `issue-${i.ruleId}`)]}
+      offer={!report && reportForSale(s) ? { label: `Test the whole site · ${price}` } : null}
+      initial={await chatState(scan)}
+    />
+  ) : null;
   // Pages we tried but could not scan, grouped by reason.
   const notScanned = new Map<string, number>();
   for (const p of s.pages) {
@@ -140,52 +157,56 @@ export default async function ScanPage(props: PageProps<"/scan/[id]">) {
       </section>
 
       {clean ? (
-        <section aria-labelledby="clean" className="mt-14 max-w-[56ch]">
-          <h2 id="clean" className="m-0 text-[24px] tracking-[-0.02em]">
-            No failures found by the automated checks
-          </h2>
-          <p className="mt-4 text-[15px] leading-[1.8] text-nc-neutral-300">
-            That is a good sign. There is no report to buy, because it would only repeat this page.
-          </p>
-          <p className="mt-4 text-[15px] leading-[1.8] text-nc-neutral-300">
-            Automated testing cannot check everything, such as whether image descriptions are accurate or whether the
-            site works with a keyboard alone. A manual review is still worth doing.
-          </p>
-          {review.length > 0 && (
-            <>
-              <h3 className="mt-10 mb-0 text-[18px] font-normal tracking-[-0.01em]">Checks that need a person</h3>
-              <p className="mt-3 text-[14px] leading-[1.8] text-nc-neutral-400">
-                The scanner found these possible problems but could not confirm them on its own, for example text over a
-                background image. They are not counted as failures or in the score. Ask whoever reviews the site to look
-                at them.
-              </p>
-              <ul className="mt-4 mb-0 list-none space-y-[8px] p-0 text-[14.5px] leading-[1.6] text-nc-neutral-200">
-                {review.map((n) => (
-                  <li key={n.ruleId} className="flex gap-3">
-                    <span aria-hidden="true" className="mt-[11px] block h-px w-[18px] shrink-0 bg-nc-accent-500" />
-                    <span>
-                      {n.title}:{" "}
-                      <span className="text-nc-neutral-400">
-                        {n.instances} {n.instances === 1 ? "element" : "elements"} to check
+        <>
+          <section aria-labelledby="clean" className="mt-14 max-w-[56ch]">
+            <h2 id="clean" className="m-0 text-[24px] tracking-[-0.02em]">
+              No failures found by the automated checks
+            </h2>
+            <p className="mt-4 text-[15px] leading-[1.8] text-nc-neutral-300">
+              That is a good sign. There is no report to buy, because it would only repeat this page.
+            </p>
+            <p className="mt-4 text-[15px] leading-[1.8] text-nc-neutral-300">
+              Automated testing cannot check everything, such as whether image descriptions are accurate or whether the
+              site works with a keyboard alone. A manual review is still worth doing.
+            </p>
+            {review.length > 0 && (
+              <>
+                <h3 className="mt-10 mb-0 text-[18px] font-normal tracking-[-0.01em]">Checks that need a person</h3>
+                <p className="mt-3 text-[14px] leading-[1.8] text-nc-neutral-400">
+                  The scanner found these possible problems but could not confirm them on its own, for example text over
+                  a background image. They are not counted as failures or in the score. Ask whoever reviews the site to
+                  look at them.
+                </p>
+                <ul className="mt-4 mb-0 list-none space-y-[8px] p-0 text-[14.5px] leading-[1.6] text-nc-neutral-200">
+                  {review.map((n) => (
+                    <li key={n.ruleId} className="flex gap-3">
+                      <span aria-hidden="true" className="mt-[11px] block h-px w-[18px] shrink-0 bg-nc-accent-500" />
+                      <span>
+                        {n.title}:{" "}
+                        <span className="text-nc-neutral-400">
+                          {n.instances} {n.instances === 1 ? "element" : "elements"} to check
+                        </span>
                       </span>
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </>
-          )}
-        </section>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
+          </section>
+          {chat}
+        </>
       ) : (
         <>
           {full && <FixPlan plan={full.plan} builtWith={full.builtWith} />}
+          {chat}
           {full && full.agentReviews.length > 0 && (
             <section aria-labelledby="worth" className="mt-14">
               <h2 id="worth" className="m-0 text-[clamp(20px,2vw,24px)] leading-[1.25] tracking-[-0.015em]">
                 Worth checking
               </h2>
               <p className="mt-3 max-w-[56ch] text-[14px] leading-[1.8] text-nc-neutral-400">
-                The testing agent flagged these as likely problems and checked each one twice. They are its judgement, not
-                measured failures, so they are not in the score or the plan.
+                The testing agent flagged these as likely problems and checked each one twice. They are its judgement,
+                not measured failures, so they are not in the score or the plan.
               </p>
               <ul className="mt-4 mb-0 list-none space-y-[12px] p-0">
                 {full.agentReviews.map((v, i) => (
@@ -214,7 +235,8 @@ export default async function ScanPage(props: PageProps<"/scan/[id]">) {
               ))}
             </div>
           </section>
-        </>      )}
+        </>
+      )}
 
       {(report || reportForSale(s)) && (
         <section
