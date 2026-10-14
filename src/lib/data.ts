@@ -145,6 +145,8 @@ export async function failStaleScans(olderThanMinutes: number): Promise<number> 
     where status in ('queued', 'running')
       and created_at < now() - make_interval(mins => ${olderThanMinutes})
     returning id`;
+  // Their last picture goes with them (the worker never sent its last word).
+  await db()`delete from scan_live where scan_id in (select id from scans where status not in ('queued', 'running'))`;
   return rows.length;
 }
 
@@ -555,15 +557,29 @@ export async function listLiveEvents(scanId: string, limit = LIVE_EVENTS_KEPT): 
   return rows;
 }
 
+// A picture of the customer's site exists only while its scan runs: one that
+// arrives after the end is never stored, and the end deletes it.
 export async function saveLiveFrame(scanId: string, jpeg: Buffer, note: string): Promise<void> {
-  await db()`insert into scan_live (scan_id, frame, note) values (${scanId}, ${jpeg}, ${note})
+  await db()`insert into scan_live (scan_id, frame, note)
+             select ${scanId}, ${jpeg}, ${note}
+             where exists (select 1 from scans where id = ${scanId} and status in ('queued', 'running'))
              on conflict (scan_id) do update set frame = excluded.frame, note = excluded.note, updated_at = now()`;
 }
 
 export async function getLiveFrame(scanId: string): Promise<{ jpeg: Buffer; updatedAt: Date } | null> {
   if (!isUuid(scanId)) return null;
-  const [row] = await db()<{ frame: Buffer; updated_at: Date }[]>`select frame, updated_at from scan_live where scan_id = ${scanId}`;
+  const [row] = await db()<{ frame: Buffer; updated_at: Date }[]>`
+    select l.frame, l.updated_at from scan_live l join scans s on s.id = l.scan_id
+    where l.scan_id = ${scanId} and s.status in ('queued', 'running')`;
   return row ? { jpeg: row.frame, updatedAt: row.updated_at } : null;
+}
+
+// For the 2-second poll: when the picture last changed, and its own note.
+export async function getLiveFrameStamp(scanId: string): Promise<{ updatedAt: Date; note: string } | null> {
+  if (!isUuid(scanId)) return null;
+  const [row] = await db()<{ updated_at: Date; note: string }[]>`
+    select updated_at, note from scan_live where scan_id = ${scanId}`;
+  return row ? { updatedAt: row.updated_at, note: row.note } : null;
 }
 
 export async function deleteLiveFrame(scanId: string): Promise<void> {

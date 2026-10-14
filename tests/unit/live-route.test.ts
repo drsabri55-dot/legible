@@ -84,3 +84,38 @@ describe("the live poll and the frame", () => {
     expect((await frameRoute.GET(new Request("http://site.test/"), { params: Promise.resolve({ id: "not-a-uuid" }) } as never)).status).toBe(404);
   });
 });
+
+describe("frames live only while the scan runs (review fix)", () => {
+  it("a frame that arrives after the scan ended is not stored", async () => {
+    const s = await running("late-frame.test");
+    await data.failScan(s.id, "unreachable");
+    await data.saveLiveFrame(s.id, Buffer.from([0xff, 0xd8, 0xff, 1]), "late");
+    expect(await data.getLiveFrame(s.id)).toBeNull();
+  });
+
+  it("the frame route answers 404 once the scan has ended", async () => {
+    const frameRoute = await import("@/app/api/scans/[id]/live/frame/route");
+    const s = await running("ended-frame.test");
+    await data.saveLiveFrame(s.id, Buffer.from([0xff, 0xd8, 0xff, 1]), "kept");
+    await data.failScan(s.id, "timeout"); // as the cron does, without the worker
+    const res = await frameRoute.GET(new Request("http://site.test/"), { params: Promise.resolve({ id: s.id }) } as never);
+    expect(res.status).toBe(404);
+  });
+
+  it("stale scans lose their frame when the cron fails them", async () => {
+    const { db } = await import("@/lib/db");
+    const s = await running("stale-frame.test");
+    await data.saveLiveFrame(s.id, Buffer.from([0xff, 0xd8, 0xff, 1]), "stale");
+    await db()`update scans set created_at = now() - interval '3 hours' where id = ${s.id}`;
+    await data.failStaleScans(90);
+    expect(await data.getLiveFrame(s.id)).toBeNull();
+  });
+
+  it("the poll reads only the frame's time, not its bytes", async () => {
+    const s = await running("stamp.test");
+    expect(await data.getLiveFrameStamp(s.id)).toBeNull();
+    await data.saveLiveFrame(s.id, Buffer.from([0xff, 0xd8, 0xff, 1]), "x");
+    const stamp = await data.getLiveFrameStamp(s.id);
+    expect(stamp).toEqual({ updatedAt: expect.any(Date), note: "x" });
+  });
+});
