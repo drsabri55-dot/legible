@@ -48,6 +48,13 @@ export const env = {
   agentPriceOutputPerMtok: () => process.env.AGENT_PRICE_OUTPUT_PER_MTOK || "",
   agentDailyCapUsd: () => process.env.AGENT_DAILY_CAP_USD || "",
   agentReportCapUsd: () => process.env.AGENT_REPORT_CAP_USD || "",
+  // The model the agent and the chat use; the prices above are for it.
+  agentModel: () => process.env.AGENT_MODEL || "claude-sonnet-5-5",
+  // Chat questions per scan: free, and in all once the report is bought.
+  chatFreeLimit: () => process.env.CHAT_FREE_LIMIT || "",
+  chatPaidLimit: () => process.env.CHAT_PAID_LIMIT || "",
+  // Tests only: canned chat answers. Refused on Vercel, like private targets.
+  fakeChat: () => process.env.CHAT_FAKE_MODEL === "1" && process.env.ALLOW_PRIVATE_TARGETS === "1" && process.env.VERCEL !== "1",
   isVercelProduction: () => process.env.VERCEL_ENV === "production",
   // Development conveniences. Both refuse to switch on in a Vercel deployment.
   fakePayments: () =>
