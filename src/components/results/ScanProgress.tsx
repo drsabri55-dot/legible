@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { chatBusy } from "@/components/chat/state";
 import { LiveView } from "@/components/live/LiveView";
 import { progressLabel } from "@/components/live/wording";
 import type { LiveState } from "@/lib/live";
@@ -42,7 +43,14 @@ export function ScanProgress({
           if (stop) return;
           setS(next);
           if (next.status === "complete" || next.status === "failed") {
-            router.refresh();
+            // The result replaces this page: wait while a chat question is in
+            // flight or being typed, so it is not thrown away.
+            const show = () => {
+              if (stop) return;
+              if (chatBusy()) timer = setTimeout(show, 1000);
+              else router.refresh();
+            };
+            show();
             return;
           }
         }

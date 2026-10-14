@@ -1,8 +1,9 @@
 "use client";
 
-import { useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { CheckoutButton } from "@/components/results/CheckoutButton";
 import { answerParts } from "@/lib/chat/links";
+import { markChatBusy, waitingForAnswer } from "./state";
 import { CHAT, chatIntro, errorText, leftText, privacyText, suggestions, type ChatPlace } from "./wording";
 
 type Mode = "open" | "used" | "paused" | "off";
@@ -18,7 +19,10 @@ export interface ChatInitial {
 
 // Questions about one scan. Answers are plain text with links only to
 // anchors on this page; the newest answer is read out by a polite live
-// region, and focus stays in the question box.
+// region, and focus stays in the question box (or moves to the notice that
+// replaces it). While a question is in flight or typed, the scanning page
+// waits before showing the result, and a question whose answer was still
+// being written when the page changed is picked up again.
 export function Chat({
   scanId,
   place,
@@ -44,9 +48,57 @@ export function Chat({
   const [sending, setSending] = useState<string | null>(null);
   const [error, setError] = useState<{ code: string; question: string } | null>(null);
   const [announce, setAnnounce] = useState("");
+  const [waiting, setWaiting] = useState(() => waitingForAnswer(initial.messages));
+  const notice = useRef<HTMLDivElement>(null);
+  const focusNotice = useRef(false);
   const { heading, intro } = chatIntro(place, initial.limit);
   const known = new Set(anchors);
   const headingId = `${id}-ask`;
+  const query = reportToken ? `?report=${encodeURIComponent(reportToken)}` : "";
+
+  useEffect(() => {
+    markChatBusy(id, !!sending || waiting || value.trim() !== "");
+    return () => markChatBusy(id, false);
+  }, [id, sending, waiting, value]);
+
+  // The answer to a question asked before this page re-rendered.
+  useEffect(() => {
+    if (!waiting) return;
+    let tries = 0;
+    let stop = false;
+    let timer: ReturnType<typeof setTimeout>;
+    const check = async () => {
+      try {
+        const res = await fetch(`/api/scans/${scanId}/chat${query}`, { cache: "no-store" });
+        const data = (await res.json()) as ChatInitial;
+        if (!stop && res.ok && !waitingForAnswer(data.messages)) {
+          setMessages(data.messages);
+          setLeft(data.left);
+          setMode(data.mode);
+          setAnnounce(data.messages.at(-1)?.body ?? "");
+          setWaiting(false);
+          return;
+        }
+      } catch {
+        // Try again on the next tick.
+      }
+      if (!stop && ++tries < 20) timer = setTimeout(check, 2000);
+      else if (!stop) setWaiting(false);
+    };
+    timer = setTimeout(check, 1000);
+    return () => {
+      stop = true;
+      clearTimeout(timer);
+    };
+  }, [waiting, scanId, query]);
+
+  // When the box gives way to a notice, focus goes to the notice.
+  useEffect(() => {
+    if (focusNotice.current && mode !== "open") {
+      focusNotice.current = false;
+      notice.current?.focus();
+    }
+  }, [mode]);
 
   async function send(question: string) {
     const q = question.trim();
@@ -69,12 +121,14 @@ export function Chat({
           { id: now + 1, role: "assistant", body: data.answer! },
         ]);
         setLeft(data.left ?? Math.max(0, left - 1));
-        if ((data.left ?? 1) === 0) setMode("used");
+        if ((data.left ?? 1) === 0) {
+          focusNotice.current = true;
+          setMode("used");
+        }
         setAnnounce(data.answer);
-      } else if (data.code === "used") {
-        setMode("used");
-      } else if (data.code === "paused") {
-        setMode("paused");
+      } else if (data.code === "used" || data.code === "paused") {
+        focusNotice.current = true;
+        setMode(data.code);
       } else {
         setError({ code: data.code ?? "failed", question: q });
       }
@@ -82,7 +136,7 @@ export function Chat({
       setError({ code: "failed", question: q });
     } finally {
       setSending(null);
-      input.current?.focus();
+      if (!focusNotice.current) input.current?.focus();
     }
   }
 
@@ -120,6 +174,12 @@ export function Chat({
                 </p>
               </li>
             ))}
+            {waiting && !sending && (
+              <li className="border-t border-white/[0.07] py-4">
+                <span className="text-[12px] uppercase tracking-[0.14em] text-nc-accent-300">{CHAT.legible}</span>
+                <p className="mt-[6px] mb-0 text-[14.5px] text-nc-neutral-400">{CHAT.writing}</p>
+              </li>
+            )}
             {sending && (
               <>
                 <li className="border-t border-white/[0.07] py-4">
@@ -154,7 +214,7 @@ export function Chat({
         )}
 
         {mode === "used" && (
-          <div className="mt-6">
+          <div ref={notice} tabIndex={-1} className="mt-6 outline-none">
             <p className="m-0 max-w-[56ch] text-[15px] leading-[1.75] text-nc-neutral-200">
               {initial.paid ? CHAT.usedPaid : CHAT.usedFree}
             </p>
@@ -167,12 +227,14 @@ export function Chat({
         )}
 
         {mode === "paused" && (
-          <p className="mt-6 mb-0 max-w-[56ch] text-[15px] leading-[1.75] text-nc-neutral-200">{CHAT.paused}</p>
+          <div ref={notice} tabIndex={-1} className="mt-6 outline-none">
+            <p className="m-0 max-w-[56ch] text-[15px] leading-[1.75] text-nc-neutral-200">{CHAT.paused}</p>
+          </div>
         )}
 
         {mode === "open" && (
           <>
-            {messages.length === 0 && !sending && (
+            {messages.length === 0 && !sending && !waiting && (
               <ul aria-label={CHAT.suggested} className="mt-4 mb-0 flex list-none flex-wrap gap-2 p-0">
                 {suggestions(place).map((s) => (
                   <li key={s}>

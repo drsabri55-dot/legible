@@ -160,14 +160,16 @@ const TINY_JPEG = Buffer.from(
 );
 
 // A scan that is running with the agent, with these live events and a
-// picture, written straight into the e2e database. It never finishes.
+// picture, written straight into the e2e database. It never finishes, so it
+// is dated past the stale limit: otherwise it would count as a free scan in
+// flight and switch the agent off for the tests after it.
 export async function seedRunningScan(events: { title: string; kind: string; note: string }[]): Promise<string> {
   const sql = postgres(E2E_DB, { max: 1 });
   try {
     const done = events.filter((e) => e.kind === "done").length;
     const [scan] = await sql<{ id: string }[]>`
-      insert into scans (url, host, status, pages_done, pages_total, agent, started_at)
-      values ('https://seed.test/', 'seed.test', 'running', ${done}, 6, 'on', now()) returning id`;
+      insert into scans (url, host, status, pages_done, pages_total, agent, started_at, created_at)
+      values ('https://seed.test/', 'seed.test', 'running', ${done}, 6, 'on', now(), now() - interval '3 hours') returning id`;
     let step = 0;
     let page = "";
     for (const e of events) {
