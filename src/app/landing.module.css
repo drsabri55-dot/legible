@@ -793,3 +793,17 @@
     right: 0;
   }
 }
+
+/* The AI agent button under the scan form, at the end of the story. */
+.agent7 {
+  margin: 28px 0 0;
+  padding-top: 22px;
+  border-top: 1px solid rgb(255 255 255 / 0.08);
+  max-width: 30rem;
+}
+.agentLead {
+  margin: 0 0 10px;
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--color-neutral-400);
+}

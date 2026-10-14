@@ -8,8 +8,16 @@ type State = { kind: "idle" } | { kind: "error"; message: string } | { kind: "se
 
 // The one input on the site: a website address. Checks it in the browser for
 // quick feedback, then asks the server to start the scan and goes to the
-// result page.
-export function ScanForm({ variant = "landing" }: { variant?: "landing" | "compact" }) {
+// result page, or to the AI agent's chat.
+export function ScanForm({
+  variant = "landing",
+  goTo = "result",
+  submitLabel = "Scan a site",
+}: {
+  variant?: "landing" | "compact";
+  goTo?: "result" | "agent";
+  submitLabel?: string;
+}) {
   const router = useRouter();
   const id = useId();
   const [value, setValue] = useState("");
@@ -37,7 +45,7 @@ export function ScanForm({ variant = "landing" }: { variant?: "landing" | "compa
         setState({ kind: "error", message: data.error || "Something went wrong. Try again in a moment." });
         return;
       }
-      router.push(`/scan/${data.id}`);
+      router.push(goTo === "agent" ? `/agent/${data.id}` : `/scan/${data.id}`);
     } catch {
       setState({ kind: "error", message: "We could not reach Legible. Check your connection and try again." });
     }
@@ -76,7 +84,7 @@ export function ScanForm({ variant = "landing" }: { variant?: "landing" | "compa
           aria-describedby={state.kind === "error" ? errorId : sending ? statusId : undefined}
         />
         <button type="submit" className="btn btn-primary btn-cta" disabled={sending}>
-          Scan a site
+          {submitLabel}
         </button>
       </div>
       <div aria-live="polite" className="min-h-[1.7em] text-[13px] leading-[1.7]">

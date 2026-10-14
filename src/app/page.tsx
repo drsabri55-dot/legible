@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ScanForm } from "@/components/ScanForm";
+import { AGENT } from "@/components/agent/wording";
 import { ScanShortcut } from "@/components/landing/ScanShortcut";
 import { StoryEngineMount } from "@/components/landing/StoryEngineMount";
 import { Logo } from "@/components/site/Logo";
@@ -309,6 +310,12 @@ export default function Home() {
                   </p>
                   <div data-reveal="" data-reveal-delay="3" style={{ margin: "38px 0 0", maxWidth: "30rem" }}>
                     <ScanForm />
+                  </div>
+                  <div data-reveal="" data-reveal-delay="4" className={s.agent7}>
+                    <p className={s.agentLead}>{AGENT.landingLead}</p>
+                    <Link href="/agent" className="btn btn-primary btn-cta">
+                      {AGENT.landingButton} <span aria-hidden="true">→</span>
+                    </Link>
                   </div>
                 </div>
               </div>

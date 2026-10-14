@@ -16,9 +16,12 @@ export function ScanProgress({
   host,
   agent,
   initial,
+  compact = false,
 }: {
   scanId: string;
   host: string;
+  // On the AI agent page: the progress line and bar only.
+  compact?: boolean;
   // Whether the testing agent runs on this scan, which makes it take longer.
   agent: boolean;
   initial: Status;
@@ -85,16 +88,18 @@ export function ScanProgress({
           style={{ transform: `scaleX(${pct})` }}
         />
       </div>
-      <p className="mt-6 max-w-[46ch] text-[14px] leading-[1.8] text-nc-neutral-400">
-        Legible loads {host} in a real browser, checks every link, label, image and colour pair on each page,{" "}
-        {scanTimeText(agent)}
-      </p>
+      {!compact && (
+        <p className="mt-6 max-w-[46ch] text-[14px] leading-[1.8] text-nc-neutral-400">
+          Legible loads {host} in a real browser, checks every link, label, image and colour pair on each page,{" "}
+          {scanTimeText(agent)}
+        </p>
+      )}
       {slow && (
         <p className="mt-3 text-[14px] text-nc-neutral-300">
           This is taking longer than usual. You can leave this page open; the result will appear when it is ready.
         </p>
       )}
-      {agent && s.live && <LiveView live={s.live} />}
+      {agent && s.live && !compact && <LiveView live={s.live} />}
     </div>
   );
 }
