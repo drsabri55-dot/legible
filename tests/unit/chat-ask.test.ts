@@ -31,6 +31,25 @@ async function finished(host: string) {
 }
 const fake = () => new FakeChatModel();
 
+async function buy(scanId: string, host: string): Promise<string> {
+  const user = await data.upsertUser(`buyer@${host}`);
+  const token = `tok${host.replace(/\W/g, "")}0123456789abcdef`;
+  await data.createReportOnce({ scanId, userId: user.id, token, stripeSessionId: null, amountCents: 9900, currency: "usd" });
+  return token;
+}
+
+const spy = () => {
+  const seen: { role: string; content: string }[][] = [];
+  const model = {
+    name: "spy",
+    ask: async (req: { messages: { role: "user" | "assistant"; content: string }[] }) => {
+      seen.push(req.messages);
+      return { text: "Fine.", usage: { inputTokens: 1, outputTokens: 1, cacheReadTokens: 0, cacheWriteTokens: 0 } };
+    },
+  };
+  return { seen, model: model as never };
+};
+
 describe("askQuestion", () => {
   it("answers, saves both messages and charges free chat", async () => {
     const s = await finished("ask-ok.test");
@@ -76,9 +95,8 @@ describe("askQuestion", () => {
     const s = await finished("ask-cap.test");
     process.env.AGENT_DAILY_CAP_USD = "0";
     expect(await ask.askQuestion(s.id, "q", fake())).toEqual({ ok: false, code: "paused" });
-    const user = await data.upsertUser("buyer@ask-cap.test");
-    await data.createReportOnce({ scanId: s.id, userId: user.id, token: "tok-askcap-0123456789abcdef", stripeSessionId: null, amountCents: 9900, currency: "usd" });
-    expect((await ask.askQuestion(s.id, "q", fake())).ok).toBe(true);
+    const token = await buy(s.id, "ask-cap.test");
+    expect((await ask.askQuestion(s.id, "q", fake(), token)).ok).toBe(true);
   });
 
   it("is off without the key", async () => {
@@ -145,5 +163,55 @@ describe("the chat route", () => {
     await ask.askQuestion(s.id, "Hi", fake());
     const res = await GET(new Request("http://site.test/"), { params: Promise.resolve({ id: s.id }) } as never);
     expect(await res.json()).toMatchObject({ mode: "open", left: 4, limit: 5, paid: false, messages: [{ role: "user", body: "Hi" }, { role: "assistant" }] });
+  });
+});
+
+describe("paid chat needs the report's own link", () => {
+  it("the free result's link never reaches the paid chat", async () => {
+    const s = await finished("ask-paidgate.test");
+    const token = await buy(s.id, "ask-paidgate.test");
+    const free = spy();
+    await ask.askQuestion(s.id, "From the free link", free.model);
+    await ask.askQuestion(s.id, "With a wrong token", free.model, "tokwrongwrong0123456789abcdef");
+    for (const m of free.seen) expect(m.at(-1)!.content).toContain("This is the free scan.");
+    expect(await data.countQuestions(s.id)).toBe(2);
+    const paid = spy();
+    await ask.askQuestion(s.id, "From the report", paid.model, token);
+    expect(paid.seen[0].at(-1)!.content).toContain("The owner bought the full report.");
+    // The paid conversation does not include the free one, and the other way round.
+    expect(paid.seen[0].map((m) => m.content).join(" ")).not.toContain("From the free link");
+    expect((await ask.chatState((await data.getScan(s.id))!, token)).messages.map((m) => m.body)).toEqual(["From the report", "Fine."]);
+    expect((await ask.chatState((await data.getScan(s.id))!)).limit).toBe(5);
+    expect((await ask.chatState((await data.getScan(s.id))!, token)).limit).toBe(100);
+  });
+
+  it("a token for another scan's report does not count", async () => {
+    const a = await finished("ask-other-a.test");
+    const b = await finished("ask-other-b.test");
+    const tokenB = await buy(b.id, "ask-other-b.test");
+    expect((await ask.chatState((await data.getScan(a.id))!, tokenB)).paid).toBe(false);
+  });
+});
+
+describe("the chat route and the report link", () => {
+  it("opens the paid chat only with the report's token", async () => {
+    const { GET, POST } = await import("@/app/api/scans/[id]/chat/route");
+    const s = await finished("route-paid.test");
+    const token = await buy(s.id, "route-paid.test");
+    const get = async (q: string) => (await GET(new Request(`http://site.test/api/scans/${s.id}/chat${q}`), { params: Promise.resolve({ id: s.id }) } as never)).json();
+    expect(await get("")).toMatchObject({ paid: false, limit: 5 });
+    expect(await get(`?report=${token}`)).toMatchObject({ paid: true, limit: 100 });
+    process.env.CHAT_FAKE_MODEL = "1";
+    process.env.ALLOW_PRIVATE_TARGETS = "1";
+    try {
+      const res = await POST(
+        new Request(`http://site.test/api/scans/${s.id}/chat`, { method: "POST", headers: { host: "site.test", origin: "http://site.test" }, body: JSON.stringify({ question: "Hi", report: token }) }),
+        { params: Promise.resolve({ id: s.id }) } as never,
+      );
+      expect(await res.json()).toEqual({ answer: "Test answer to: Hi", left: 99 });
+    } finally {
+      delete process.env.CHAT_FAKE_MODEL;
+      delete process.env.ALLOW_PRIVATE_TARGETS;
+    }
   });
 });

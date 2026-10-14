@@ -573,13 +573,15 @@ export async function deleteLiveFrame(scanId: string): Promise<void> {
 export type ChatRow = { id: number; role: "user" | "assistant"; body: string; createdAt: Date };
 
 // One transaction with the scan row locked, so two questions sent at once
-// cannot both take the last slot.
-export async function reserveQuestion(scanId: string, body: string, limit: number): Promise<number | null> {
+// cannot both take the last slot. Free and paid conversations count apart.
+export async function reserveQuestion(scanId: string, body: string, limit: number, paid = false): Promise<number | null> {
   return db().begin(async (sql) => {
     await sql`select id from scans where id = ${scanId} for update`;
-    const [{ n }] = await sql<{ n: number }[]>`select count(*)::int as n from chat_messages where scan_id = ${scanId} and role = 'user'`;
+    const [{ n }] = await sql<{ n: number }[]>`
+      select count(*)::int as n from chat_messages where scan_id = ${scanId} and paid = ${paid} and role = 'user'`;
     if (n >= limit) return null;
-    const [row] = await sql<{ id: string }[]>`insert into chat_messages (scan_id, role, body) values (${scanId}, 'user', ${body}) returning id`;
+    const [row] = await sql<{ id: string }[]>`
+      insert into chat_messages (scan_id, paid, role, body) values (${scanId}, ${paid}, 'user', ${body}) returning id`;
     return Number(row.id);
   }) as Promise<number | null>;
 }
@@ -588,17 +590,18 @@ export async function releaseQuestion(messageId: number): Promise<void> {
   await db()`delete from chat_messages where id = ${messageId} and role = 'user'`;
 }
 
-export async function saveAnswer(scanId: string, body: string): Promise<void> {
-  await db()`insert into chat_messages (scan_id, role, body) values (${scanId}, 'assistant', ${body})`;
+export async function saveAnswer(scanId: string, body: string, paid = false): Promise<void> {
+  await db()`insert into chat_messages (scan_id, paid, role, body) values (${scanId}, ${paid}, 'assistant', ${body})`;
 }
 
-export async function listChat(scanId: string): Promise<ChatRow[]> {
+export async function listChat(scanId: string, paid = false): Promise<ChatRow[]> {
   const rows = await db()<{ id: string; role: "user" | "assistant"; body: string; created_at: Date }[]>`
-    select id, role, body, created_at from chat_messages where scan_id = ${scanId} order by id`;
+    select id, role, body, created_at from chat_messages where scan_id = ${scanId} and paid = ${paid} order by id`;
   return rows.map((r) => ({ id: Number(r.id), role: r.role, body: r.body, createdAt: r.created_at }));
 }
 
-export async function countQuestions(scanId: string): Promise<number> {
-  const [{ n }] = await db()<{ n: number }[]>`select count(*)::int as n from chat_messages where scan_id = ${scanId} and role = 'user'`;
+export async function countQuestions(scanId: string, paid = false): Promise<number> {
+  const [{ n }] = await db()<{ n: number }[]>`
+    select count(*)::int as n from chat_messages where scan_id = ${scanId} and paid = ${paid} and role = 'user'`;
   return n;
 }

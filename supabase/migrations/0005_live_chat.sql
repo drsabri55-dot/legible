@@ -20,14 +20,18 @@ create table scan_live (
   updated_at timestamptz not null default now()
 );
 
+-- Free chat (the scan's link) and paid chat (the report's link) are two
+-- conversations with their own limits: the paid one may use the whole-site
+-- results, so it is never shown through the free link.
 create table chat_messages (
   id bigint generated always as identity primary key,
   scan_id uuid not null references scans (id) on delete cascade,
+  paid boolean not null default false,
   role text not null check (role in ('user', 'assistant')),
   body text not null,
   created_at timestamptz not null default now()
 );
-create index chat_messages_scan on chat_messages (scan_id, id);
+create index chat_messages_scan on chat_messages (scan_id, paid, id);
 
 alter table scan_events enable row level security;
 alter table scan_live enable row level security;

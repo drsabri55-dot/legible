@@ -68,3 +68,17 @@ describe("chat", () => {
     ]);
   });
 });
+
+describe("free and paid conversations", () => {
+  it("are counted and listed apart", async () => {
+    const s = await scan("apart.test");
+    await data.reserveQuestion(s.id, "free one", 5);
+    await data.saveAnswer(s.id, "free answer");
+    await data.reserveQuestion(s.id, "paid one", 100, true);
+    await data.saveAnswer(s.id, "paid answer", true);
+    expect(await data.countQuestions(s.id)).toBe(1);
+    expect(await data.countQuestions(s.id, true)).toBe(1);
+    expect((await data.listChat(s.id)).map((m) => m.body)).toEqual(["free one", "free answer"]);
+    expect((await data.listChat(s.id, true)).map((m) => m.body)).toEqual(["paid one", "paid answer"]);
+  });
+});
