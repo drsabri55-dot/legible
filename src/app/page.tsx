@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ScanForm } from "@/components/ScanForm";
 import { AGENT } from "@/components/agent/wording";
+import { chatEnabled } from "@/lib/chat/limits";
 import { ScanShortcut } from "@/components/landing/ScanShortcut";
 import { StoryEngineMount } from "@/components/landing/StoryEngineMount";
 import { Logo } from "@/components/site/Logo";
@@ -119,8 +120,8 @@ export default function Home() {
                   What Legible is, and why the trip is worth taking.
                 </h2>
                 <p data-reveal="" data-reveal-delay="2" className={s.body2}>
-                  Legible tests your home page and up to five linked pages against WCAG 2.1 AA. The report explains
-                  each failure, who it affects and the code change that fixes it.
+                  Legible tests your home page and up to five linked pages against WCAG 2.1 AA. The report explains each
+                  failure, who it affects and the code change that fixes it.
                 </p>
                 <ul className={s.cards}>
                   <li data-reveal="" data-reveal-delay="3" className={s.card}>
@@ -265,11 +266,7 @@ export default function Home() {
                       aria-label={`A score of ${SCORE} out of 100 on a rail that ends at 0 failures. ${AA_LINE - SCORE} points to go.`}
                     >
                       <div className={s.railRule} />
-                      <div
-                        data-a="gap"
-                        className={s.gap}
-                        style={{ left: `${SCORE}%`, width: `${AA_LINE - SCORE}%` }}
-                      />
+                      <div data-a="gap" className={s.gap} style={{ left: `${SCORE}%`, width: `${AA_LINE - SCORE}%` }} />
                       <div className={s.aa} style={{ left: `${AA_LINE}%` }}>
                         <span className={s.aaLabel}>0 failures</span>
                       </div>
@@ -302,8 +299,8 @@ export default function Home() {
                     <Split text="Enter your site and we will test it." />
                   </h2>
                   <p data-reveal="" data-reveal-delay="1" className={s.body7a}>
-                    You landed. The free scan tests your home page and five more, and shows how to fix each problem, in the
-                    order to do them.
+                    You landed. The free scan tests your home page and five more, and shows how to fix each problem, in
+                    the order to do them.
                   </p>
                   <p data-reveal="" data-reveal-delay="2" className={s.body7b}>
                     The full report tests your whole site, up to 50 pages, with a PDF to share, for a one-time {price}.
@@ -311,12 +308,14 @@ export default function Home() {
                   <div data-reveal="" data-reveal-delay="3" style={{ margin: "38px 0 0", maxWidth: "30rem" }}>
                     <ScanForm />
                   </div>
-                  <div data-reveal="" data-reveal-delay="4" className={s.agent7}>
-                    <p className={s.agentLead}>{AGENT.landingLead}</p>
-                    <Link href="/agent" className="btn btn-primary btn-cta">
-                      {AGENT.landingButton} <span aria-hidden="true">→</span>
-                    </Link>
-                  </div>
+                  {chatEnabled() && (
+                    <div data-reveal="" data-reveal-delay="4" className={s.agent7}>
+                      <p className={s.agentLead}>{AGENT.landingLead}</p>
+                      <Link href="/agent" className="btn btn-primary btn-cta">
+                        {AGENT.landingButton} <span aria-hidden="true">→</span>
+                      </Link>
+                    </div>
+                  )}
                 </div>
               </div>
             </section>

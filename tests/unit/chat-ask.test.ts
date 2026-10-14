@@ -215,3 +215,25 @@ describe("the chat route and the report link", () => {
     }
   });
 });
+
+describe("the AI agent entry (review fix)", () => {
+  it("the agent page is open only while the agent can run for free", async () => {
+    const { agentPageOpen } = await import("@/lib/chat/limits");
+    expect(await agentPageOpen()).toBe(true);
+    process.env.AGENT_DAILY_CAP_USD = "0";
+    expect(await agentPageOpen()).toBe(false);
+    delete process.env.AGENT_DAILY_CAP_USD;
+    delete process.env.ANTHROPIC_API_KEY;
+    expect(await agentPageOpen()).toBe(false);
+  });
+
+  it("a scan's agent chat is open only when that scan runs with the agent", async () => {
+    const { agentChatOpen } = await import("@/lib/chat/limits");
+    expect(agentChatOpen({ status: "running", agent: "on" })).toBe(true);
+    expect(agentChatOpen({ status: "complete", agent: "on" })).toBe(true);
+    expect(agentChatOpen({ status: "running", agent: "capped" })).toBe(false);
+    expect(agentChatOpen({ status: "failed", agent: "on" })).toBe(false);
+    delete process.env.ANTHROPIC_API_KEY;
+    expect(agentChatOpen({ status: "running", agent: "on" })).toBe(false);
+  });
+});

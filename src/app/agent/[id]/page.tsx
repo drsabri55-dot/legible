@@ -6,7 +6,7 @@ import { Chat } from "@/components/chat/Chat";
 import { ScanProgress } from "@/components/results/ScanProgress";
 import { Kicker, SiteShell } from "@/components/site/SiteShell";
 import { chatState } from "@/lib/chat/ask";
-import { chatEnabled } from "@/lib/chat/limits";
+import { agentChatOpen } from "@/lib/chat/limits";
 import { getScan } from "@/lib/data";
 import { privatePage } from "@/lib/page-meta";
 import { siteName } from "@/lib/url";
@@ -18,12 +18,13 @@ export async function generateMetadata(props: PageProps<"/agent/[id]">): Promise
 }
 
 // The chat first, with the scan's progress above it. Answers use what the
-// agent has tested so far. Without the chat, this is the scan's own page.
+// agent has tested so far. A scan without the agent (no key, or the daily
+// limit was reached) goes to its own page, which says why.
 export default async function AgentChatPage(props: PageProps<"/agent/[id]">) {
   const { id } = await props.params;
   const scan = await getScan(id);
   if (!scan) notFound();
-  if (!chatEnabled() || scan.status === "failed") redirect(`/scan/${id}`);
+  if (!agentChatOpen(scan)) redirect(`/scan/${id}`);
   const running = scan.status === "queued" || scan.status === "running";
   return (
     <SiteShell>
