@@ -5,7 +5,7 @@ Values marked **you** are secrets: paste them into the service's own settings pa
 
 ## 1. Database (Supabase project `legible`, id `hcxakorfsotuvjyuwiqe`)
 - The project pauses when unused. Restore it in the Supabase dashboard before anything else.
-- `0001_init` is applied. Apply `0002_scan_shots` to `0005_live_chat` (in order) before the site goes up.
+- `0001_init` is applied. Apply `0002_scan_shots` to `0005_live_chat` (in order) before the site goes up, with `npm run db:migrate` and `DATABASE_URL` set to the project.
   Phases 3 to 5 need all of them; the site fails on missing tables.
 - Run Supabase's security advisor afterwards: every table has row-level security on and no policies.
 
